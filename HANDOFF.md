@@ -35,3 +35,7 @@ Not required for the current technical backlog. Branding/mascot and optional the
 
 ## Stop rule
 Do not stop after a push, milestone, report, or CI success. Continue until all independently actionable work is finished or every remaining task genuinely requires Joseph. Record exact verification evidence and blockers; do not claim completion based only on committed source.
+
+## Verification update, 0.0.2
+
+The source tree matched GitHub commit a34fd75. Both baseline CI jobs passed in run 45240642565. This supersedes the earlier baseline verification note. The deployment job now exercises the packaged service. See TESTING.md for its command and scope. Next, audit authentication and storage failure handling.
