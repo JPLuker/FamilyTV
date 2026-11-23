@@ -53,3 +53,7 @@ Parent authentication landed in 6823602 and passed all three CI jobs in run 4524
 ## Parent dashboard update, 0.2.0
 
 PostgreSQL landed in 58bad9a after run 45241956505 passed all three jobs. Go tests, race tests and vet also passed locally against PostgreSQL 17.12. Profile management now loads on dashboard entry, supports changing navigation, captions, audio description and reduced motion, and downloads a settings-only export. The browser regression walks through sign-in, edit, export, delete and sign-out on a phone-sized viewport. Next, build local media import and playback.
+
+## Local media update, 0.3.0
+
+Parent-only media import, range playback, adjacent WebVTT captions, source-change detection and catalog removal are implemented. The parent picks a relative path under a read-only mount. Removing an entry preserves its source. TestParentMedia uses FFmpeg to create a real video and FFprobe to read its duration, then checks authenticated range/caption delivery and removal. Review approval, child discovery and session enforcement next.

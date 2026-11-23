@@ -28,6 +28,7 @@ type loginAttempts struct {
 	Until int64 `json:"until"`
 }
 type state struct {
+	Media    []Media                  `json:"media,omitempty"`
 	Attempts map[string]loginAttempts `json:"login_attempts,omitempty"`
 	Account  *account                 `json:"account,omitempty"`
 	Sessions map[string]int64         `json:"sessions,omitempty"`
@@ -243,6 +244,11 @@ func (s *Server) Routes() http.Handler {
 		http.SetCookie(w, &http.Cookie{Name: "familytv_admin", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteStrictMode})
 		write(w, 200, map[string]bool{"authenticated": false})
 	})
+	mux.HandleFunc("GET /api/media", s.mediaList)
+	mux.HandleFunc("POST /api/media", s.importMedia)
+	mux.HandleFunc("DELETE /api/media/{id}", s.removeMedia)
+	mux.HandleFunc("GET /api/media/{id}/file", s.parentMediaFile)
+	mux.HandleFunc("GET /api/media/{id}/captions", s.parentMediaFile)
 	mux.HandleFunc("GET /api/profiles", s.listProfiles)
 	mux.HandleFunc("POST /api/profiles", s.createProfile)
 	mux.HandleFunc("DELETE /api/profiles/{id}", s.deleteProfile)

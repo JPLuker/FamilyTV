@@ -23,8 +23,10 @@ services:
         condition: service_healthy
     ports: ["127.0.0.1:8080:8080"]
     environment:
+      FAMILYTV_MEDIA_DIR: /media
       FAMILYTV_DATABASE_URL: "host=/var/run/postgresql dbname=familytv user=familytv sslmode=disable connect_timeout=5"
     volumes:
+      - ${FAMILYTV_MEDIA_ROOT:-./media}:/media:ro
       - familytv_socket:/var/run/postgresql:ro
       - familytv_data:/data:ro
     restart: unless-stopped

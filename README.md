@@ -17,3 +17,7 @@ The parent dashboard and API share an origin in the Docker build. Compose stores
 | npm, Go module and Docker registries | During explicit installation/build | Dependency requests |
 
 No runtime analytics, tracking, advertising or external fonts. See ROADMAP.md and HANDOFF.md.
+
+## Local media
+
+Put an MP4 or WebM file in the project's media directory, or set FAMILYTV_MEDIA_ROOT to an existing directory before starting Compose. The host directory is mounted read-only. Enter the path relative to that folder in the parent dashboard. FamilyTV reads the video duration with FFprobe. A WebVTT file with the same base name supplies captions, for example Nature/Forest.vtt alongside Nature/Forest.mp4. Preview uses the browser's supported codecs. Back up the source media separately from the household database.

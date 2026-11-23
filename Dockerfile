@@ -9,7 +9,7 @@ WORKDIR /src
 COPY backend/ ./
 RUN CGO_ENABLED=0 go build -trimpath -o /familytv ./cmd/server
 FROM alpine:3.21
-RUN addgroup -S familytv && adduser -S -G familytv familytv && mkdir -p /data && chown familytv:familytv /data
+RUN apk add --no-cache ffmpeg && addgroup -S familytv && adduser -S -G familytv familytv && mkdir -p /data && chown familytv:familytv /data
 COPY --from=gobuild /familytv /usr/local/bin/familytv
 COPY --from=webbuild /web/dist /opt/familytv/web
 USER familytv

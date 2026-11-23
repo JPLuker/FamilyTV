@@ -76,6 +76,12 @@ func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) 
 			write(w, 503, map[string]string{"error": "storage unavailable"})
 			return
 		}
+		if readOnly {
+			if err = tx.Commit(); err != nil {
+				write(w, 503, map[string]string{"error": "storage unavailable"})
+				return
+			}
+		}
 		if s.data.Sessions == nil {
 			s.data.Sessions = map[string]int64{}
 		}

@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react'
 import {createRoot} from 'react-dom/client'
 import Profiles from './Profiles'
+import MediaLibrary from './MediaLibrary'
 import {ApiError,errorMessage,request} from './api'
 import './style.css'
 
@@ -50,6 +51,7 @@ function App() {
     </> : phase==='dashboard' ? <section aria-labelledby="welcome">
       <h1 id="welcome">Dashboard</h1>
       <Profiles onExpired={onExpired}/>
+      <MediaLibrary/>
       {error&&<p role="alert">{error}</p>}
       <p><button onClick={logout}>Sign out</button></p>
     </section> : <section aria-labelledby="heading">
