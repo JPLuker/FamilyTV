@@ -21,3 +21,9 @@ No runtime analytics, tracking, advertising or external fonts. See ROADMAP.md an
 ## Local media
 
 Put an MP4 or WebM file in the project's media directory, or set FAMILYTV_MEDIA_ROOT to an existing directory before starting Compose. The host directory is mounted read-only. Enter the path relative to that folder in the parent dashboard. FamilyTV reads the video duration with FFprobe. A WebVTT file with the same base name supplies captions, for example Nature/Forest.vtt alongside Nature/Forest.mp4. Preview uses the browser's supported codecs. Back up the source media separately from the household database.
+
+## Viewing sessions
+
+Open Session next to a profile, choose the ending rule and start the session. Open the one-time viewer link on the child's browser within ten minutes. Use a server address that is reachable from that device. The default loopback deployment is for use on the same machine. Parent and viewer credentials are separate. A parent can stop a session immediately or at the end of the current video.
+
+Finish by uses the time zone shown in the parent's browser. FamilyTV stores the absolute deadline and filters the catalog by remaining time, approval and required accessibility settings. The child starts each on-demand video. A lost connection pauses viewing until the service is available.

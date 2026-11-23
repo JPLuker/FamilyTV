@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from 'react'
+import SessionControls from './SessionControls'
 import {ApiError, errorMessage, request} from './api'
 
 type Settings = {
@@ -20,6 +21,7 @@ export default function Profiles({onExpired}: {onExpired: () => void}) {
   const [notice,setNotice] = useState('')
   const [busy,setBusy] = useState(false)
   const [reload,setReload] = useState(0)
+  const [sessionProfile,setSessionProfile]=useState<Profile>()
   const [editing,setEditing] = useState<string>()
   const [settings,setSettings] = useState<Settings>(defaults)
   const nameInput = useRef<HTMLInputElement>(null)
@@ -72,6 +74,7 @@ export default function Profiles({onExpired}: {onExpired: () => void}) {
       await request('profiles/'+encodeURIComponent(p.id),'DELETE')
       setProfiles(previous => previous.filter(old => old.id!==p.id))
       if (editing===p.id) reset()
+      if(sessionProfile?.id===p.id)setSessionProfile(undefined)
       setNotice('Removed '+p.name+'.')
     })
   }
@@ -83,10 +86,12 @@ export default function Profiles({onExpired}: {onExpired: () => void}) {
     <ul>{profiles.map(p => <li key={p.id}>
       <strong>{p.name}</strong> · {[navigationModes[p.navigation],...toggles.filter(([key])=>p[key]).map(([,label])=>label)].filter(Boolean).join(' · ')}
       <div className="actions">
+        <button disabled={busy} aria-label={'Viewing session for '+p.name} onClick={()=>setSessionProfile(p)}>Session</button>
         <button disabled={busy} onClick={() => edit(p)} aria-label={'Edit '+p.name}>Edit</button>
         <button disabled={busy} onClick={() => remove(p)} aria-label={'Remove '+p.name}>Remove</button>
       </div>
     </li>)}</ul>
+    {sessionProfile&&<SessionControls key={sessionProfile.id} profile={sessionProfile} close={()=>setSessionProfile(undefined)}/>}
     <form onSubmit={save}>
       <h3>{editing ? 'Edit profile' : 'New profile'}</h3>
       <label htmlFor="child-name">Profile name</label>

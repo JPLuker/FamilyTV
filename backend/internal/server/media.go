@@ -179,6 +179,33 @@ func (s *Server) parentMediaFile(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	serveMedia(w, r, media)
+}
+func (s *Server) viewerMediaFile(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	v, p, ok := s.viewer(r)
+	var media Media
+	if ok && v.Current == r.PathValue("id") {
+		for _, m := range s.data.Media {
+			if m.ID == v.Current && available(m, p) {
+				media = m
+				break
+			}
+		}
+	}
+	s.mu.Unlock()
+	if media.ID == "" {
+		http.NotFound(w, r)
+		return
+	}
+	if v.Deadline != 0 {
+		ctrl := http.NewResponseController(w)
+		_ = ctrl.SetWriteDeadline(time.UnixMilli(v.Deadline))
+		defer ctrl.SetWriteDeadline(time.Time{})
+	}
+	serveMedia(w, r, media)
+}
+func serveMedia(w http.ResponseWriter, r *http.Request, media Media) {
 	f, info, err := openMedia(media.Path)
 	if err != nil {
 		http.NotFound(w, r)

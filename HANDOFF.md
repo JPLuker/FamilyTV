@@ -61,3 +61,7 @@ Parent-only media import, range playback, adjacent WebVTT captions, source-chang
 ## Parent review update, 0.4.0
 
 Each imported video starts unapproved. Parents review the subject, captions and described soundtrack, then select individual child profiles. Accessibility eligibility requires verified metadata for each enabled requirement. The dashboard lists library coverage gaps. Tests cover rejected anonymous changes, approval persistence, unknown metadata and revocation. The phone-sized Chromium journey now includes import, review and preview.
+
+## Viewer and session update, 0.5.0
+
+The parent dashboard can start, end or finish-after-current a viewing session. A one-time link exchanges for a viewer-only cookie. Catalog, selection and media routes enforce profile approval, accessibility requirements and session deadlines. The separate child page supports search, keyboard navigation, deliberate on-demand playback and a session-ending fact. Tests cover replayed links, cross-role access, hard deadlines, range access, restarts of the surrounding service and parent/child browser journeys. Next, implement scheduled live channels and the guide. Physical TV and assistive-technology testing remain open.

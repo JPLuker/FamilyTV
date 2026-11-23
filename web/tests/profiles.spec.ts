@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test'
 
-test('parent can edit, export and remove a returning child profile',async({page})=>{
+test('parent can edit, export and remove a returning child profile',async({page,browser})=>{
   const password='temporary browser test password'
   await page.goto('/')
   await page.getByLabel('Password').fill(password)
@@ -42,6 +42,20 @@ test('parent can edit, export and remove a returning child profile',async({page}
   const video=page.locator('video')
   await expect.poll(()=>video.evaluate(v=>v.readyState)).toBeGreaterThan(0)
   expect(await video.evaluate(v=>v.autoplay)).toBe(false)
+  await page.getByRole('button',{name:'Viewing session for Robin'}).click()
+  await page.getByLabel('Session ends').selectOption('one_video')
+  await page.getByRole('button',{name:'Start session'}).click()
+  const link=await page.getByLabel('One-time viewer link',{exact:false}).inputValue()
+  const child=await browser.newPage()
+  await child.goto(link)
+  await child.getByRole('button',{name:'forest',exact:true}).click()
+  await expect(child.locator('video')).toBeVisible()
+  await expect.poll(()=>child.locator('video').evaluate(v=>v.readyState)).toBeGreaterThan(0)
+  expect(await child.locator('video').evaluate(v=>v.autoplay)).toBe(false)
+  await child.getByRole('button',{name:'Finish video'}).click()
+  await expect(child.getByRole('heading',{name:'Viewing time is over'})).toBeVisible()
+  expect((await child.request.get('/api/profiles')).status()).toBe(401)
+  await child.close()
   page.once('dialog',d=>d.accept())
   await page.getByRole('button',{name:'Remove video forest'}).click()
   await expect(video).toHaveCount(0)

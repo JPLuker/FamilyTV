@@ -1,5 +1,6 @@
 import React,{useCallback,useEffect,useState} from 'react'
 import {createRoot} from 'react-dom/client'
+import Viewer from './Viewer'
 import Profiles from './Profiles'
 import MediaLibrary from './MediaLibrary'
 import {ApiError,errorMessage,request} from './api'
@@ -66,4 +67,4 @@ function App() {
     </section>}
   </main>
 }
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>)
+createRoot(document.getElementById('root')!).render(<React.StrictMode>{location.pathname==='/watch'?<Viewer/>:<App/>}</React.StrictMode>)
