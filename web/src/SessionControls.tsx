@@ -22,10 +22,17 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
       await refresh()
     }catch(e){setError(errorMessage(e))}finally{setBusy(false)}
   }
+  async function reissue(){
+    setBusy(true);setError('')
+    try{const {code}=await request<{code:string}>(path+'/pair','POST');setLink(location.origin+'/watch#'+code)}
+    catch(e){setError(errorMessage(e))}finally{setBusy(false)}
+  }
   return <section aria-label={'Viewing session for '+profile.name}><h3>Viewing session for {profile.name}</h3>
     {status?.active ? <>
       <p>{status.last?'Ends after the current video':status.deadline?'Ends '+new Date(status.deadline).toLocaleString():'Ends when you stop it'}</p>
       {link && <label>One-time viewer link · valid for 10 minutes<input readOnly value={link} onFocus={e=>e.target.select()}/></label>}
+      <p>{link&&<>TV pairing code <strong>{link.split('#')[1]}</strong></>}</p>
+      <button disabled={busy} onClick={reissue}>Get a new pairing code</button>
       <div className="actions"><button disabled={busy} onClick={()=>change('DELETE')}>End now</button>
       {!status.last&&<button disabled={busy} onClick={()=>change('PATCH')}>End after current video</button>}</div>
     </> : status && <form onSubmit={e=>{e.preventDefault();void change('POST')}}>

@@ -1,7 +1,9 @@
 package server
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base32"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -89,6 +91,14 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 	}
 	now := time.Now()
 	v := s.data.Viewing[id]
+	if strings.HasSuffix(r.URL.Path, "/pair") {
+		if !active(v, now) {
+			write(w, 409, map[string]string{"error": "Start a viewing session first."})
+			return
+		}
+		s.issueCode(w, id, v, now)
+		return
+	}
 	if r.Method == "GET" {
 		write(w, 200, map[string]any{"active": active(v, now), "mode": v.Mode, "deadline": v.Deadline, "playing": v.Current != "" || v.Channel != "", "last": v.Last})
 		return
@@ -158,7 +168,15 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		write(w, 400, map[string]string{"error": "Unknown session mode."})
 		return
 	}
-	code := token()
+	s.issueCode(w, id, v, now)
+}
+func (s *Server) issueCode(w http.ResponseWriter, id string, v Viewing, now time.Time) {
+	var raw [8]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		write(w, 500, map[string]string{"error": "Pairing unavailable."})
+		return
+	}
+	code := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw[:])
 	v.JoinHash = secretHash(code)
 	v.JoinUntil = now.Add(10 * time.Minute).UnixMilli()
 	if s.setViewing(w, id, &v) {
@@ -176,8 +194,9 @@ func (s *Server) joinViewing(w http.ResponseWriter, r *http.Request) {
 	defer s.mu.Unlock()
 	now := time.Now()
 	hash := secretHash(input.Code)
+	normalized := secretHash(strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(input.Code), "-", "")))
 	for id, v := range s.data.Viewing {
-		if v.JoinHash != hash || !active(v, now) || v.JoinUntil <= now.UnixMilli() {
+		if (v.JoinHash != hash && v.JoinHash != normalized) || !active(v, now) || v.JoinUntil <= now.UnixMilli() {
 			continue
 		}
 		if _, ok := s.profile(id); !ok {

@@ -69,3 +69,7 @@ The parent dashboard can start, end or finish-after-current a viewing session. A
 ## Live TV update, 0.6.0
 
 Parents can create and remove local channels with ordered programming blocks. The child guide filters the current and next program for the active profile and deadline. The stream endpoint checks the exact current slot. After-current stops a live session at the program boundary. Tests cover slot rollover, unavailable programs, permission checks and stopping. External Tunarr remains separate from the native channel implementation.
+
+## Android TV pairing update, 0.7.0
+
+Android TV has a Leanback launcher entry, native D-pad pairing form and origin-restricted viewer. Build with Gradle 8.11.1 and JDK 17 from android-tv. CI assembles and lints the debug APK. The parent can issue a new one-time code for the existing session. Physical remote navigation, audio, captions and resume remain device acceptance items. Human-made release branding and release signing remain pending.

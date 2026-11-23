@@ -253,6 +253,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/channels", s.parentChannels)
 	mux.HandleFunc("DELETE /api/channels/{id}", s.parentChannels)
 	mux.HandleFunc("POST /api/watch/tune", s.tune)
+	mux.HandleFunc("POST /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)
 	mux.HandleFunc("GET /api/watch", s.watchCatalog)
 	mux.HandleFunc("POST /api/watch/play", s.watchAction)

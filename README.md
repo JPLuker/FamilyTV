@@ -31,3 +31,7 @@ Finish by uses the time zone shown in the parent's browser. FamilyTV stores the 
 ## Live channels
 
 Parents create a channel by appending imported videos in playback order. The lineup starts at creation and repeats on a shared clock. The child guide shows the current and next eligible program. Joining live starts at the current program offset. Approvals, accessibility requirements and finish-by limits apply to the guide and stream. Continuous playback starts only after choosing a live channel.
+
+## Android TV
+
+The Android TV debug APK is attached to the android-tv CI job. Install it on a TV for testing, enter the HTTPS origin of your FamilyTV server, then the pairing code shown in the parent's session controls. Back opens pairing again. A new code replaces an unused one. Redeeming it moves the session to the new viewer. The TV stores the server address and uses the viewer cookie for the session.

@@ -60,7 +60,7 @@ export default function Viewer(){
     }catch(e){if(e instanceof ApiError&&e.status===403)end();else setError(errorMessage(e))}finally{setBusy(false)}
   }
   function move(e:React.KeyboardEvent<HTMLElement>){
-    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)||['INPUT','VIDEO'].includes((e.target as HTMLElement).tagName))return
+    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)||(e.target as HTMLElement).tagName==='VIDEO'||((e.target as HTMLElement).tagName==='INPUT'&&['ArrowLeft','ArrowRight'].includes(e.key)))return
     const controls=Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input,video'))
     const index=controls.indexOf(document.activeElement as HTMLElement)
     if(controls.length){e.preventDefault();controls[Math.max(0,Math.min(controls.length-1,index+(['ArrowLeft','ArrowUp'].includes(e.key)?-1:1)))].focus()}
