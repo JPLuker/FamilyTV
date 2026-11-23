@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/pbkdf2"
 	"crypto/rand"
 	"crypto/sha256"
@@ -37,6 +38,7 @@ type state struct {
 	Profiles []ChildProfile           `json:"profiles,omitempty"`
 }
 type Server struct {
+	currentState  func(context.Context) (state, error)
 	mu            sync.Mutex
 	path          string
 	data          state

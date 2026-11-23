@@ -81,3 +81,7 @@ The parent can load an XMLTV guide, choose a channel, review title matches and s
 ## Accessibility and endings update, 0.9.0
 
 Profiles now control text size, contrast, navigation pictures, reduced motion and optional ending music. Pictures come from approved source files. Child-facing picture and music delivery both verify the viewer session. The visual ending draws from forty facts. Removing a profile also clears its viewing session and approval assignments. Automated checks cover the picture, contrast and size settings. Actual remote, screen-reader and family usability checks still require people and devices.
+
+## Revocation and accessibility verification, 0.9.1
+
+Open viewer streams recheck the current session and approval while sending data. PostgreSQL streams release the initial transaction before playback and check the latest committed household state. The browser journey now scans setup, the parent dashboard, child discovery and the ending for automated accessibility violations. SECURITY.md records trust boundaries, household data retention, HTTPS setup and outstanding specialist reviews. These automated checks do not replace real-device or human testing.

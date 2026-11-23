@@ -1,8 +1,15 @@
+import AxeBuilder from '@axe-core/playwright'
 import {test,expect} from '@playwright/test'
 
 test('parent can edit, export and remove a returning child profile',async({page,browser})=>{
   const password='temporary browser test password'
+  async function checkAccessibility(target:typeof page){
+    const {violations}=await new AxeBuilder({page:target}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze()
+    expect(violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))).toEqual([])
+  }
   await page.goto('/')
+  await page.getByRole('heading',{name:'Create parent account'}).waitFor()
+  await checkAccessibility(page)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button',{name:'Create account'}).click()
   await page.getByRole('heading',{name:'Parent sign in'}).waitFor()
@@ -56,9 +63,11 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await page.getByLabel('Session ends').selectOption('one_video')
   await page.getByRole('button',{name:'Start session'}).click()
   const link=await page.getByLabel('One-time viewer link',{exact:false}).inputValue()
-  const child=await browser.newPage()
+  const childContext=await browser.newContext()
+  const child=await childContext.newPage()
   await child.goto(link)
   await expect(child.getByRole('button',{name:'Nature',exact:true})).toBeVisible()
+  await checkAccessibility(child)
   await expect(child.locator('main')).toHaveClass(/contrast/)
   await expect(child.locator('main')).toHaveClass(/large/)
   const picture=child.getByRole('button',{name:'forest',exact:true}).locator('img')
@@ -70,7 +79,9 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await child.getByRole('button',{name:'Finish video'}).click()
   await expect(child.getByRole('heading',{name:'Viewing time is over'})).toBeVisible()
   expect((await child.request.get('/api/profiles')).status()).toBe(401)
-  await child.close()
+  await checkAccessibility(child)
+  await childContext.close()
+  await checkAccessibility(page)
   page.once('dialog',d=>d.accept())
   await page.getByRole('button',{name:'Remove video forest'}).click()
   await expect(video).toHaveCount(0)

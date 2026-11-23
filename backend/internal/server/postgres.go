@@ -72,6 +72,15 @@ func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) 
 		}
 		var b []byte
 		s := &Server{secureCookies: secure}
+		s.currentState = func(ctx context.Context) (state, error) {
+			var current state
+			var snapshot []byte
+			e := db.QueryRowContext(ctx, "SELECT document FROM familytv_household WHERE singleton AND version=1").Scan(&snapshot)
+			if e == nil {
+				e = json.Unmarshal(snapshot, &current)
+			}
+			return current, e
+		}
 		if err = tx.QueryRowContext(ctx, query).Scan(&b); err != nil || json.Unmarshal(b, &s.data) != nil {
 			write(w, 503, map[string]string{"error": "storage unavailable"})
 			return

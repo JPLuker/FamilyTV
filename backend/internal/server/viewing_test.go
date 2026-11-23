@@ -114,3 +114,17 @@ func TestViewingSessionBoundaries(t *testing.T) {
 		}
 	}
 }
+
+func TestActiveResponseChecksRevocation(t *testing.T) {
+	eligible := true
+	guarded := checkedStream{ReadSeeker: strings.NewReader("sample"), check: func() bool { return eligible }}
+	var b [1]byte
+	if n, err := guarded.Read(b[:]); err != nil || n != 1 {
+		t.Fatal(err, n)
+	}
+	eligible = false
+	guarded.next = time.Now().Add(-time.Second)
+	if n, err := guarded.Read(b[:]); err == nil || n != 0 {
+		t.Fatal("stream continued after revocation")
+	}
+}

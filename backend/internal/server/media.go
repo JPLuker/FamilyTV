@@ -179,10 +179,11 @@ func (s *Server) parentMediaFile(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	serveMedia(w, r, media)
+	serveMedia(w, r, media, nil)
 }
-func (s *Server) viewerMediaFile(w http.ResponseWriter, r *http.Request) {
+func (s *Server) playable(r *http.Request) (Media, int64) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	v, p, ok := s.viewer(r)
 	var media Media
 	if ok && v.Channel != "" {
@@ -200,19 +201,55 @@ func (s *Server) viewerMediaFile(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	s.mu.Unlock()
+	return media, v.Deadline
+}
+func (s *Server) viewerMediaFile(w http.ResponseWriter, r *http.Request) {
+	media, deadline := s.playable(r)
 	if media.ID == "" {
 		http.NotFound(w, r)
 		return
 	}
-	if v.Deadline != 0 {
+	if deadline != 0 {
 		ctrl := http.NewResponseController(w)
-		_ = ctrl.SetWriteDeadline(time.UnixMilli(v.Deadline))
+		_ = ctrl.SetWriteDeadline(time.UnixMilli(deadline))
 		defer ctrl.SetWriteDeadline(time.Time{})
 	}
-	serveMedia(w, r, media)
+	check := func() bool {
+		if r.Context().Err() != nil {
+			return false
+		}
+		latest := s
+		if s.currentState != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+			defer cancel()
+			state, err := s.currentState(ctx)
+			if err != nil {
+				return false
+			}
+			latest = &Server{data: state}
+		}
+		item, _ := latest.playable(r)
+		return item.ID == media.ID
+	}
+	serveMedia(w, r, media, check)
 }
-func serveMedia(w http.ResponseWriter, r *http.Request, media Media) {
+
+type checkedStream struct {
+	io.ReadSeeker
+	check func() bool
+	next  time.Time
+}
+
+func (s *checkedStream) Read(b []byte) (int, error) {
+	if time.Now().After(s.next) {
+		if !s.check() {
+			return 0, errors.New("viewing session ended")
+		}
+		s.next = time.Now().Add(250 * time.Millisecond)
+	}
+	return s.ReadSeeker.Read(b)
+}
+func serveMedia(w http.ResponseWriter, r *http.Request, media Media, check func() bool) {
 	f, info, err := openMedia(media.Path)
 	if err != nil {
 		http.NotFound(w, r)
@@ -239,7 +276,11 @@ func serveMedia(w http.ResponseWriter, r *http.Request, media Media) {
 	}
 	w.Header().Set("Content-Type", mime)
 	w.Header().Set("Cache-Control", "private, no-store")
-	http.ServeContent(w, r, "", info.ModTime(), f)
+	var stream io.ReadSeeker = f
+	if check != nil {
+		stream = &checkedStream{ReadSeeker: f, check: check}
+	}
+	http.ServeContent(w, r, "", info.ModTime(), stream)
 }
 
 // Removing the catalog entry leaves the household's read-only source files in place.
