@@ -185,6 +185,13 @@ func (s *Server) viewerMediaFile(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	v, p, ok := s.viewer(r)
 	var media Media
+	if ok && v.Channel != "" {
+		g := s.currentGuide(p, v, time.Now().UnixMilli())
+		if g != nil && g.Now != nil {
+			v.Current = g.Now.Item.ID
+			v.Deadline = g.Now.End
+		}
+	}
 	if ok && v.Current == r.PathValue("id") {
 		for _, m := range s.data.Media {
 			if m.ID == v.Current && available(m, p) {

@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react'
 import {errorMessage,request} from './api'
 
+import Channels from './Channels'
 import MediaReview,{type ReviewedMedia as Media} from './MediaReview'
 export default function MediaLibrary(){
   const [media,setMedia]=useState<Media[]>([])
@@ -52,6 +53,7 @@ export default function MediaLibrary(){
       <button disabled={busy} aria-label={'Remove video '+item.title} onClick={()=>remove(item)}>Remove</button>
     </li>)}</ul>
     {reviewing && <MediaReview key={reviewing.id} item={reviewing} close={()=>setReviewing(undefined)} saved={item=>{setMedia(old=>old.map(m=>m.id===item.id?item:m));setReviewing(undefined)}}/>}
+    <Channels media={media}/>
     {selected && <div>
       <h3>{selected.title}</h3>
       <video key={selected.id} controls preload="metadata" src={'/api/media/'+selected.id+'/file'} aria-label={selected.title}

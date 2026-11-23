@@ -65,3 +65,7 @@ Each imported video starts unapproved. Parents review the subject, captions and 
 ## Viewer and session update, 0.5.0
 
 The parent dashboard can start, end or finish-after-current a viewing session. A one-time link exchanges for a viewer-only cookie. Catalog, selection and media routes enforce profile approval, accessibility requirements and session deadlines. The separate child page supports search, keyboard navigation, deliberate on-demand playback and a session-ending fact. Tests cover replayed links, cross-role access, hard deadlines, range access, restarts of the surrounding service and parent/child browser journeys. Next, implement scheduled live channels and the guide. Physical TV and assistive-technology testing remain open.
+
+## Live TV update, 0.6.0
+
+Parents can create and remove local channels with ordered programming blocks. The child guide filters the current and next program for the active profile and deadline. The stream endpoint checks the exact current slot. After-current stops a live session at the program boundary. Tests cover slot rollover, unavailable programs, permission checks and stopping. External Tunarr remains separate from the native channel implementation.

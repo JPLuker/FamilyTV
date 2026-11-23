@@ -28,6 +28,7 @@ type loginAttempts struct {
 	Until int64 `json:"until"`
 }
 type state struct {
+	Channels []Channel                `json:"channels,omitempty"`
 	Viewing  map[string]Viewing       `json:"viewing,omitempty"`
 	Media    []Media                  `json:"media,omitempty"`
 	Attempts map[string]loginAttempts `json:"login_attempts,omitempty"`
@@ -248,6 +249,10 @@ func (s *Server) Routes() http.Handler {
 	for _, method := range []string{"GET", "POST", "PATCH", "DELETE"} {
 		mux.HandleFunc(method+" /api/profiles/{id}/session", s.parentViewing)
 	}
+	mux.HandleFunc("GET /api/channels", s.parentChannels)
+	mux.HandleFunc("POST /api/channels", s.parentChannels)
+	mux.HandleFunc("DELETE /api/channels/{id}", s.parentChannels)
+	mux.HandleFunc("POST /api/watch/tune", s.tune)
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)
 	mux.HandleFunc("GET /api/watch", s.watchCatalog)
 	mux.HandleFunc("POST /api/watch/play", s.watchAction)

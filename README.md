@@ -27,3 +27,7 @@ Put an MP4 or WebM file in the project's media directory, or set FAMILYTV_MEDIA_
 Open Session next to a profile, choose the ending rule and start the session. Open the one-time viewer link on the child's browser within ten minutes. Use a server address that is reachable from that device. The default loopback deployment is for use on the same machine. Parent and viewer credentials are separate. A parent can stop a session immediately or at the end of the current video.
 
 Finish by uses the time zone shown in the parent's browser. FamilyTV stores the absolute deadline and filters the catalog by remaining time, approval and required accessibility settings. The child starts each on-demand video. A lost connection pauses viewing until the service is available.
+
+## Live channels
+
+Parents create a channel by appending imported videos in playback order. The lineup starts at creation and repeats on a shared clock. The child guide shows the current and next eligible program. Joining live starts at the current program offset. Approvals, accessibility requirements and finish-by limits apply to the guide and stream. Continuous playback starts only after choosing a live channel.

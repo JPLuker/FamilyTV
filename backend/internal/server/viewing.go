@@ -12,6 +12,7 @@ import (
 )
 
 type Viewing struct {
+	Channel    string `json:"channel,omitempty"`
 	Profile    string `json:"profile"`
 	Mode       string `json:"mode"`
 	Deadline   int64  `json:"deadline,omitempty"`
@@ -89,7 +90,7 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	v := s.data.Viewing[id]
 	if r.Method == "GET" {
-		write(w, 200, map[string]any{"active": active(v, now), "mode": v.Mode, "deadline": v.Deadline, "playing": v.Current != "", "last": v.Last})
+		write(w, 200, map[string]any{"active": active(v, now), "mode": v.Mode, "deadline": v.Deadline, "playing": v.Current != "" || v.Channel != "", "last": v.Last})
 		return
 	}
 	if r.Method == "DELETE" {
@@ -99,6 +100,18 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "PATCH" {
+		if v.Channel != "" {
+			p, _ := s.profile(id)
+			g := s.currentGuide(p, v, now.UnixMilli())
+			if g != nil && g.Now != nil {
+				v.Last = true
+				v.Deadline = g.Now.End
+				if s.setViewing(w, id, &v) {
+					write(w, 200, map[string]bool{"last": true})
+				}
+				return
+			}
+		}
 		if !active(v, now) || v.Current == "" {
 			if s.setViewing(w, id, nil) {
 				write(w, 200, map[string]bool{"ended": true})
@@ -244,7 +257,21 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			items = append(items, item)
 		}
 	}
-	write(w, 200, map[string]any{"items": items, "current": current, "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion})
+	guides := []Guide{}
+	var live *Guide
+	for _, channel := range s.data.Channels {
+		g := s.guide(channel, p, v, now.UnixMilli())
+		if g.Now != nil || g.Next != nil {
+			guides = append(guides, g)
+		}
+		if channel.ID == v.Channel {
+			live = &g
+			if g.Now != nil {
+				current = &g.Now.Item
+			}
+		}
+	}
+	write(w, 200, map[string]any{"items": items, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
@@ -261,11 +288,12 @@ func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/api/watch/finish" {
-		if v.Current == "" || v.Current != input.ID {
+		if v.Channel == "" && (v.Current == "" || v.Current != input.ID) {
 			write(w, 409, map[string]string{"error": "Video is no longer playing."})
 			return
 		}
 		v.Current = ""
+		v.Channel = ""
 		var next *Viewing = &v
 		if v.Last {
 			next = nil
@@ -273,6 +301,10 @@ func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 		if s.setViewing(w, p.ID, next) {
 			write(w, 200, map[string]bool{"ended": next == nil})
 		}
+		return
+	}
+	if v.Channel != "" {
+		write(w, 409, map[string]string{"error": "Leave the channel first."})
 		return
 	}
 	if v.Current != "" && v.Current != input.ID {

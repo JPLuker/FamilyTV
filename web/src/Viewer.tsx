@@ -1,7 +1,9 @@
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {ApiError,errorMessage,request} from './api'
 type Item={id:string;title:string;subject:string;duration_seconds:number;captions:boolean}
-type Catalog={items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
+type Airing={item:Item;start:number;end:number}
+type Guide={id:string;name:string;now:Airing|null;next:Airing|null}
+type Catalog={channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
 const facts=['An octopus has three hearts.','A square has four equal sides.','Earth has one natural moon.','A triangle has three sides.','An adult insect has six legs.','Water freezes at 0°C at standard atmospheric pressure.']
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
 if(joinCode)history.replaceState(null,'','/watch')
@@ -50,7 +52,7 @@ export default function Viewer(){
     const timeout=setTimeout(end,Math.max(0,catalog.deadline-catalog.server_time))
     return()=>clearTimeout(timeout)
   },[catalog,end])
-  async function action(action:'play'|'finish',id:string){
+  async function action(action:'play'|'finish'|'tune',id:string){
     setBusy(true);setError('')
     try{
       const result=await request<{ended?:boolean}>('watch/'+action,'POST',{id})
@@ -63,20 +65,28 @@ export default function Viewer(){
     const index=controls.indexOf(document.activeElement as HTMLElement)
     if(controls.length){e.preventDefault();controls[Math.max(0,Math.min(controls.length-1,index+(['ArrowLeft','ArrowUp'].includes(e.key)?-1:1)))].focus()}
   }
+  const live=catalog?.live?.now
   const current=catalog?.current
   return <main onKeyDown={move}><header><strong>FamilyTV</strong></header>
     {ended?<section><h1>Viewing time is over</h1><h2>Did you know?</h2><p>{fact}</p></section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog && (current?<section><h1>{current.title}</h1>
-        <video key={current.id} controls preload="metadata" src={'/api/watch/media/'+current.id+'/file'} onEnded={()=>action('finish',current.id)} onError={()=>setError('This video is unavailable.')}>
+        <video key={current.id+':'+(live?.start||0)} autoPlay={Boolean(live)}
+          onLoadedMetadata={e=>{if(live)e.currentTarget.currentTime=Math.max(0,(catalog.server_time-live.start)/1000)}} controls preload="metadata" src={'/api/watch/media/'+current.id+'/file'} onEnded={()=>live?refresh():action('finish',current.id)} onError={()=>setError('This video is unavailable.')}>
           {current.captions&&<track kind="captions" label="Captions" default={catalog.captions} src={'/api/watch/media/'+current.id+'/captions'}/>}
         </video>
-        <button disabled={busy} onClick={()=>action('finish',current.id)}>Finish video</button>
+        <button disabled={busy} onClick={()=>action('finish',current.id)}>{catalog.tuned?'Leave channel':'Finish video'}</button>
       </section>:<section><h1>Choose a video</h1>
+        {catalog.tuned?<><p>No approved program is on this channel right now.</p><button onClick={()=>action('finish','')}>Leave channel</button></>:<>
+        {catalog.channels.length>0&&<div><h2>Live TV</h2><ul>{catalog.channels.map(c=><li key={c.id}>
+          <button disabled={busy||!c.now} onClick={()=>action('tune',c.id)}>{c.name}</button>
+          {c.now&&<span> · Now playing {c.now.item.title}</span>}
+          {c.next&&<span> · {new Date(c.next.start).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})} {c.next.item.title}</span>}
+        </li>)}</ul></div>}
         <label>Search videos<input value={query} onChange={e=>setQuery(e.target.value)}/></label>
         <ul>{catalog.items.filter(m=>(m.title+' '+m.subject).toLowerCase().includes(query.trim().toLowerCase())).map(m=><li key={m.id}><button disabled={busy} onClick={()=>action('play',m.id)}>{m.title}</button> · {Math.ceil(m.duration_seconds/60)} min</li>)}</ul>
-        {!catalog.items.length&&<p>No videos are available for this session.</p>}
+        {!catalog.items.length&&<p>No videos are available for this session.</p>}</>}
       </section>)}
     </>}
   </main>
