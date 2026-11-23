@@ -6,7 +6,7 @@ export async function request<T>(path: string, method = 'GET', body?: unknown): 
   const response = await fetch('/api/' + path, {
     method,
     credentials: 'same-origin',
-    signal: AbortSignal.timeout(path==='watch'?5000:30000),
+    signal: AbortSignal.timeout(path.split('?')[0]==='watch'?5000:30000),
     headers: body === undefined ? undefined : {'Content-Type': 'application/json'},
     body: body === undefined ? undefined : JSON.stringify(body),
   })

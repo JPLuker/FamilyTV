@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -263,6 +264,9 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 	items := []WatchItem{}
 	var current *WatchItem
 	term := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	if p.Discovery.Search == "off" {
+		term = ""
+	}
 	now := time.Now()
 	for _, m := range s.data.Media {
 		if !available(m, p) {
@@ -290,7 +294,9 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	write(w, 200, map[string]any{"items": items, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_music": p.EndingMusic})
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	items, page, pages := p.Discovery.page(items, page)
+	write(w, 200, map[string]any{"items": items, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_music": p.EndingMusic})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()

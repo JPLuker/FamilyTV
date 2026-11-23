@@ -10,15 +10,16 @@ import (
 )
 
 type ChildProfile struct {
-	LargeText        bool   `json:"large_text"`
-	HighContrast     bool   `json:"high_contrast"`
-	EndingMusic      bool   `json:"ending_music"`
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	Captions         bool   `json:"captions"`
-	ReducedMotion    bool   `json:"reduced_motion"`
-	AudioDescription bool   `json:"audio_description"`
-	Navigation       string `json:"navigation"`
+	Discovery        Discovery `json:"discovery"`
+	LargeText        bool      `json:"large_text"`
+	HighContrast     bool      `json:"high_contrast"`
+	EndingMusic      bool      `json:"ending_music"`
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	Captions         bool      `json:"captions"`
+	ReducedMotion    bool      `json:"reduced_motion"`
+	AudioDescription bool      `json:"audio_description"`
+	Navigation       string    `json:"navigation"`
 }
 
 func (s *Server) listProfiles(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +107,10 @@ func readProfile(w http.ResponseWriter, r *http.Request) (ChildProfile, bool) {
 	}
 	if p.Navigation != "visual" && p.Navigation != "visual-text" && p.Navigation != "text" {
 		write(w, 400, map[string]string{"error": "invalid navigation mode"})
+		return p, false
+	}
+	if !p.Discovery.valid() {
+		write(w, 400, map[string]string{"error": "Invalid discovery settings."})
 		return p, false
 	}
 	return p, true

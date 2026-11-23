@@ -68,3 +68,7 @@ function App() {
   </main>
 }
 createRoot(document.getElementById('root')!).render(<React.StrictMode>{location.pathname==='/watch'?<Viewer/>:<App/>}</React.StrictMode>)
+
+if(location.pathname==='/' && 'serviceWorker' in navigator && window.isSecureContext){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{/* The dashboard also runs in a regular browser tab. */})
+}

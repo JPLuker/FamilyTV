@@ -89,3 +89,7 @@ Open viewer streams recheck the current session and approval while sending data.
 ## Native Android TV playback, 0.10.0
 
 The TV viewer now opens a native Media3 player with remote controls, caption tracks and live-slot offsets. It uses only the viewer credential, refuses redirects and rechecks the session during playback. On-demand completion returns to the locked ending or selection page. Android build and lint run in CI. Native decoding, lifecycle behavior and remote controls still need a physical TV run.
+
+## Discovery preferences and parent PWA, 0.11.0
+
+Five optional age presets populate editable choice counts, preferred runtime and search. Parents may change those values, interests, local spoken labels and transition warnings independently. The API ranks only eligible videos and returns stable pages. The installable dashboard includes local icons and an offline connection page. Its service worker does not cache personal responses. Browser and server tests cover the profile and discovery journeys. Preset values are provisional and require family usability testing.

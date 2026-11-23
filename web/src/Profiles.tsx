@@ -1,8 +1,10 @@
 import {useEffect, useRef, useState} from 'react'
+import DiscoverySettings,{discoveryDefaults,type Discovery} from './DiscoverySettings'
 import SessionControls from './SessionControls'
 import {ApiError, errorMessage, request} from './api'
 
 type Settings = {
+  discovery:Discovery
   name: string
   navigation: string
   captions: boolean
@@ -13,7 +15,7 @@ type Settings = {
   reduced_motion: boolean
 }
 type Profile = Settings & {id: string}
-const defaults: Settings = {name:'', navigation:'visual', captions:false, audio_description:false, reduced_motion:false,large_text:false,high_contrast:false,ending_music:false}
+const defaults: Settings = {discovery:discoveryDefaults,name:'', navigation:'visual', captions:false, audio_description:false, reduced_motion:false,large_text:false,high_contrast:false,ending_music:false}
 const navigationModes: Record<string,string> = {visual:'Pictures', 'visual-text':'Pictures and text', text:'Text'}
 const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music']] as const
 
@@ -49,7 +51,7 @@ export default function Profiles({onExpired}: {onExpired: () => void}) {
   }
   function edit({id,...values}:Profile) {
     setEditing(id)
-    setSettings(values)
+    setSettings({...values,discovery:{...discoveryDefaults,...values.discovery}})
     setNotice('')
     nameInput.current?.focus()
   }
@@ -103,6 +105,7 @@ export default function Profiles({onExpired}: {onExpired: () => void}) {
       <select id="navigation" value={settings.navigation} onChange={e => setSettings({...settings,navigation:e.target.value})}>
         {Object.entries(navigationModes).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
       </select>
+      <DiscoverySettings value={settings.discovery} change={discovery=>setSettings({...settings,discovery})}/>
       {toggles.map(([key,label]) => <label className="toggle" key={key}><input type="checkbox" checked={settings[key]} onChange={e=>setSettings({...settings,[key]:e.target.checked})}/> {label}</label>)}
       <button disabled={busy||loading}>{editing ? 'Save changes' : 'Add profile'}</button>
       {editing && <button type="button" onClick={reset} disabled={busy}>Cancel</button>}
