@@ -246,6 +246,8 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/profiles", s.listProfiles)
 	mux.HandleFunc("POST /api/profiles", s.createProfile)
 	mux.HandleFunc("DELETE /api/profiles/{id}", s.deleteProfile)
+	mux.HandleFunc("PUT /api/profiles/{id}", s.updateProfile)
+	mux.HandleFunc("GET /api/profiles/export", s.exportProfiles)
 	mux.HandleFunc("GET /api/admin", func(w http.ResponseWriter, r *http.Request) {
 		s.mu.Lock()
 		defer s.mu.Unlock()

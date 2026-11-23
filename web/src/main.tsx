@@ -1,11 +1,67 @@
-import React,{useEffect,useState} from 'react';import{createRoot}from'react-dom/client';import './style.css';
-type Phase='loading'|'setup'|'login'|'dashboard';
-async function request(path:string,method='GET',password?:string){const response=await fetch('/api/'+path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json'},body:password===undefined?undefined:JSON.stringify({password})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Request failed');return result;}
-function App(){const[phase,setPhase]=useState<Phase>('loading');const[password,setPassword]=useState('');const[error,setError]=useState('');const[busy,setBusy]=useState(false);const[profiles,setProfiles]=useState<{id:string;name:string;captions:boolean;audio_description:boolean;reduced_motion:boolean;navigation:string}[]>([]);const[newName,setNewName]=useState('');const[captions,setCaptions]=useState(false);const[audioDescription,setAudioDescription]=useState(false);useEffect(()=>{request('setup/status').then(async s=>{if(s.needs_setup){setPhase('setup');return;}try{await request('admin');setPhase('dashboard');await loadProfiles()}catch{setPhase('login')}}).catch(()=>setError('Cannot connect to FamilyTV server.'))},[]);
-async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');try{if(phase==='setup'){await request('setup','POST',password);setPassword('');setPhase('login')}else{await request('login','POST',password);setPassword('');setPhase('dashboard')}}catch(e){setError(e instanceof Error?e.message:'Request failed')}finally{setBusy(false)}}
-async function loadProfiles(){try{const result=await request('profiles');setProfiles(result.profiles)}catch{setError('Could not load profiles')}}
-async function addProfile(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');try{const response=await fetch('/api/profiles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newName,captions,audio_description:audioDescription,navigation:'visual'})});if(!response.ok)throw new Error('Could not create profile');setNewName('');setCaptions(false);setAudioDescription(false);await loadProfiles()}catch(e){setError(e instanceof Error?e.message:'Failed')}finally{setBusy(false)}}
-async function removeProfile(id:string){setError('');try{const response=await fetch('/api/profiles/'+encodeURIComponent(id),{method:'DELETE'});if(!response.ok)throw new Error('Could not remove profile');await loadProfiles()}catch(e){setError(e instanceof Error?e.message:'Failed')}}
-async function logout(){try{await request('logout','POST');setPhase('login')}catch{setError('Could not sign out')}}
-return <main><header><strong>FamilyTV</strong><span>Parent dashboard · Development preview</span></header>{phase==='loading'?<p role="status">{error||'Connecting…'}</p>:phase==='dashboard'?<section aria-labelledby="welcome"><h1 id="welcome">Dashboard</h1><p>Parent account ready. Media imports and child profiles are scheduled for later milestones.</p><p className="notice">No child-facing access is enabled in this build.</p><h2>Child profiles</h2><ul>{profiles.map(p=><li key={p.id}>{p.name} · {p.navigation}{p.captions?" · captions":""}{p.audio_description?" · audio description":""} <button type="button" onClick={()=>removeProfile(p.id)} aria-label={"Remove "+p.name}>Remove</button></li>)}</ul><form onSubmit={addProfile}><label htmlFor="child-name">Profile name</label><input id="child-name" value={newName} maxLength={50} required onChange={e=>setNewName(e.target.value)}/><label><input type="checkbox" checked={captions} onChange={e=>setCaptions(e.target.checked)}/> Captions</label><label><input type="checkbox" checked={audioDescription} onChange={e=>setAudioDescription(e.target.checked)}/> Audio description</label><button disabled={busy}>Add profile</button></form>{error&&<p role="alert">{error}</p>}<button onClick={logout}>Sign out</button></section>:<section aria-labelledby="heading"><h1 id="heading">{phase==='setup'?'Create parent account':'Parent sign in'}</h1><p>{phase==='setup'?'Set a password for this household’s administrator.':'Enter your parent password.'}</p><form onSubmit={submit}><label htmlFor="password">Password</label><input id="password" type="password" autoComplete={phase==='setup'?'new-password':'current-password'} minLength={12} maxLength={256} required value={password} onChange={e=>setPassword(e.target.value)}/>{error&&<p role="alert">{error}</p>}<button disabled={busy}>{busy?'Working…':phase==='setup'?'Create account':'Sign in'}</button></form></section>}</main>}
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
+import React,{useCallback,useEffect,useState} from 'react'
+import {createRoot} from 'react-dom/client'
+import Profiles from './Profiles'
+import {ApiError,errorMessage,request} from './api'
+import './style.css'
+
+type Phase='loading'|'setup'|'login'|'dashboard'
+function App() {
+  const [phase,setPhase]=useState<Phase>('loading')
+  const [password,setPassword]=useState('')
+  const [error,setError]=useState('')
+  const [busy,setBusy]=useState(false)
+  const [attempt,setAttempt]=useState(0)
+  const onExpired=useCallback(()=>{setPhase('login');setError('Sign in again to continue.')},[])
+  useEffect(()=>{
+    let active=true
+    async function connect(){
+      try {
+        const {needs_setup}=await request<{needs_setup:boolean}>('setup/status')
+        if (!needs_setup) await request('admin')
+        if (active) setPhase(needs_setup?'setup':'dashboard')
+      } catch(error) {
+        if (!active) return
+        if(error instanceof ApiError && error.status===401) setPhase('login')
+        else setError('Cannot connect to FamilyTV.')
+      }
+    }
+    void connect()
+    return ()=>{active=false}
+  },[attempt])
+  async function submit(e:React.FormEvent){
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await request(phase==='setup'?'setup':'login','POST',{password})
+      setPassword('')
+      setPhase(phase==='setup'?'login':'dashboard')
+    } catch(error){setError(errorMessage(error))} finally {setBusy(false)}
+  }
+  async function logout(){
+    setError('')
+    try{await request('logout','POST');setPhase('login')}catch(error){setError(errorMessage(error))}
+  }
+  return <main>
+    <header><strong>FamilyTV</strong><span>Parent dashboard · Development preview</span></header>
+    {phase==='loading' ? <>
+      <p role="status">{error||'Connecting…'}</p>
+      {error && <button onClick={()=>{setError('');setAttempt(n=>n+1)}}>Retry connection</button>}
+    </> : phase==='dashboard' ? <section aria-labelledby="welcome">
+      <h1 id="welcome">Dashboard</h1>
+      <Profiles onExpired={onExpired}/>
+      {error&&<p role="alert">{error}</p>}
+      <p><button onClick={logout}>Sign out</button></p>
+    </section> : <section aria-labelledby="heading">
+      <h1 id="heading">{phase==='setup'?'Create parent account':'Parent sign in'}</h1>
+      <p>{phase==='setup'?'Choose a parent password of at least 12 characters.':'Enter your parent password.'}</p>
+      <form onSubmit={submit}>
+        <label htmlFor="password">Password</label>
+        <input id="password" type="password" autoComplete={phase==='setup'?'new-password':'current-password'} minLength={12} maxLength={256} required value={password} onChange={e=>setPassword(e.target.value)}/>
+        {error&&<p role="alert">{error}</p>}
+        <button disabled={busy}>{busy?'Working…':phase==='setup'?'Create account':'Sign in'}</button>
+      </form>
+    </section>}
+  </main>
+}
+createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>)

@@ -49,3 +49,7 @@ The authentication regression tests cover credential hash compatibility, origin 
 ## PostgreSQL update, 0.1.0
 
 Parent authentication landed in 6823602 and passed all three CI jobs in run 45241404440. Compose now uses PostgreSQL with a private Unix socket. The old JSON volume is mounted read-only and imported once. The integration test exercises import, four concurrent HTTP writes and restart. The deployment smoke test also verifies a dump restored to a fresh database. See docs/BACKUPS.md for recovery. Profile settings and parent export remain actionable.
+
+## Parent dashboard update, 0.2.0
+
+PostgreSQL landed in 58bad9a after run 45241956505 passed all three jobs. Go tests, race tests and vet also passed locally against PostgreSQL 17.12. Profile management now loads on dashboard entry, supports changing navigation, captions, audio description and reduced motion, and downloads a settings-only export. The browser regression walks through sign-in, edit, export, delete and sign-out on a phone-sized viewport. Next, build local media import and playback.
