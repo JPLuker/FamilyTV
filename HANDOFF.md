@@ -45,3 +45,7 @@ The source tree matched GitHub commit a34fd75. Both baseline CI jobs passed in r
 Commit a654382 passed all three jobs, including container recreation, in [run 45241166684](https://github.com/JPLuker/FamilyTV/actions/runs/45241166684). The source at a34fd75 also passed local Go tests, race checks and vet. The locked frontend built locally.
 
 The authentication regression tests cover credential hash compatibility, origin checks on state-changing methods, restart-persistent per-client lockout, and expired-session removal. Run the suite from backend with `go test ./...`, `go test -race ./...` and `go vet ./...`. Client limits use the network peer. Clients behind one reverse proxy share its allowance. Next, implement PostgreSQL storage and recovery.
+
+## PostgreSQL update, 0.1.0
+
+Parent authentication landed in 6823602 and passed all three CI jobs in run 45241404440. Compose now uses PostgreSQL with a private Unix socket. The old JSON volume is mounted read-only and imported once. The integration test exercises import, four concurrent HTTP writes and restart. The deployment smoke test also verifies a dump restored to a fresh database. See docs/BACKUPS.md for recovery. Profile settings and parent export remain actionable.

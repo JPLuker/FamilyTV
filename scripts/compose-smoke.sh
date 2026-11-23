@@ -30,6 +30,12 @@ credentials='{"password":"temporary smoke test password"}'
 curl -fsS -H 'Content-Type: application/json' -d "$credentials" "$base/api/setup" | jq -e '.created'
 curl -fsS -c "$tmp/cookies" -H 'Content-Type: application/json' -d "$credentials" "$base/api/login" | jq -e '.authenticated'
 curl -fsS -b "$tmp/cookies" -H 'Content-Type: application/json' -d '{"name":"Smoke test","captions":true}' "$base/api/profiles" | jq -e '.captions'
+# Restore into a fresh database and compare the profile before touching the running stack.
+"${compose[@]}" exec -T -u postgres db pg_dump -Fc -d familytv > "$tmp/backup.dump"
+"${compose[@]}" exec -T -u postgres db createdb --owner=familytv recovery
+"${compose[@]}" exec -T -u postgres db pg_restore --exit-on-error --single-transaction -d recovery < "$tmp/backup.dump"
+profile=$("${compose[@]}" exec -T -u postgres db psql -At -d recovery -c "SELECT document->'profiles'->0->>'name' FROM familytv_household")
+test "$profile" = "Smoke test"
 "${compose[@]}" up -d --force-recreate
 wait_ready
 curl -fsS -b "$tmp/cookies" "$base/api/profiles" | jq -e '.profiles | length == 1 and .[0].name == "Smoke test" and .[0].captions'

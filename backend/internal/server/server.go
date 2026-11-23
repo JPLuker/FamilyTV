@@ -38,6 +38,7 @@ type Server struct {
 	path          string
 	data          state
 	secureCookies bool
+	save          func(state) error
 }
 
 func New(path string, secure bool) (*Server, error) {
@@ -56,6 +57,9 @@ func New(path string, secure bool) (*Server, error) {
 	return s, nil
 }
 func (s *Server) persist() error {
+	if s.save != nil {
+		return s.save(s.data)
+	}
 	if e := os.MkdirAll(filepath.Dir(s.path), 0700); e != nil {
 		return e
 	}

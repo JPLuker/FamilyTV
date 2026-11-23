@@ -1,0 +1,108 @@
+package server
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"strings"
+	"time"
+
+	_ "github.com/lib/pq"
+)
+
+// Initialize the single household row once. A previous JSON installation is read
+// only during creation. Restarting after an import never overwrites database state.
+func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) (http.Handler, error) {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock(68317421)"); err != nil {
+		return nil, err
+	}
+	if _, err = tx.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS familytv_household (
+ singleton boolean PRIMARY KEY CHECK (singleton), version integer NOT NULL, document jsonb NOT NULL
+ )`); err != nil {
+		return nil, err
+	}
+	var version int
+	err = tx.QueryRowContext(ctx, "SELECT version FROM familytv_household WHERE singleton").Scan(&version)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		legacy, err := New(path, secure)
+		if err != nil {
+			return nil, err
+		}
+		b, err := json.Marshal(legacy.data)
+		if err != nil {
+			return nil, err
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO familytv_household VALUES (true,1,$1)", string(b)); err != nil {
+			return nil, err
+		}
+	case err != nil:
+		return nil, err
+	case version != 1:
+		return nil, errors.New("unsupported household schema version")
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	public := (&Server{}).Routes()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/api/health" {
+			public.ServeHTTP(w, r)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+		readOnly := r.Method == http.MethodGet || r.Method == http.MethodHead
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{ReadOnly: readOnly})
+		if err != nil {
+			write(w, 503, map[string]string{"error": "storage unavailable"})
+			return
+		}
+		defer tx.Rollback()
+		query := "SELECT document FROM familytv_household WHERE singleton AND version=1"
+		if !readOnly {
+			query += " FOR UPDATE"
+		}
+		var b []byte
+		s := &Server{secureCookies: secure}
+		if err = tx.QueryRowContext(ctx, query).Scan(&b); err != nil || json.Unmarshal(b, &s.data) != nil {
+			write(w, 503, map[string]string{"error": "storage unavailable"})
+			return
+		}
+		if s.data.Sessions == nil {
+			s.data.Sessions = map[string]int64{}
+		}
+		s.save = func(state state) error {
+			b, err := json.Marshal(state)
+			if err != nil {
+				return err
+			}
+			if _, err = tx.ExecContext(ctx, "UPDATE familytv_household SET document=$1 WHERE singleton", string(b)); err != nil {
+				return err
+			}
+			return tx.Commit()
+		}
+		s.Routes().ServeHTTP(w, r)
+	}), nil
+}
+
+func OpenPostgres(ctx context.Context, dsn, path string, secure bool) (http.Handler, func() error, error) {
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, nil, err
+	}
+	db.SetMaxOpenConns(12)
+	handler, err := postgresHandler(ctx, db, path, secure)
+	if err != nil {
+		db.Close()
+		return nil, nil, err
+	}
+	return handler, db.Close, nil
+}
