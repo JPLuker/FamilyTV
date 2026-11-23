@@ -1,0 +1,26 @@
+# Autonomous development protocol
+
+Purpose: maximize completed, verified work between Joseph's interventions, without expanding approved scope or delaying v1.0.
+
+## Loop
+1. Read open issues, ROADMAP.md, DECISIONS.md, NO_LIST.md and HANDOFF.md.
+2. Pick the highest-priority unblocked issue or roadmap acceptance criterion.
+3. Implement it, add tests, run relevant checks, update documentation.
+4. Commit and push to main only after verification. Confirm the commit landed and check CI.
+5. Record completed work and remaining failures in HANDOFF.md and issues.
+6. Repeat from step 1 without requesting approval for in-scope work.
+
+## Decision boundaries
+Agent owns: implementation details, dependencies that meet security/privacy rules, refactoring with tests, bugs, test infrastructure, technical docs, deployment scripts, accessible functional UI behavior.
+Joseph owns: final brand/name/mascot, human-made artwork, optional visual style/theme, fundamental product changes, irreversible external actions, acceptance on actual devices.
+
+A pending decision never blocks unrelated work. Record a single concise question in a decision issue and proceed elsewhere.
+
+## Release boundaries
+Scope freeze at release candidate. Fix release-blocking security, data loss, broken core journeys and critical accessibility issues. Move non-blocking polish and new ideas to post-v1.0. A milestone completes only when its acceptance tests pass; a passing CI alone is not proof of usability.
+
+## Checkpoint requirements
+Every checkpoint: current commit SHA, files changed, exact tests and results, unverified areas, next actionable task. Do not claim success on unrun tests. Never create fake evidence.
+
+## Limits
+An ordinary chat turn cannot execute indefinitely after the reply ends. Use a continuing Work session for long-running autonomous execution if available; recurring automations require separate opt-in and may not provide an uninterrupted coding environment.
