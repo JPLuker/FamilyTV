@@ -93,3 +93,7 @@ The TV viewer now opens a native Media3 player with remote controls, caption tra
 ## Discovery preferences and parent PWA, 0.11.0
 
 Five optional age presets populate editable choice counts, preferred runtime and search. Parents may change those values, interests, local spoken labels and transition warnings independently. The API ranks only eligible videos and returns stable pages. The installable dashboard includes local icons and an offline connection page. Its service worker does not cache personal responses. Browser and server tests cover the profile and discovery journeys. Preset values are provisional and require family usability testing.
+
+## Offline catalog update, 0.12.0
+
+Directory scanning, duplicate confirmation, local NFO and video metadata sidecars, editable series/season/episode and creator/playlist metadata, missing-episode ranges and reversible overrides are implemented. The tests use synthetic local Sesame Street and Crash Course metadata records; no copyrighted episodes were bundled or used. Actual household library acceptance remains open. Remote provider enrichment and transcoding remain separate work.

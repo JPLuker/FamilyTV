@@ -64,6 +64,16 @@ func TestParentMedia(t *testing.T) {
 	if w := call("POST", "/api/media", body, true, ""); w.Code != 409 {
 		t.Fatal(w.Code)
 	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(filepath.Join(root, "copy.mp4"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if w := call("POST", "/api/media", `{"path":"copy.mp4"}`, true, ""); w.Code != 409 {
+		t.Fatal("duplicate bytes", w.Code)
+	}
 	route := "/api/media/" + m.ID
 	if w := call("GET", route+"/file", "", false, ""); w.Code != 401 {
 		t.Fatal(w.Code)

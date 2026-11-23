@@ -15,14 +15,17 @@ import (
 )
 
 type Media struct {
-	Review   Review  `json:"review"`
-	ID       string  `json:"id"`
-	Title    string  `json:"title"`
-	Path     string  `json:"path"`
-	Duration float64 `json:"duration_seconds"`
-	Size     int64   `json:"size"`
-	Modified int64   `json:"modified_ns"`
-	Captions bool    `json:"captions"`
+	Metadata    Metadata `json:"metadata"`
+	Original    Metadata `json:"original"`
+	Fingerprint string   `json:"fingerprint,omitempty"`
+	Review      Review   `json:"review"`
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	Path        string   `json:"path"`
+	Duration    float64  `json:"duration_seconds"`
+	Size        int64    `json:"size"`
+	Modified    int64    `json:"modified_ns"`
+	Captions    bool     `json:"captions"`
 }
 
 func contentType(path string) string {
@@ -103,7 +106,7 @@ func (s *Server) mediaList(w http.ResponseWriter, r *http.Request) {
 		write(w, 401, map[string]string{"error": "authentication required"})
 		return
 	}
-	write(w, 200, map[string]any{"media": append([]Media{}, s.data.Media...)})
+	write(w, 200, map[string]any{"media": append([]Media{}, s.data.Media...), "gaps": missingEpisodes(s.data.Media)})
 }
 func (s *Server) importMedia(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
@@ -123,9 +126,6 @@ func (s *Server) importMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.Title = strings.TrimSpace(input.Title)
-	if input.Title == "" {
-		input.Title = strings.TrimSuffix(filepath.Base(input.Path), filepath.Ext(input.Path))
-	}
 	if len([]rune(input.Title)) > 160 {
 		write(w, 400, map[string]string{"error": "Use a title of up to 160 characters."})
 		return
@@ -142,12 +142,49 @@ func (s *Server) importMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer f.Close()
+	fp, err := fingerprint(f, info.Size())
+	if err != nil {
+		write(w, 422, map[string]string{"error": "Cannot fingerprint video."})
+		return
+	}
+	for _, existing := range s.data.Media {
+		if existing.Size != info.Size() {
+			continue
+		}
+		if existing.Fingerprint != "" && existing.Fingerprint != fp {
+			continue
+		}
+		other, oldInfo, e := openMedia(existing.Path)
+		if e != nil {
+			continue
+		}
+		if oldInfo.Size() != info.Size() {
+			other.Close()
+			continue
+		}
+		same, e := sameBytes(f, other, info.Size())
+		other.Close()
+		if e != nil {
+			write(w, 422, map[string]string{"error": "Cannot compare source files."})
+			return
+		}
+		if same {
+			write(w, 409, map[string]string{"error": "This video is already imported as " + existing.Title})
+			return
+		}
+	}
+	original := detectMetadata(input.Path)
+	metadata := original
+	if input.Title != "" {
+		metadata.Title = input.Title
+		metadata.Source = "parent override"
+	}
 	duration, err := probeMedia(r.Context(), f)
 	if err != nil {
 		write(w, 422, map[string]string{"error": "Could not read a video track and duration. Check the file and FFprobe installation."})
 		return
 	}
-	m := Media{ID: token(), Title: input.Title, Path: input.Path, Duration: duration, Size: info.Size(), Modified: info.ModTime().UnixNano()}
+	m := Media{ID: token(), Title: metadata.Title, Metadata: metadata, Original: original, Fingerprint: fp, Path: input.Path, Duration: duration, Size: info.Size(), Modified: info.ModTime().UnixNano()}
 	if f, _, err := openCaption(m.Path); err == nil {
 		f.Close()
 		m.Captions = true

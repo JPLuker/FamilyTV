@@ -39,3 +39,7 @@ The Android TV debug APK is attached to the android-tv CI job. Install it on a T
 ### Tunarr guide import
 
 In Tunarr, save the XMLTV guide from /api/xmltv.xml. In FamilyTV, open Live TV channels and select Import a Tunarr guide. Choose a station, review the local video matches and create the channel. The importer reads the file on the parent device. It imports up to 200 entries in broadcast order, skips entries the parent leaves unmatched and uses FamilyTV's own schedule and approvals. It makes no connection to Tunarr during playback.
+
+### Scanning and matching
+
+Scan the read-only folder from the dashboard and select the files to import. FamilyTV recognizes S01E02-style names, adjacent episode/movie NFO files and local video .info.json records. Creator, playlist and episode organization work offline. A sampled fingerprint identifies possible copies, then a complete byte digest confirms duplicates. Catalog details lets a parent correct a match or restore the originally imported metadata. Episode gaps describe holes up to the highest indexed episode.
