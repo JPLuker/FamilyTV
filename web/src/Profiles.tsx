@@ -7,12 +7,15 @@ type Settings = {
   navigation: string
   captions: boolean
   audio_description: boolean
+  large_text:boolean
+  high_contrast:boolean
+  ending_music:boolean
   reduced_motion: boolean
 }
 type Profile = Settings & {id: string}
-const defaults: Settings = {name:'', navigation:'visual', captions:false, audio_description:false, reduced_motion:false}
+const defaults: Settings = {name:'', navigation:'visual', captions:false, audio_description:false, reduced_motion:false,large_text:false,high_contrast:false,ending_music:false}
 const navigationModes: Record<string,string> = {visual:'Pictures', 'visual-text':'Pictures and text', text:'Text'}
-const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion']] as const
+const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music']] as const
 
 export default function Profiles({onExpired}: {onExpired: () => void}) {
   const [profiles,setProfiles] = useState<Profile[]>([])

@@ -3,11 +3,16 @@ package server
 import (
 	"encoding/json"
 	"io"
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 )
 
 type ChildProfile struct {
+	LargeText        bool   `json:"large_text"`
+	HighContrast     bool   `json:"high_contrast"`
+	EndingMusic      bool   `json:"ending_music"`
 	ID               string `json:"id"`
 	Name             string `json:"name"`
 	Captions         bool   `json:"captions"`
@@ -60,10 +65,18 @@ func (s *Server) deleteProfile(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	for i, p := range s.data.Profiles {
 		if p.ID == id {
-			before := append([]ChildProfile(nil), s.data.Profiles...)
-			s.data.Profiles = append(s.data.Profiles[:i], s.data.Profiles[i+1:]...)
+			before := s.data
+			s.data.Profiles = slices.Delete(slices.Clone(before.Profiles), i, i+1)
+			s.data.Viewing = maps.Clone(before.Viewing)
+			delete(s.data.Viewing, id)
+			s.data.Media = slices.Clone(before.Media)
+			for j, m := range s.data.Media {
+				if slices.Contains(m.Review.Profiles, id) {
+					s.data.Media[j].Review.Profiles = slices.DeleteFunc(slices.Clone(m.Review.Profiles), func(value string) bool { return value == id })
+				}
+			}
 			if err := s.persist(); err != nil {
-				s.data.Profiles = before
+				s.data = before
 				write(w, 500, map[string]string{"error": "storage failure"})
 				return
 			}

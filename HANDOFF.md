@@ -77,3 +77,7 @@ Android TV has a Leanback launcher entry, native D-pad pairing form and origin-r
 ## Tunarr guide import, 0.8.0
 
 The parent can load an XMLTV guide, choose a channel, review title matches and save a local programming block. This is a snapshot import. The browser test exercises file selection, matching, channel creation and approved discovery in the child guide. Live synchronization with an external server is outside the implemented integration.
+
+## Accessibility and endings update, 0.9.0
+
+Profiles now control text size, contrast, navigation pictures, reduced motion and optional ending music. Pictures come from approved source files. Child-facing picture and music delivery both verify the viewer session. The visual ending draws from forty facts. Removing a profile also clears its viewing session and approval assignments. Automated checks cover the picture, contrast and size settings. Actual remote, screen-reader and family usability checks still require people and devices.

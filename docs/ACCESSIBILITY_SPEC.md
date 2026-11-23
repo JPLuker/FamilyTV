@@ -13,3 +13,7 @@ Accessibility is configured by individual need, not by a required diagnosis. Pro
 - Accessibility hard filters must never silently relax.
 
 No claim of universal accessibility before testing with disabled users and caregivers.
+
+## Implemented viewer settings
+
+Each profile can independently require verified captions and a parent-verified described default soundtrack. Picture navigation uses actual frames from approved videos. Text navigation omits frame requests. Profiles can increase text size, enable high contrast and request reduced motion. The end screen shows a fact and optional music. For Compose, supply a household-owned session-ending.ogg under the media root (up to 2 MiB) and enable ending music for the profile. The player displays audio controls when a track is available.

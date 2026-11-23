@@ -2,3 +2,5 @@
 .toggle{display:flex;align-items:center;gap:.6rem;min-height:44px}.toggle input{width:20px;height:20px;margin:0}.actions{display:flex;gap:.5rem;margin:.5rem 0 1rem}select{font:inherit;padding:.65rem}select:focus-visible,a:focus-visible{outline:3px solid #234c78;outline-offset:3px}li{overflow-wrap:anywhere}
 video{width:100%;height:auto}
 @media(max-width:600px){header span{display:block;margin-top:.25rem}}
+
+.viewer img{display:block;object-fit:contain;max-width:100%;margin:auto}.viewer.large{font-size:1.4rem}.viewer.contrast,.viewer.contrast section,.viewer.contrast header{background:#111;color:#fff}.viewer.contrast button{background:white;color:black}.viewer :focus-visible{outline:4px solid #925100;outline-offset:3px}.viewer.contrast :focus-visible{outline-color:#ffc400}.viewer.still *{scroll-behavior:auto!important;animation:none!important;transition:none!important}.actions{flex-wrap:wrap}select{max-width:100%}

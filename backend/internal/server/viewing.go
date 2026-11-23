@@ -290,7 +290,7 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	write(w, 200, map[string]any{"items": items, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion})
+	write(w, 200, map[string]any{"items": items, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_music": p.EndingMusic})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()

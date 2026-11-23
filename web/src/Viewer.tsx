@@ -3,8 +3,8 @@ import {ApiError,errorMessage,request} from './api'
 type Item={id:string;title:string;subject:string;duration_seconds:number;captions:boolean}
 type Airing={item:Item;start:number;end:number}
 type Guide={id:string;name:string;now:Airing|null;next:Airing|null}
-type Catalog={channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
-const facts=['An octopus has three hearts.','A square has four equal sides.','Earth has one natural moon.','A triangle has three sides.','An adult insect has six legs.','Water freezes at 0°C at standard atmospheric pressure.']
+type Catalog={large_text:boolean;high_contrast:boolean;ending_music:boolean;channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
+import {facts} from './endingFacts'
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
 if(joinCode)history.replaceState(null,'','/watch')
 let joining:Promise<unknown>|undefined
@@ -12,9 +12,23 @@ export default function Viewer(){
   const [catalog,setCatalog]=useState<Catalog>()
   const [error,setError]=useState('')
   const [ended,setEnded]=useState(false)
+  const preferences=useRef({large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
   const [query,setQuery]=useState('')
   const [busy,setBusy]=useState(false)
   const [fact]=useState(()=>facts[Math.floor(Math.random()*facts.length)])
+  const [music,setMusic]=useState('')
+  const musicEnabled=Boolean((catalog||preferences.current).ending_music)
+  useEffect(()=>{
+    if(!musicEnabled){setMusic('');return}
+    let active=true,url=''
+    const controller=new AbortController()
+    fetch('/api/watch/ending-music',{credentials:'same-origin',signal:controller.signal}).then(async response=>{
+      if(!active||!response.ok)return
+      const blob=await response.blob()
+      if(active){url=URL.createObjectURL(blob);setMusic(url)}
+    }).catch(()=>{/* Ending music is optional. The visual ending remains available. */})
+    return()=>{active=false;controller.abort();if(url)URL.revokeObjectURL(url)}
+  },[musicEnabled])
   const revision=useRef(0)
   const mounted=useRef(true)
   const end=useCallback(()=>{revision.current++;setCatalog(undefined);setEnded(true);setError('')},[])
@@ -22,7 +36,7 @@ export default function Viewer(){
     const n=++revision.current
     try{
       const next=await request<Catalog>('watch')
-      if(mounted.current&&n===revision.current){setCatalog(next);setError('')}
+      if(mounted.current&&n===revision.current){preferences.current=next;setCatalog(next);setError('')}
     }catch(e){
       if(mounted.current&&n===revision.current){
         if(e instanceof ApiError && e.status===403)end()
@@ -67,8 +81,8 @@ export default function Viewer(){
   }
   const live=catalog?.live?.now
   const current=catalog?.current
-  return <main onKeyDown={move}><header><strong>FamilyTV</strong></header>
-    {ended?<section><h1>Viewing time is over</h1><h2>Did you know?</h2><p>{fact}</p></section>:<>
+  return <main className={['viewer',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}><header><strong>FamilyTV</strong></header>
+    {ended?<section><h1>Viewing time is over</h1><h2>Did you know?</h2><p>{fact}</p>{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog && (current?<section><h1>{current.title}</h1>
@@ -85,7 +99,10 @@ export default function Viewer(){
           {c.next&&<span> · {new Date(c.next.start).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})} {c.next.item.title}</span>}
         </li>)}</ul></div>}
         <label>Search videos<input value={query} onChange={e=>setQuery(e.target.value)}/></label>
-        <ul>{catalog.items.filter(m=>(m.title+' '+m.subject).toLowerCase().includes(query.trim().toLowerCase())).map(m=><li key={m.id}><button disabled={busy} onClick={()=>action('play',m.id)}>{m.title}</button> · {Math.ceil(m.duration_seconds/60)} min</li>)}</ul>
+        <ul>{catalog.items.filter(m=>(m.title+' '+m.subject).toLowerCase().includes(query.trim().toLowerCase())).map(m=><li key={m.id}><button aria-label={m.title} disabled={busy} onClick={()=>action('play',m.id)}>
+          {catalog.navigation!=='text'&&<img loading="lazy" width="120" height="68" alt={catalog.navigation==='visual'?m.title:''} src={'/api/watch/media/'+m.id+'/picture'}/>}
+          {catalog.navigation!=='visual'&&m.title}
+        </button> · {Math.ceil(m.duration_seconds/60)} min</li>)}</ul>
         {!catalog.items.length&&<p>No videos are available for this session.</p>}</>}
       </section>)}
     </>}
