@@ -15,6 +15,7 @@ import (
 )
 
 type Media struct {
+	Review   Review  `json:"review"`
 	ID       string  `json:"id"`
 	Title    string  `json:"title"`
 	Path     string  `json:"path"`

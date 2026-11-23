@@ -246,6 +246,7 @@ func (s *Server) Routes() http.Handler {
 	})
 	mux.HandleFunc("GET /api/media", s.mediaList)
 	mux.HandleFunc("POST /api/media", s.importMedia)
+	mux.HandleFunc("PUT /api/media/{id}/review", s.reviewMedia)
 	mux.HandleFunc("DELETE /api/media/{id}", s.removeMedia)
 	mux.HandleFunc("GET /api/media/{id}/file", s.parentMediaFile)
 	mux.HandleFunc("GET /api/media/{id}/captions", s.parentMediaFile)

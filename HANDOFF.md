@@ -57,3 +57,7 @@ PostgreSQL landed in 58bad9a after run 45241956505 passed all three jobs. Go tes
 ## Local media update, 0.3.0
 
 Parent-only media import, range playback, adjacent WebVTT captions, source-change detection and catalog removal are implemented. The parent picks a relative path under a read-only mount. Removing an entry preserves its source. TestParentMedia uses FFmpeg to create a real video and FFprobe to read its duration, then checks authenticated range/caption delivery and removal. Review approval, child discovery and session enforcement next.
+
+## Parent review update, 0.4.0
+
+Each imported video starts unapproved. Parents review the subject, captions and described soundtrack, then select individual child profiles. Accessibility eligibility requires verified metadata for each enabled requirement. The dashboard lists library coverage gaps. Tests cover rejected anonymous changes, approval persistence, unknown metadata and revocation. The phone-sized Chromium journey now includes import, review and preview.
