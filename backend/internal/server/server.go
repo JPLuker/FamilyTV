@@ -3,6 +3,8 @@ package server
 import (
  "crypto/rand"
  "crypto/sha256"
+ "crypto/hmac"
+ "encoding/binary"
  "crypto/subtle"
  "encoding/base64"
  "encoding/json"
@@ -21,7 +23,12 @@ type Server struct { mu sync.Mutex; path string; data state; secureCookies bool;
 func New(path string,secure bool)(*Server,error){s:=&Server{path:path,secureCookies:secure};b,e:=os.ReadFile(path);if e==nil {if e=json.Unmarshal(b,&s.data);e!=nil{return nil,e}}else if !errors.Is(e,os.ErrNotExist){return nil,e};if s.data.Sessions==nil{s.data.Sessions=map[string]int64{}};return s,nil}
 func (s *Server) persist()error{if e:=os.MkdirAll(filepath.Dir(s.path),0700);e!=nil{return e};b,e:=json.Marshal(s.data);if e!=nil{return e};f,e:=os.CreateTemp(filepath.Dir(s.path),".familytv-*");if e!=nil{return e};defer os.Remove(f.Name());if e=f.Chmod(0600);e!=nil{f.Close();return e};if _,e=f.Write(b);e!=nil{f.Close();return e};if e=f.Sync();e!=nil{f.Close();return e};if e=f.Close();e!=nil{return e};return os.Rename(f.Name(),s.path)}
 func token()string{b:=make([]byte,32);if _,e:=rand.Read(b);e!=nil{panic(e)};return base64.RawURLEncoding.EncodeToString(b)}
-func digest(pass,salt string)string{h:=sha256.Sum256([]byte(salt+":"+pass));return base64.RawStdEncoding.EncodeToString(h[:])}
+func digest(pass,salt string)string{
+ key:=[]byte(pass);sb:=[]byte(salt);block:=make([]byte,len(sb)+4);copy(block,sb);binary.BigEndian.PutUint32(block[len(sb):],1)
+ mac:=hmac.New(sha256.New,key);mac.Write(block);u:=mac.Sum(nil);out:=append([]byte(nil),u...)
+ for i:=1;i<310000;i++ {mac.Reset();mac.Write(u);u=mac.Sum(u[:0]);for j:=range out{out[j]^=u[j]}}
+ return base64.RawStdEncoding.EncodeToString(out)
+}
 func write(w http.ResponseWriter,code int,data any){w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");w.WriteHeader(code);_ = json.NewEncoder(w).Encode(data)}
 func credentials(r *http.Request)(string,error){r.Body=http.MaxBytesReader(nil,r.Body,4096);var x struct{Password string `json:"password"`};if e:=json.NewDecoder(r.Body).Decode(&x);e!=nil{return "",e};if len(x.Password)<12||len(x.Password)>256{return "",errors.New("password length")};return x.Password,nil}
 func (s *Server) authorized(r *http.Request)bool{c,e:=r.Cookie("familytv_admin");if e!=nil{return false};expiry,ok:=s.data.Sessions[c.Value];return ok&&expiry>time.Now().Unix()}
