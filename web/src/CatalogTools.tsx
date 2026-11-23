@@ -1,7 +1,8 @@
 import {useState} from 'react'
 import {errorMessage,request} from './api'
 import type {ReviewedMedia} from './MediaReview'
-export type Metadata={title:string;kind:string;series:string;season:number;episode:number;creator:string;playlist:string;external_id:string;language:string;license:string;source:string;collection:string}
+import Lookup from './Lookup'
+export type Metadata={attribution?:string;title:string;kind:string;series:string;season:number;episode:number;creator:string;playlist:string;external_id:string;language:string;license:string;source:string;collection:string}
 export function Scanner({media,added}:{media:ReviewedMedia[];added:(m:ReviewedMedia)=>void}){
   const [paths,setPaths]=useState<string[]>([])
   const [selected,setSelected]=useState<string[]>([])
@@ -37,6 +38,8 @@ export function MetadataEditor({item,saved,close}:{item:ReviewedMedia;saved:(m:R
     catch(e){setError(errorMessage(e))}finally{setBusy(false)}
   }
   return <form onSubmit={e=>{e.preventDefault();void update(false)}}><h3>Edit catalog details</h3>
+    <Lookup value={value} change={setValue}/>
+    {value.attribution&&<p>Provider attribution · <a href={value.attribution} rel="noreferrer" target="_blank">Original listing</a></p>}
     <p>Metadata source · {item.metadata.source||'Imported filename'}</p>
     <label>Display title<input required maxLength={160} value={value.title} onChange={e=>setValue({...value,title:e.target.value})}/></label>
     <label>Format<select value={value.kind} onChange={e=>setValue({...value,kind:e.target.value})}>{['video','movie','episode','special','creator'].map(kind=><option key={kind}>{kind}</option>)}</select></label>

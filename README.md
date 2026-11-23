@@ -14,7 +14,11 @@ The parent dashboard and API share an origin in the Docker build. Compose stores
 | Host | When | Data |
 |---|---|---|
 | Self-hosted FamilyTV server | When using the dashboard | Parent authentication and application requests |
+| api.tvmaze.com | Parent selects Send lookup to TVmaze | Typed series query |
+| www.youtube.com | Parent selects Send lookup to YouTube | Typed video ID |
 | npm, Go module and Docker registries | During explicit installation/build | Dependency requests |
+
+TVmaze lookup uses its public API, licensed under CC BY-SA. Selected matches retain their original listing link. See [TVmaze API terms](https://www.tvmaze.com/api).
 
 No runtime analytics, tracking, advertising or external fonts. See ROADMAP.md and HANDOFF.md.
 

@@ -97,3 +97,7 @@ Five optional age presets populate editable choice counts, preferred runtime and
 ## Offline catalog update, 0.12.0
 
 Directory scanning, duplicate confirmation, local NFO and video metadata sidecars, editable series/season/episode and creator/playlist metadata, missing-episode ranges and reversible overrides are implemented. The tests use synthetic local Sesame Street and Crash Course metadata records; no copyrighted episodes were bundled or used. Actual household library acceptance remains open. Remote provider enrichment and transcoding remain separate work.
+
+## Optional provider matching, 0.13.0
+
+Parent-initiated TVmaze series search and YouTube video ID lookup return metadata candidates. Only the query or ID goes to the selected provider. Parents choose and save a match. Provider failure leaves the local catalog intact. A selected match retains attribution and can be reverted. Tests validate outbound destinations, encoded query values, response mapping and invalid-input behavior using test responses.

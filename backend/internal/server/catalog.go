@@ -20,18 +20,19 @@ import (
 )
 
 type Metadata struct {
-	Title      string `json:"title"`
-	Kind       string `json:"kind"`
-	Series     string `json:"series"`
-	Season     int    `json:"season"`
-	Episode    int    `json:"episode"`
-	Creator    string `json:"creator"`
-	Playlist   string `json:"playlist"`
-	ExternalID string `json:"external_id"`
-	Language   string `json:"language"`
-	License    string `json:"license"`
-	Source     string `json:"source"`
-	Collection string `json:"collection"`
+	Attribution string `json:"attribution,omitempty"`
+	Title       string `json:"title"`
+	Kind        string `json:"kind"`
+	Series      string `json:"series"`
+	Season      int    `json:"season"`
+	Episode     int    `json:"episode"`
+	Creator     string `json:"creator"`
+	Playlist    string `json:"playlist"`
+	ExternalID  string `json:"external_id"`
+	Language    string `json:"language"`
+	License     string `json:"license"`
+	Source      string `json:"source"`
+	Collection  string `json:"collection"`
 }
 
 var episodePattern = regexp.MustCompile(`(?i)^(.*?)[ ._-]*s([0-9]{1,3})e([0-9]{1,4})(?:[ ._-]+(.*))?$`)
@@ -206,6 +207,10 @@ func (s *Server) editMetadata(w http.ResponseWriter, r *http.Request) {
 		value.Title = strings.TrimSpace(value.Title)
 		if value.Title == "" || len([]rune(value.Title)) > 160 || !slices.Contains([]string{"episode", "special", "movie", "creator", "video"}, value.Kind) || value.Season < 0 || value.Episode < 0 {
 			write(w, 400, map[string]string{"error": "Invalid title, format or episode number."})
+			return
+		}
+		if value.Attribution != "" && !regexp.MustCompile(`^https://(www\.tvmaze\.com/shows/[0-9]+|www\.youtube\.com/watch\?v=[A-Za-z0-9_-]{11})$`).MatchString(value.Attribution) {
+			write(w, 400, map[string]string{"error": "Invalid attribution URL."})
 			return
 		}
 		value.Source = "parent override"
