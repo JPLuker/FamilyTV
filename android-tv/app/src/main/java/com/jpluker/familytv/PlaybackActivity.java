@@ -28,6 +28,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.json.JSONObject;
 
+@androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 public final class PlaybackActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
