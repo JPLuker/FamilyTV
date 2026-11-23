@@ -5,6 +5,7 @@ type Airing={item:Item;start:number;end:number}
 type Guide={id:string;name:string;now:Airing|null;next:Airing|null}
 type Catalog={large_text:boolean;high_contrast:boolean;ending_music:boolean;channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
 import {facts} from './endingFacts'
+const nativeTV=navigator.userAgent.includes('FamilyTV-AndroidTV')
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
 if(joinCode)history.replaceState(null,'','/watch')
 let joining:Promise<unknown>|undefined
@@ -75,7 +76,7 @@ export default function Viewer(){
   }
   function move(e:React.KeyboardEvent<HTMLElement>){
     if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)||(e.target as HTMLElement).tagName==='VIDEO'||((e.target as HTMLElement).tagName==='INPUT'&&['ArrowLeft','ArrowRight'].includes(e.key)))return
-    const controls=Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input,video'))
+    const controls=Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input,video'))
     const index=controls.indexOf(document.activeElement as HTMLElement)
     if(controls.length){e.preventDefault();controls[Math.max(0,Math.min(controls.length-1,index+(['ArrowLeft','ArrowUp'].includes(e.key)?-1:1)))].focus()}
   }
@@ -86,10 +87,10 @@ export default function Viewer(){
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog && (current?<section><h1>{current.title}</h1>
-        <video key={current.id+':'+(live?.start||0)} autoPlay={Boolean(live)}
+        {nativeTV?<a className="play-native" href="/watch/native">Play on TV</a>:<video key={current.id+':'+(live?.start||0)} autoPlay={Boolean(live)}
           onLoadedMetadata={e=>{if(live)e.currentTarget.currentTime=Math.max(0,(catalog.server_time-live.start)/1000)}} controls preload="metadata" src={'/api/watch/media/'+current.id+'/file'} onEnded={()=>live?refresh():action('finish',current.id)} onError={()=>setError('This video is unavailable.')}>
           {current.captions&&<track kind="captions" label="Captions" default={catalog.captions} src={'/api/watch/media/'+current.id+'/captions'}/>}
-        </video>
+        </video>}
         <button disabled={busy} onClick={()=>action('finish',current.id)}>{catalog.tuned?'Leave channel':'Finish video'}</button>
       </section>:<section><h1>Choose a video</h1>
         {catalog.tuned?<><p>No approved program is on this channel right now.</p><button onClick={()=>action('finish','')}>Leave channel</button></>:<>

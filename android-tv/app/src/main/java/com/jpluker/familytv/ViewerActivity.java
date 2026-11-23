@@ -1,6 +1,7 @@
 package com.jpluker.familytv;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
@@ -91,11 +92,16 @@ public final class ViewerActivity extends Activity {
         destroyViewer();
         viewer = new WebView(this);
         viewer.getSettings().setJavaScriptEnabled(true);
+        viewer.getSettings().setUserAgentString(viewer.getSettings().getUserAgentString() + " FamilyTV-AndroidTV");
         viewer.getSettings().setAllowFileAccess(false);
         viewer.getSettings().setAllowContentAccess(false);
         CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
         viewer.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                if (req.isForMainFrame() && req.getUrl().toString().equals(server + "/watch/native")) {
+                    startActivity(new Intent(ViewerActivity.this, PlaybackActivity.class).putExtra("server", server));
+                    return true;
+                }
                 return !allowed(req.getUrl(), req.isForMainFrame());
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {

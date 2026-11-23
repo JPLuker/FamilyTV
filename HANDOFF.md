@@ -85,3 +85,7 @@ Profiles now control text size, contrast, navigation pictures, reduced motion an
 ## Revocation and accessibility verification, 0.9.1
 
 Open viewer streams recheck the current session and approval while sending data. PostgreSQL streams release the initial transaction before playback and check the latest committed household state. The browser journey now scans setup, the parent dashboard, child discovery and the ending for automated accessibility violations. SECURITY.md records trust boundaries, household data retention, HTTPS setup and outstanding specialist reviews. These automated checks do not replace real-device or human testing.
+
+## Native Android TV playback, 0.10.0
+
+The TV viewer now opens a native Media3 player with remote controls, caption tracks and live-slot offsets. It uses only the viewer credential, refuses redirects and rechecks the session during playback. On-demand completion returns to the locked ending or selection page. Android build and lint run in CI. Native decoding, lifecycle behavior and remote controls still need a physical TV run.
