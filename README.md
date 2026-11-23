@@ -35,3 +35,7 @@ Parents create a channel by appending imported videos in playback order. The lin
 ## Android TV
 
 The Android TV debug APK is attached to the android-tv CI job. Install it on a TV for testing, enter the HTTPS origin of your FamilyTV server, then the pairing code shown in the parent's session controls. Back opens pairing again. A new code replaces an unused one. Redeeming it moves the session to the new viewer. The TV stores the server address and uses the viewer cookie for the session.
+
+### Tunarr guide import
+
+In Tunarr, save the XMLTV guide from /api/xmltv.xml. In FamilyTV, open Live TV channels and select Import a Tunarr guide. Choose a station, review the local video matches and create the channel. The importer reads the file on the parent device. It imports up to 200 entries in broadcast order, skips entries the parent leaves unmatched and uses FamilyTV's own schedule and approvals. It makes no connection to Tunarr during playback.

@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react'
 import {errorMessage,request} from './api'
+import TunarrImport from './TunarrImport'
 type Channel={id:string;name:string;slots:{media:string;milliseconds:number}[]}
 export default function Channels({media}:{media:{id:string;title:string}[]}){
   const [channels,setChannels]=useState<Channel[]>([])
@@ -22,6 +23,7 @@ export default function Channels({media}:{media:{id:string;title:string}[]}){
   }
   return <details><summary>Live TV channels</summary>
     <ul>{channels.map(c=><li key={c.id}>{c.name} · {c.slots.length} programs <button disabled={busy} aria-label={'Remove channel '+c.name} onClick={()=>remove(c)}>Remove</button></li>)}</ul>
+    <TunarrImport media={media} apply={(name,ids)=>{setName(name);setLineup(ids)}}/>
     <form onSubmit={save}><label>Channel name<input required maxLength={80} value={name} onChange={e=>setName(e.target.value)}/></label>
       <label>Program<select value={pick} onChange={e=>setPick(e.target.value)}><option value="">Choose a video</option>{media.map(m=><option value={m.id} key={m.id}>{m.title}</option>)}</select></label>
       <button type="button" disabled={!pick||lineup.length>=200} onClick={()=>setLineup(old=>[...old,pick])}>Append program</button>

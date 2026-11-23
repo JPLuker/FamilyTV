@@ -73,3 +73,7 @@ Parents can create and remove local channels with ordered programming blocks. Th
 ## Android TV pairing update, 0.7.0
 
 Android TV has a Leanback launcher entry, native D-pad pairing form and origin-restricted viewer. Build with Gradle 8.11.1 and JDK 17 from android-tv. CI assembles and lints the debug APK. The parent can issue a new one-time code for the existing session. Physical remote navigation, audio, captions and resume remain device acceptance items. Human-made release branding and release signing remain pending.
+
+## Tunarr guide import, 0.8.0
+
+The parent can load an XMLTV guide, choose a channel, review title matches and save a local programming block. This is a snapshot import. The browser test exercises file selection, matching, channel creation and approved discovery in the child guide. Live synchronization with an external server is outside the implemented integration.
