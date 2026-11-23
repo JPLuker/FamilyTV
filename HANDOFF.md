@@ -39,3 +39,9 @@ Do not stop after a push, milestone, report, or CI success. Continue until all i
 ## Verification update, 0.0.2
 
 The source tree matched GitHub commit a34fd75. Both baseline CI jobs passed in run 45240642565. This supersedes the earlier baseline verification note. The deployment job now exercises the packaged service. See TESTING.md for its command and scope. Next, audit authentication and storage failure handling.
+
+## Authentication update, 0.0.3
+
+Commit a654382 passed all three jobs, including container recreation, in [run 45241166684](https://github.com/JPLuker/FamilyTV/actions/runs/45241166684). The source at a34fd75 also passed local Go tests, race checks and vet. The locked frontend built locally.
+
+The authentication regression tests cover credential hash compatibility, origin checks on state-changing methods, restart-persistent per-client lockout, and expired-session removal. Run the suite from backend with `go test ./...`, `go test -race ./...` and `go vet ./...`. Client limits use the network peer. Clients behind one reverse proxy share its allowance. Next, implement PostgreSQL storage and recovery.
