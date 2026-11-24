@@ -1,8 +1,0 @@
-.git
-**/node_modules
-**/dist
-**/test-results
-**/data
-media
-familytv-backup-*
-.env
