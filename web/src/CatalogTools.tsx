@@ -2,7 +2,7 @@ import {useState} from 'react'
 import {errorMessage,request} from './api'
 import type {ReviewedMedia} from './MediaReview'
 import Lookup from './Lookup'
-export type Metadata={attribution?:string;title:string;kind:string;series:string;season:number;episode:number;creator:string;playlist:string;external_id:string;language:string;license:string;source:string;collection:string}
+export type Metadata={playlist_index?:number;attribution?:string;title:string;kind:string;series:string;season:number;episode:number;creator:string;playlist:string;external_id:string;language:string;license:string;source:string;collection:string}
 export function Scanner({media,added}:{media:ReviewedMedia[];added:(m:ReviewedMedia)=>void}){
   const [paths,setPaths]=useState<string[]>([])
   const [selected,setSelected]=useState<string[]>([])
@@ -38,6 +38,10 @@ export function MetadataEditor({item,saved,close}:{item:ReviewedMedia;saved:(m:R
     catch(e){setError(errorMessage(e))}finally{setBusy(false)}
   }
   return <form onSubmit={e=>{e.preventDefault();void update(false)}}><h3>Edit catalog details</h3>
+    <p>Duration · {item.duration_seconds.toFixed(1)} s</p>
+    {item.streams?.length ? <ul aria-label="Media tracks">{item.streams.map((track,i)=><li key={i}>{track.codec_type} · {track.codec_name||'Unknown codec'}</li>)}</ul> :
+      <button type="button" disabled={busy} onClick={async()=>{setBusy(true);try{saved(await request('media/'+item.id+'/probe','POST'))}catch(e){setError(errorMessage(e))}finally{setBusy(false)}}}>Read codecs from file</button>}
+    <label>Playlist position<input type="number" min="1" value={value.playlist_index||''} onChange={e=>setValue({...value,playlist_index:Number(e.target.value)})}/></label>
     <Lookup value={value} change={setValue}/>
     {value.attribution&&<p>Provider attribution · <a href={value.attribution} rel="noreferrer" target="_blank">Original listing</a></p>}
     <p>Metadata source · {item.metadata.source||'Imported filename'}</p>

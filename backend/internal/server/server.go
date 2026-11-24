@@ -265,6 +265,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/watch/media/{id}/file", s.viewerMediaFile)
 	mux.HandleFunc("GET /api/watch/media/{id}/captions", s.viewerMediaFile)
 	mux.HandleFunc("GET /api/metadata/lookup", s.metadataLookup)
+	mux.HandleFunc("POST /api/media/{id}/probe", s.refreshProbe)
 	mux.HandleFunc("GET /api/media/scan", s.scanMedia)
 	mux.HandleFunc("PUT /api/media/{id}/metadata", s.editMetadata)
 	mux.HandleFunc("DELETE /api/media/{id}/metadata", s.editMetadata)

@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react'
 import {errorMessage,request} from './api'
 import type {Metadata} from './CatalogTools'
 export type Review={profiles:string[]|null;subject:string;audio_description:string;caption_quality:string}
-export type ReviewedMedia={metadata:Metadata;id:string;title:string;path:string;duration_seconds:number;captions:boolean;review:Review}
+export type ReviewedMedia={streams?:{codec_type:string;codec_name?:string}[];metadata:Metadata;id:string;title:string;path:string;duration_seconds:number;captions:boolean;review:Review}
 export default function MediaReview({item,saved,close}:{item:ReviewedMedia;saved:(m:ReviewedMedia)=>void;close:()=>void}){
   const [profiles,setProfiles]=useState<{id:string;name:string}[]>([])
   const [error,setError]=useState('')

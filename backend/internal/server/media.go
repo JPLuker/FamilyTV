@@ -14,18 +14,23 @@ import (
 	"time"
 )
 
+type MediaStream struct {
+	Type  string `json:"codec_type"`
+	Codec string `json:"codec_name"`
+}
 type Media struct {
-	Metadata    Metadata `json:"metadata"`
-	Original    Metadata `json:"original"`
-	Fingerprint string   `json:"fingerprint,omitempty"`
-	Review      Review   `json:"review"`
-	ID          string   `json:"id"`
-	Title       string   `json:"title"`
-	Path        string   `json:"path"`
-	Duration    float64  `json:"duration_seconds"`
-	Size        int64    `json:"size"`
-	Modified    int64    `json:"modified_ns"`
-	Captions    bool     `json:"captions"`
+	Streams     []MediaStream `json:"streams,omitempty"`
+	Metadata    Metadata      `json:"metadata"`
+	Original    Metadata      `json:"original"`
+	Fingerprint string        `json:"fingerprint,omitempty"`
+	Review      Review        `json:"review"`
+	ID          string        `json:"id"`
+	Title       string        `json:"title"`
+	Path        string        `json:"path"`
+	Duration    float64       `json:"duration_seconds"`
+	Size        int64         `json:"size"`
+	Modified    int64         `json:"modified_ns"`
+	Captions    bool          `json:"captions"`
 }
 
 func contentType(path string) string {
@@ -62,28 +67,46 @@ func openMedia(path string) (*os.File, os.FileInfo, error) {
 	}
 	return file, info, nil
 }
-func probeMedia(ctx context.Context, file *os.File) (float64, error) {
+func probeMedia(ctx context.Context, file *os.File) (float64, []MediaStream, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	// Probe the already-open file descriptor. Permit only the supported local containers.
-	cmd := exec.CommandContext(ctx, "ffprobe", "-v", "error", "-protocol_whitelist", "file", "-format_whitelist", "mov,matroska,webm", "-select_streams", "v:0", "-show_entries", "stream=codec_type:format=duration", "-of", "json", "/proc/self/fd/3")
+	cmd := exec.CommandContext(ctx, "ffprobe", "-v", "error", "-protocol_whitelist", "file", "-format_whitelist", "mov,matroska,webm", "-show_entries", "stream=codec_type,codec_name:stream_disposition=attached_pic:format=duration", "-of", "json", "/proc/self/fd/3")
 	cmd.ExtraFiles = []*os.File{file}
 	output, err := cmd.Output()
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	var result struct {
 		Format struct {
 			Duration float64 `json:"duration,string"`
 		} `json:"format"`
 		Streams []struct {
-			Codec string `json:"codec_type"`
+			MediaStream
+			Disposition struct {
+				Attached int `json:"attached_pic"`
+			} `json:"disposition"`
 		} `json:"streams"`
 	}
-	if err = json.Unmarshal(output, &result); err != nil || len(result.Streams) == 0 || result.Streams[0].Codec != "video" || result.Format.Duration <= 0 || math.IsInf(result.Format.Duration, 0) || math.IsNaN(result.Format.Duration) {
-		return 0, errors.New("no playable video duration")
+	if err := json.Unmarshal(output, &result); err != nil {
+		return 0, nil, err
 	}
-	return result.Format.Duration, nil
+	var streams []MediaStream
+	video := false
+	for _, track := range result.Streams {
+		if track.Disposition.Attached != 0 {
+			continue
+		}
+		if track.Type == "video" {
+			video = true
+		}
+		streams = append(streams, track.MediaStream)
+	}
+	duration := result.Format.Duration
+	if !video || duration <= 0 || math.IsInf(duration, 0) || math.IsNaN(duration) {
+		return 0, nil, errors.New("no playable video duration")
+	}
+	return duration, streams, nil
 }
 func captionPath(path string) string { return strings.TrimSuffix(path, filepath.Ext(path)) + ".vtt" }
 func openCaption(path string) (*os.File, os.FileInfo, error) {
@@ -179,12 +202,12 @@ func (s *Server) importMedia(w http.ResponseWriter, r *http.Request) {
 		metadata.Title = input.Title
 		metadata.Source = "parent override"
 	}
-	duration, err := probeMedia(r.Context(), f)
+	duration, streams, err := probeMedia(r.Context(), f)
 	if err != nil {
 		write(w, 422, map[string]string{"error": "Could not read a video track and duration. Check the file and FFprobe installation."})
 		return
 	}
-	m := Media{ID: token(), Title: metadata.Title, Metadata: metadata, Original: original, Fingerprint: fp, Path: input.Path, Duration: duration, Size: info.Size(), Modified: info.ModTime().UnixNano()}
+	m := Media{Streams: streams, ID: token(), Title: metadata.Title, Metadata: metadata, Original: original, Fingerprint: fp, Path: input.Path, Duration: duration, Size: info.Size(), Modified: info.ModTime().UnixNano()}
 	if f, _, err := openCaption(m.Path); err == nil {
 		f.Close()
 		m.Captions = true
@@ -340,6 +363,48 @@ func (s *Server) removeMedia(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		write(w, 200, map[string]bool{"removed": true})
+		return
+	}
+	http.NotFound(w, r)
+}
+
+// Refresh legacy records without changing their approval, identity or parent overrides.
+func (s *Server) refreshProbe(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.authorized(r) {
+		write(w, 401, map[string]string{"error": "authentication required"})
+		return
+	}
+	for i, item := range s.data.Media {
+		if item.ID != r.PathValue("id") {
+			continue
+		}
+		f, info, err := openMedia(item.Path)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer f.Close()
+		if info.Size() != item.Size || info.ModTime().UnixNano() != item.Modified {
+			write(w, 409, map[string]string{"error": "The source file changed."})
+			return
+		}
+		duration, streams, err := probeMedia(r.Context(), f)
+		if err != nil {
+			write(w, 422, map[string]string{"error": "Could not probe this file."})
+			return
+		}
+		updated := item
+		updated.Duration = duration
+		updated.Streams = streams
+		s.data.Media[i] = updated
+		if err := s.persist(); err != nil {
+			s.data.Media[i] = item
+			write(w, 500, map[string]string{"error": "storage failure"})
+			return
+		}
+		write(w, 200, updated)
 		return
 	}
 	http.NotFound(w, r)

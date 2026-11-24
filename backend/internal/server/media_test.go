@@ -61,6 +61,24 @@ func TestParentMedia(t *testing.T) {
 	if m.Title != "sample" || !m.Captions || m.Duration < 0.9 {
 		t.Fatal(m)
 	}
+	// Records created before codec storage can be enriched without reimporting or losing edits.
+	s.data.Media[0].Streams = nil
+	s.data.Media[0].Title = "Parent title"
+	probePath := "/api/media/" + m.ID + "/probe"
+	if w := call("POST", probePath, "", false, ""); w.Code != 401 {
+		t.Fatal("anonymous probe", w.Code)
+	}
+	if w := call("POST", probePath, "", true, ""); w.Code != 200 {
+		t.Fatal("refresh", w.Code, w.Body.String())
+	}
+	loaded, err := New(s.path, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	item := loaded.data.Media[0]
+	if item.ID != m.ID || item.Title != "Parent title" || len(item.Streams) != 1 || item.Streams[0].Codec != "mpeg4" {
+		t.Fatal(item)
+	}
 	if w := call("POST", "/api/media", body, true, ""); w.Code != 409 {
 		t.Fatal(w.Code)
 	}

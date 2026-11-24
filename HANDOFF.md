@@ -105,3 +105,11 @@ Parent-initiated TVmaze series search and YouTube video ID lookup return metadat
 ## Current priority — M1 media library
 
 Joseph selected sequential milestone completion. Earlier notes pointing to later feature work are historical. Finish the M1 library acceptance criteria in ROADMAP.md, record evidence, then advance to M2. The current probe verifies video presence and duration. Recording codec names and verifying the entire offline library journey remain actionable.
+
+## M1 development complete · 0.14.0
+
+Verified the starting source at 0ec7324 with Go tests, vet and the production web build. The M1 changes extend the existing FFprobe integration to save per-track codec names, add an on-demand codec refresh for older records, and display season/special and creator/playlist groups in order. Local video metadata supplies playlist positions, which parents can also edit. Reuse decision: FFprobe already exposes codec names and stream dispositions, so FamilyTV uses that existing result directly.
+
+Verification commands: from backend, `go test ./...`, `go test -race ./...` and `go vet ./...`; from web, `npm run build` and `npx playwright test`. The browser scanned and batch-imported five synthetic season/special/playlist fixtures, checked the missing episode, verified VP8 and Opus, restored the imported title, forced a provider lookup failure, reloaded, and advanced the local playback clock. The same journey exercises approved artwork and caption settings. Go tests cover duplicate bytes, WebVTT delivery, range playback, and persistent codec enrichment of old records.
+
+Household media: untested. Confirm the catalog against the family's own season and playlist during final testing. M1 implementation is closed for this pass. M2 remains queued.

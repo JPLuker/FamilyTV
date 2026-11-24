@@ -1,6 +1,6 @@
 # FamilyTV roadmap
 
-Active milestone: **M1 — Media library.** Finish and verify M1 before advancing to M2. Continue in numerical order thereafter. Working name and mascot pending Joseph's design decisions.
+**M1 media-library development is complete.** Automated fixture acceptance passed. Household-library sign-off is reserved for the testing pass. M2 is next in sequence. Working name and mascot pending Joseph's design decisions.
 
 - **M0 Foundation:** Go API, parent authentication, web dashboard, PostgreSQL, Docker, CI, security and backups.
 - **M1 Media library:** local import, FFprobe, playback, metadata and captions.

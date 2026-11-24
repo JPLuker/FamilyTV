@@ -20,19 +20,20 @@ import (
 )
 
 type Metadata struct {
-	Attribution string `json:"attribution,omitempty"`
-	Title       string `json:"title"`
-	Kind        string `json:"kind"`
-	Series      string `json:"series"`
-	Season      int    `json:"season"`
-	Episode     int    `json:"episode"`
-	Creator     string `json:"creator"`
-	Playlist    string `json:"playlist"`
-	ExternalID  string `json:"external_id"`
-	Language    string `json:"language"`
-	License     string `json:"license"`
-	Source      string `json:"source"`
-	Collection  string `json:"collection"`
+	PlaylistIndex int    `json:"playlist_index,omitempty"`
+	Attribution   string `json:"attribution,omitempty"`
+	Title         string `json:"title"`
+	Kind          string `json:"kind"`
+	Series        string `json:"series"`
+	Season        int    `json:"season"`
+	Episode       int    `json:"episode"`
+	Creator       string `json:"creator"`
+	Playlist      string `json:"playlist"`
+	ExternalID    string `json:"external_id"`
+	Language      string `json:"language"`
+	License       string `json:"license"`
+	Source        string `json:"source"`
+	Collection    string `json:"collection"`
 }
 
 var episodePattern = regexp.MustCompile(`(?i)^(.*?)[ ._-]*s([0-9]{1,3})e([0-9]{1,4})(?:[ ._-]+(.*))?$`)
@@ -91,6 +92,7 @@ func detectMetadata(path string) Metadata {
 	}
 	if b, e := sidecar(stem + ".info.json"); e == nil {
 		var y struct {
+			PlaylistIndex                                             int `json:"playlist_index"`
 			Title, Channel, Uploader, ID, Playlist, Language, License string
 			PlaylistTitle                                             string `json:"playlist_title"`
 		}
@@ -102,6 +104,7 @@ func detectMetadata(path string) Metadata {
 				m.Creator = y.Uploader
 			}
 			m.ExternalID = y.ID
+			m.PlaylistIndex = y.PlaylistIndex
 			m.Playlist = y.PlaylistTitle
 			if m.Playlist == "" {
 				m.Playlist = y.Playlist
@@ -205,7 +208,7 @@ func (s *Server) editMetadata(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		value.Title = strings.TrimSpace(value.Title)
-		if value.Title == "" || len([]rune(value.Title)) > 160 || !slices.Contains([]string{"episode", "special", "movie", "creator", "video"}, value.Kind) || value.Season < 0 || value.Episode < 0 {
+		if value.Title == "" || len([]rune(value.Title)) > 160 || !slices.Contains([]string{"episode", "special", "movie", "creator", "video"}, value.Kind) || value.Season < 0 || value.Episode < 0 || value.PlaylistIndex < 0 {
 			write(w, 400, map[string]string{"error": "Invalid title, format or episode number."})
 			return
 		}

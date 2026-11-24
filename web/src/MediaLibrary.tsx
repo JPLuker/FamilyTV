@@ -4,6 +4,24 @@ import {errorMessage,request} from './api'
 import {Scanner,MetadataEditor} from './CatalogTools'
 import Channels from './Channels'
 import MediaReview,{type ReviewedMedia as Media} from './MediaReview'
+function catalogGroup({metadata:m}:Media){
+  if(m.series)return m.series+' · '+(m.kind==='special'?'Specials':'Season '+m.season)
+  return [m.creator,m.playlist].filter(Boolean).join(' · ') || 'Other videos'
+}
+function catalogGroups(media:Media[]){
+  const groups=new Map<string,Media[]>()
+  for(const item of media){
+    const key=catalogGroup(item)
+    const group=groups.get(key)
+    if(group)group.push(item)
+    else groups.set(key,[item])
+  }
+  for(const items of groups.values()){
+    const position=(item:Media)=>item.metadata.episode||item.metadata.playlist_index||Number.MAX_SAFE_INTEGER
+    items.sort((a,b)=>position(a)-position(b)||a.title.localeCompare(b.title,undefined,{numeric:true}))
+  }
+  return [...groups].sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true}))
+}
 export default function MediaLibrary(){
   const [media,setMedia]=useState<Media[]>([])
   const [selected,setSelected]=useState<Media>()
@@ -52,13 +70,13 @@ export default function MediaLibrary(){
     </form>
     {error&&<p role="alert">{error} <button onClick={()=>{setError('');setReload(n=>n+1)}}>Reload library</button></p>}
     {media.length>0 && <p aria-label="Library health">{media.filter(m=>!m.review.profiles?.length).length} awaiting approval · {media.filter(m=>!m.review.subject).length} without a subject · {media.filter(m=>!m.review.audio_description||m.review.audio_description==='unknown').length} with unknown audio description</p>}
-    <ul>{media.map(item=><li key={item.id}>
+    {catalogGroups(media).map(([group,items])=><div key={group}><h3>{group}</h3><ul>{items.map(item=><li key={item.id}>
       <strong>{item.title}</strong> · {Math.ceil(item.duration_seconds/60)} min{item.captions?' · captions':''}
       <button aria-label={'Catalog details for '+item.title} onClick={()=>setEditing(item)}>Details</button>
       <button aria-label={'Review '+item.title} onClick={()=>setReviewing(item)}>Review</button>
       <button aria-label={'Preview '+item.title} onClick={()=>setSelected(item)}>Preview</button>
       <button disabled={busy} aria-label={'Remove video '+item.title} onClick={()=>remove(item)}>Remove</button>
-    </li>)}</ul>
+    </li>)}</ul></div>)}
     {editing&&<MetadataEditor key={editing.id} item={editing} close={()=>setEditing(undefined)} saved={item=>{setMedia(old=>old.map(m=>m.id===item.id?item:m));setEditing(undefined);setReload(n=>n+1)}}/>}
     {reviewing && <MediaReview key={reviewing.id} item={reviewing} close={()=>setReviewing(undefined)} saved={item=>{setMedia(old=>old.map(m=>m.id===item.id?item:m));setReviewing(undefined)}}/>}
     <Channels media={media}/>
