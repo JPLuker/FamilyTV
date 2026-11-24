@@ -101,3 +101,7 @@ Directory scanning, duplicate confirmation, local NFO and video metadata sidecar
 ## Optional provider matching, 0.13.0
 
 Parent-initiated TVmaze series search and YouTube video ID lookup return metadata candidates. Only the query or ID goes to the selected provider. Parents choose and save a match. Provider failure leaves the local catalog intact. A selected match retains attribution and can be reverted. Tests validate outbound destinations, encoded query values, response mapping and invalid-input behavior using test responses.
+
+## Current priority — M1 media library
+
+Joseph selected sequential milestone completion. Earlier notes pointing to later feature work are historical. Finish the M1 library acceptance criteria in ROADMAP.md, record evidence, then advance to M2. The current probe verifies video presence and duration. Recording codec names and verifying the entire offline library journey remain actionable.
