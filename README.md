@@ -2,6 +2,8 @@
 
 Self-hosted parent-controlled children's video platform. **Pre-release development scaffold. Not ready for use by children or public internet exposure.**
 
+[FamilyTV setup guide](https://jpluker.github.io/FamilyTV/) · [Read the guide on GitHub](docs/guide/index.md)
+
 ## Run
 ```sh
 docker compose up --build

@@ -56,6 +56,8 @@ Parents and teachers can disable the arcade entirely or individual formats, choo
 
 ## M10 final documentation acceptance
 
+Publish user guides on GitHub Pages from `docs/guide/`. Keep setup steps current as features change.
+
 Complete this milestone after feature development and release-candidate validation. Publish full, accurate guides for installation, setup, administration, parent and teacher workflows, Family and Classroom modes, content acquisition and screening, library organization, imports and exports, fun facts, accessibility, playback and session controls, backups, updates and troubleshooting, covering the features actually shipped.
 
 Include an optional **Using AI to Help Manage Your Library** section with self-contained, easy copy-and-paste prompts for discovering and screening content, organizing age and subject metadata, identifying gaps, preparing classroom playlists, managing fun facts, preparing supported imports and troubleshooting. Include relevant documentation references and actual supported formats. Explain that AI suggestions require human review. This is documentation only: no built-in AI, API integration, subscription or AI infrastructure is required. FamilyTV remains fully functional without AI.

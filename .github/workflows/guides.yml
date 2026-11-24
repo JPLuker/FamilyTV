@@ -1,0 +1,36 @@
+name: Publish user guides
+on:
+  push:
+    branches: [main]
+    paths: ['docs/guide/**', '.github/workflows/guides.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: familytv-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/jekyll-build-pages@v1
+        with:
+          source: docs/guide
+          destination: _site
+      - name: Check the setup guide
+        run: |
+          test -s _site/index.html
+          grep -Fq 'docker inspect plex' _site/index.html
+          grep -Fq 'id="connect-your-phone-and-tv"' _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
