@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {errorMessage,request} from './api'
 
 import {Scanner,MetadataEditor} from './CatalogTools'
+import ApprovalDesk from './ApprovalDesk'
 import Channels from './Channels'
 import MediaReview,{type ReviewedMedia as Media} from './MediaReview'
 function catalogGroup({metadata:m}:Media){
@@ -22,7 +23,7 @@ function catalogGroups(media:Media[]){
   }
   return [...groups].sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true}))
 }
-export default function MediaLibrary({onApproval}:{onApproval:(approved:boolean)=>void}){
+export default function MediaLibrary({onApproval,profileRevision}:{profileRevision:number;onApproval:(approved:boolean)=>void}){
   const [media,setMedia]=useState<Media[]>([])
   const [loaded,setLoaded]=useState(false)
   const [selected,setSelected]=useState<Media>()
@@ -39,7 +40,7 @@ export default function MediaLibrary({onApproval}:{onApproval:(approved:boolean)
     request<{media:Media[];gaps:typeof gaps}>('media').then(result=>{if(active){setMedia(result.media);setGaps(result.gaps);setLoaded(true)}})
       .catch(error=>{if(active)setError(errorMessage(error))})
     return ()=>{active=false}
-  },[reload])
+  },[reload,profileRevision])
   useEffect(()=>{if(loaded)onApproval(media.some(m=>Boolean(m.review.profiles?.length)))},[loaded,media,onApproval])
   async function add(e:React.FormEvent){
     e.preventDefault();setBusy(true);setError('')
@@ -61,6 +62,7 @@ export default function MediaLibrary({onApproval}:{onApproval:(approved:boolean)
   }
   return <div>
     <h2>Media library</h2>
+    <ApprovalDesk media={media} refresh={()=>setReload(n=>n+1)} review={m=>{setReviewing(m);requestAnimationFrame(()=>document.getElementById("media-review-heading")?.focus())}}/>
     <Scanner media={media} added={item=>{setMedia(old=>[...old.filter(m=>m.id!==item.id),item]);setReload(n=>n+1)}}/>
     {gaps.length>0&&<details><summary>Episode gaps</summary><ul>{gaps.map(g=><li key={g.series+g.season+'-'+g.from}>{g.series} · season {g.season} · missing {g.from}{g.to!==g.from?'–'+g.to:''}</li>)}</ul></details>}
     <form onSubmit={add}>
@@ -71,7 +73,7 @@ export default function MediaLibrary({onApproval}:{onApproval:(approved:boolean)
       <button disabled={busy}>{busy?'Reading video…':'Import video'}</button>
     </form>
     {error&&<p role="alert">{error} <button onClick={()=>{setError('');setReload(n=>n+1)}}>Reload library</button></p>}
-    {media.length>0 && <p aria-label="Library health">{media.filter(m=>!m.review.profiles?.length).length} awaiting approval · {media.filter(m=>!m.review.subject).length} without a subject · {media.filter(m=>!m.review.audio_description||m.review.audio_description==='unknown').length} with unknown audio description</p>}
+    {media.length>0 && <p aria-label="Library health">{media.filter(m=>!m.reviewed&&!m.review.profiles?.length).length} awaiting approval · {media.filter(m=>!m.review.subject).length} without a subject · {media.filter(m=>!m.review.audio_description||m.review.audio_description==='unknown').length} with unknown audio description</p>}
     {catalogGroups(media).map(([group,items])=><div key={group}><h3>{group}</h3><ul>{items.map(item=><li key={item.id}>
       <strong>{item.title}</strong> · {Math.ceil(item.duration_seconds/60)} min{item.captions?' · captions':''}
       <button aria-label={'Catalog details for '+item.title} onClick={()=>setEditing(item)}>Details</button>

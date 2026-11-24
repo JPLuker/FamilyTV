@@ -33,6 +33,7 @@ function ParentPin({onExpired}:{onExpired:()=>void}){
 function App() {
   const [phase,setPhase]=useState<Phase>('loading')
   const [pin,setPin]=useState('')
+  const [profileRevision,setProfileRevision]=useState(0)
   const [hasProfiles,setHasProfiles]=useState<boolean>()
   const [hasApproval,setHasApproval]=useState<boolean>()
   const [password,setPassword]=useState('')
@@ -86,8 +87,8 @@ function App() {
           <a href="https://www.aap.org/en/patient-care/media-and-children/center-of-excellence-on-social-media-and-youth-mental-health/5-cs-quick-guide/">American Academy of Pediatrics guide to the 5 Cs</a>
         </details>
       </nav>}
-      <Profiles onExpired={onExpired} onProfiles={setHasProfiles}/>
-      <MediaLibrary onApproval={setHasApproval}/>
+      <Profiles onExpired={onExpired} onProfiles={setHasProfiles} onChanged={()=>setProfileRevision(n=>n+1)}/>
+      <MediaLibrary profileRevision={profileRevision} onApproval={setHasApproval}/>
       <ParentPin onExpired={onExpired}/>
       {error&&<p role="alert">{error}</p>}
       <p><button onClick={logout}>Sign out</button></p>

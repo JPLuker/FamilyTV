@@ -23,3 +23,5 @@ familytv.example.com {
 ```
 
 Set FAMILYTV_SECURE_COOKIES=true for the API service and recreate it before using the HTTPS address. The phone and TV must trust the certificate and resolve the hostname. The TV client requires HTTPS. A reverse proxy shares one login-rate-limit bucket across its viewers. Do not publish PostgreSQL or enable unauthenticated remote setup. See [Caddy reverse proxy documentation](https://caddyserver.com/docs/quick-starts/reverse-proxy).
+
+Parent-only review history retains the latest 200 actions, including video titles and profile identifiers. It excludes watch history and credentials. Child names shown alongside actions come from current profiles. The household backup includes the review history. Coverage reads local file availability when the parent opens the approval queue.

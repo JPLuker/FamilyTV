@@ -1,4 +1,4 @@
-export type Discovery={reading?:string;preset?:string;choices?:number;preferred_minutes?:number;search?:string;interests?:string;spoken_labels?:boolean;warn_minutes?:number}
+export type Discovery={unique_creators?:boolean;creator_cooldown?:boolean;mix_subjects?:boolean;pace_series?:boolean;reading?:string;preset?:string;choices?:number;preferred_minutes?:number;search?:string;interests?:string;spoken_labels?:boolean;warn_minutes?:number}
 export const discoveryDefaults:Discovery={preset:'',choices:12,preferred_minutes:0,search:'on',interests:'',spoken_labels:false,warn_minutes:0}
 const presets:Record<string,[number,number,string]>={'2-4':[4,5,'off'],'5-7':[6,10,'on'],'8-11':[8,15,'on'],'12-14':[12,20,'on'],'15-17':[12,0,'on']}
 export default function DiscoverySettings({value,change}:{value:Discovery;change:(value:Discovery)=>void}){
@@ -8,6 +8,7 @@ export default function DiscoverySettings({value,change}:{value:Discovery;change
       const preset=e.target.value,defaults=presets[preset]
       change(defaults?{...value,preset,choices:defaults[0],preferred_minutes:defaults[1],search:defaults[2]}:{...value,preset})
     }}><option value="">Custom</option>{Object.keys(presets).map(key=><option key={key} value={key}>{key} years</option>)}</select></label>
+    {([['unique_creators','One choice per creator on each page'],['creator_cooldown','Suggest other creators first after playback'],['mix_subjects','Alternate subjects in suggestions'],['pace_series','Spread episodes from the same series apart']] as const).map(([key,label])=><label className="toggle" key={key}><input type="checkbox" checked={Boolean(value[key])} onChange={e=>change({...value,[key]:e.target.checked})}/>{label}</label>)}
     <label>Reading detail<select value={value.reading||'brief'} onChange={e=>change({...value,reading:e.target.value})}><option value="brief">Short labels</option><option value="detail">Include the subject</option></select></label>
     <label>Choices per page<select value={value.choices||12} onChange={e=>change({...value,choices:Number(e.target.value)})}>{[4,6,8,12].map(n=><option key={n}>{n}</option>)}</select></label>
     <label>Preferred video length in minutes (0 for any)<input type="number" min="0" max="240" value={value.preferred_minutes||0} onChange={e=>change({...value,preferred_minutes:Number(e.target.value)})}/></label>

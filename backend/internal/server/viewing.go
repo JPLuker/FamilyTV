@@ -15,17 +15,20 @@ import (
 )
 
 type Viewing struct {
-	Channel    string `json:"channel,omitempty"`
-	Profile    string `json:"profile"`
-	Mode       string `json:"mode"`
-	Deadline   int64  `json:"deadline,omitempty"`
-	Current    string `json:"current,omitempty"`
-	Last       bool   `json:"last"`
-	JoinHash   string `json:"join_hash,omitempty"`
-	JoinUntil  int64  `json:"join_until,omitempty"`
-	CookieHash string `json:"cookie_hash,omitempty"`
+	LastCreator string `json:"last_creator,omitempty"`
+	Channel     string `json:"channel,omitempty"`
+	Profile     string `json:"profile"`
+	Mode        string `json:"mode"`
+	Deadline    int64  `json:"deadline,omitempty"`
+	Current     string `json:"current,omitempty"`
+	Last        bool   `json:"last"`
+	JoinHash    string `json:"join_hash,omitempty"`
+	JoinUntil   int64  `json:"join_until,omitempty"`
+	CookieHash  string `json:"cookie_hash,omitempty"`
 }
 type WatchItem struct {
+	creator  string
+	series   string
 	ID       string  `json:"id"`
 	Title    string  `json:"title"`
 	Subject  string  `json:"subject"`
@@ -33,6 +36,9 @@ type WatchItem struct {
 	Captions bool    `json:"captions"`
 }
 
+func watchItem(m Media) WatchItem {
+	return WatchItem{ID: m.ID, Title: m.Title, Subject: m.Review.Subject, Duration: m.Duration, Captions: m.Captions, creator: strings.ToLower(strings.TrimSpace(m.Metadata.Creator)), series: strings.ToLower(strings.TrimSpace(m.Metadata.Series))}
+}
 func secretHash(value string) string {
 	sum := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(sum[:])
@@ -292,7 +298,7 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 		if !available(m, p) {
 			continue
 		}
-		item := WatchItem{m.ID, m.Title, m.Review.Subject, m.Duration, m.Captions}
+		item := watchItem(m)
 		if m.ID == v.Current {
 			current = &item
 		}
@@ -315,7 +321,7 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	items, page, pages := p.Discovery.page(items, page)
+	items, page, pages := p.Discovery.page(items, page, v.LastCreator)
 	write(w, 200, map[string]any{"items": items, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_music": p.EndingMusic})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
@@ -374,6 +380,7 @@ func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	for _, m := range s.data.Media {
 		if m.ID == input.ID && available(m, p) && (v.Current == m.ID || fits(m, v, time.Now())) {
 			v.Current = m.ID
+			v.LastCreator = watchItem(m).creator
 			if s.setViewing(w, p.ID, &v) {
 				write(w, 200, map[string]bool{"playing": true})
 			}

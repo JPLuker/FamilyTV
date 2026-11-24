@@ -6,6 +6,7 @@ import {ApiError, errorMessage, request} from './api'
 import {avatars} from './avatars'
 
 type Settings = {
+  blocked_series?:string; blocked_creators?:string; blocked_categories?:string
   avatar?:string
   max_video_minutes?:number
   discovery:Discovery
@@ -23,7 +24,7 @@ const defaults: Settings = {discovery:discoveryDefaults,name:'', navigation:'vis
 const navigationModes: Record<string,string> = {visual:'Pictures', 'visual-text':'Pictures and text', text:'Text'}
 const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music']] as const
 
-export default function Profiles({onExpired,onProfiles}: {onExpired: () => void;onProfiles:(present:boolean)=>void}) {
+export default function Profiles({onExpired,onProfiles,onChanged}: {onExpired: () => void;onProfiles:(present:boolean)=>void;onChanged:()=>void}) {
   const [profiles,setProfiles] = useState<Profile[]>([])
   const [loading,setLoading] = useState(true)
   const [error,setError] = useState('')
@@ -77,7 +78,7 @@ export default function Profiles({onExpired,onProfiles}: {onExpired: () => void;
       const p = await request<Profile>(editing ? 'profiles/'+encodeURIComponent(editing) : 'profiles', editing ? 'PUT' : 'POST', settings)
       setProfiles(previous => editing ? previous.map(old => old.id===editing ? p : old) : [...previous,p])
       reset()
-      setNotice('Saved '+p.name+'.')
+      onChanged();setNotice('Saved '+p.name+'.')
     })
   }
   function remove(p:Profile) {
@@ -87,7 +88,7 @@ export default function Profiles({onExpired,onProfiles}: {onExpired: () => void;
       setProfiles(previous => previous.filter(old => old.id!==p.id))
       if (editing===p.id) reset()
       if(sessionProfile?.id===p.id)setSessionProfile(undefined)
-      setNotice('Removed '+p.name+'.')
+      onChanged();setNotice('Removed '+p.name+'.')
     })
   }
   return <>
@@ -116,6 +117,9 @@ export default function Profiles({onExpired,onProfiles}: {onExpired: () => void;
       <select id="navigation" value={settings.navigation} onChange={e => setSettings({...settings,navigation:e.target.value})}>
         {Object.entries(navigationModes).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
       </select>
+      <details><summary>Content restrictions</summary><p>Enter one exact library name per line. These restrictions also apply to individually approved videos.</p>
+        {([['blocked_series','Blocked series'],['blocked_creators','Blocked creators'],['blocked_categories','Blocked custom categories']] as const).map(([key,label])=><label key={key}>{label}<textarea rows={3} maxLength={2048} value={settings[key]||''} onChange={e=>setSettings({...settings,[key]:e.target.value})}/></label>)}
+      </details>
       <DiscoverySettings value={settings.discovery} change={discovery=>setSettings({...settings,discovery})}/>
       {toggles.map(([key,label]) => <label className="toggle" key={key}><input type="checkbox" checked={settings[key]} onChange={e=>setSettings({...settings,[key]:e.target.checked})}/> {label}</label>)}
       <button disabled={busy||loading}>{editing ? 'Save changes' : 'Add profile'}</button>

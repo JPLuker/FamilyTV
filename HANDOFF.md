@@ -125,3 +125,13 @@ Verification: backend `go test ./...`, `go test -race ./...` and `go vet ./...`;
 Next milestone: M3 content approval and classification. Physical phone installation, TV remote, screen reader, caregiver usability and household-media checks are reserved for the testing pass.
 
 Packaged Chrome identified a small touch target on the sign-in settings disclosure. Dashboard disclosure controls now have a 44-pixel minimum height and the browser journey checks that control directly.
+
+## M3 approvals and classification · 0.16.0
+
+Starting commit 315ab01 passed Go tests, vet and the production web build. New work extends the existing review records, profile policies, shared playback eligibility check and discovery ranking. Parents can review pending videos, approve or revoke up to 100 selected videos for one profile, filter exact series and creators and inspect the latest 200 parent review actions. Profile-level series, creator and custom category blocks take precedence over video approval. Future imports still require explicit approval. Age bands and educational fields are descriptive. Parents can record a learning goal, reviewer, source, evidence status, co-viewing tip and off-screen activity. None of these imply a learning outcome.
+
+Coverage counts playable files by subject, creator, duration, language, accessibility, age, category and metadata source. Exclusion counts show why approved files cannot play. Suggestions can be disabled on the parent browser. Independent variety settings spread creators, subjects and series after eligibility filtering. One-creator-per-page can return fewer than twelve choices; creator cooldown ranks other creators first and retains eligible choices when there are no alternatives.
+
+Verification from backend: `go test ./...`, `go test -race ./...`, `go vet ./...`. From web: `npm run build` and `npx playwright test`. The browser checks unapproved and revoked search, play and file access while the child stays paired, successful approval, bulk changes, coverage and review history. Server regressions cover twelve distinct creators, scarce inventory, group blocks, persistence, idempotent bulk retries and rollback. The local detached worktree used GOFLAGS=-buildvcs=false because Go's VCS metadata lookup failed there. CI builds from a standard checkout.
+
+Next sequential milestone: M4. Household content review and assistive-device usability remain part of final testing.

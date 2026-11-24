@@ -124,7 +124,7 @@ func (s *Server) guide(c Channel, p ChildProfile, v Viewing, now int64) Guide {
 		}
 		for _, m := range s.data.Media {
 			if m.ID == slot.Media && available(m, p) {
-				return &Airing{WatchItem{m.ID, m.Title, m.Review.Subject, m.Duration, m.Captions}, start, end}
+				return &Airing{watchItem(m), start, end}
 			}
 		}
 		return nil

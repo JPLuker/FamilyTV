@@ -30,13 +30,14 @@ type loginAttempts struct {
 	Until int64 `json:"until"`
 }
 type state struct {
-	Channels []Channel                `json:"channels,omitempty"`
-	Viewing  map[string]Viewing       `json:"viewing,omitempty"`
-	Media    []Media                  `json:"media,omitempty"`
-	Attempts map[string]loginAttempts `json:"login_attempts,omitempty"`
-	Account  *account                 `json:"account,omitempty"`
-	Sessions map[string]int64         `json:"sessions,omitempty"`
-	Profiles []ChildProfile           `json:"profiles,omitempty"`
+	ApprovalLog []ApprovalEvent          `json:"approval_log,omitempty"`
+	Channels    []Channel                `json:"channels,omitempty"`
+	Viewing     map[string]Viewing       `json:"viewing,omitempty"`
+	Media       []Media                  `json:"media,omitempty"`
+	Attempts    map[string]loginAttempts `json:"login_attempts,omitempty"`
+	Account     *account                 `json:"account,omitempty"`
+	Sessions    map[string]int64         `json:"sessions,omitempty"`
+	Profiles    []ChildProfile           `json:"profiles,omitempty"`
 }
 type Server struct {
 	currentState  func(context.Context) (state, error)
@@ -318,6 +319,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/media/scan", s.scanMedia)
 	mux.HandleFunc("PUT /api/media/{id}/metadata", s.editMetadata)
 	mux.HandleFunc("DELETE /api/media/{id}/metadata", s.editMetadata)
+	mux.HandleFunc("GET /api/approvals", s.approvals)
+	mux.HandleFunc("POST /api/approvals", s.approvals)
+	mux.HandleFunc("GET /api/coverage/{id}", s.coverage)
 	mux.HandleFunc("GET /api/media", s.mediaList)
 	mux.HandleFunc("POST /api/media", s.importMedia)
 	mux.HandleFunc("PUT /api/media/{id}/review", s.reviewMedia)

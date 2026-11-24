@@ -19,18 +19,20 @@ type MediaStream struct {
 	Codec string `json:"codec_name"`
 }
 type Media struct {
-	Streams     []MediaStream `json:"streams,omitempty"`
-	Metadata    Metadata      `json:"metadata"`
-	Original    Metadata      `json:"original"`
-	Fingerprint string        `json:"fingerprint,omitempty"`
-	Review      Review        `json:"review"`
-	ID          string        `json:"id"`
-	Title       string        `json:"title"`
-	Path        string        `json:"path"`
-	Duration    float64       `json:"duration_seconds"`
-	Size        int64         `json:"size"`
-	Modified    int64         `json:"modified_ns"`
-	Captions    bool          `json:"captions"`
+	ReviewVersion uint64        `json:"review_version,omitempty"`
+	Reviewed      bool          `json:"reviewed,omitempty"`
+	Streams       []MediaStream `json:"streams,omitempty"`
+	Metadata      Metadata      `json:"metadata"`
+	Original      Metadata      `json:"original"`
+	Fingerprint   string        `json:"fingerprint,omitempty"`
+	Review        Review        `json:"review"`
+	ID            string        `json:"id"`
+	Title         string        `json:"title"`
+	Path          string        `json:"path"`
+	Duration      float64       `json:"duration_seconds"`
+	Size          int64         `json:"size"`
+	Modified      int64         `json:"modified_ns"`
+	Captions      bool          `json:"captions"`
 }
 
 func contentType(path string) string {

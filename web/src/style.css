@@ -10,3 +10,11 @@ summary {
   padding: 10px 0;
   cursor: pointer;
 }
+
+details label:has(select), details label:has(textarea), details label:has(input:not([type=checkbox])) {
+  display: grid;
+  gap: .25rem;
+  margin-bottom: .75rem;
+}
+textarea { max-width: 100%; font: inherit; }
+fieldset { min-width: 0; }

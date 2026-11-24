@@ -10,18 +10,21 @@ import (
 )
 
 type ChildProfile struct {
-	Avatar           string    `json:"avatar,omitempty"`
-	MaxVideoMinutes  int       `json:"max_video_minutes,omitempty"`
-	Discovery        Discovery `json:"discovery"`
-	LargeText        bool      `json:"large_text"`
-	HighContrast     bool      `json:"high_contrast"`
-	EndingMusic      bool      `json:"ending_music"`
-	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	Captions         bool      `json:"captions"`
-	ReducedMotion    bool      `json:"reduced_motion"`
-	AudioDescription bool      `json:"audio_description"`
-	Navigation       string    `json:"navigation"`
+	BlockedSeries     string    `json:"blocked_series,omitempty"`
+	BlockedCreators   string    `json:"blocked_creators,omitempty"`
+	BlockedCategories string    `json:"blocked_categories,omitempty"`
+	Avatar            string    `json:"avatar,omitempty"`
+	MaxVideoMinutes   int       `json:"max_video_minutes,omitempty"`
+	Discovery         Discovery `json:"discovery"`
+	LargeText         bool      `json:"large_text"`
+	HighContrast      bool      `json:"high_contrast"`
+	EndingMusic       bool      `json:"ending_music"`
+	ID                string    `json:"id"`
+	Name              string    `json:"name"`
+	Captions          bool      `json:"captions"`
+	ReducedMotion     bool      `json:"reduced_motion"`
+	AudioDescription  bool      `json:"audio_description"`
+	Navigation        string    `json:"navigation"`
 }
 
 func (s *Server) listProfiles(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +78,7 @@ func (s *Server) deleteProfile(w http.ResponseWriter, r *http.Request) {
 			s.data.Media = slices.Clone(before.Media)
 			for j, m := range s.data.Media {
 				if slices.Contains(m.Review.Profiles, id) {
+					s.data.Media[j].ReviewVersion++
 					s.data.Media[j].Review.Profiles = slices.DeleteFunc(slices.Clone(m.Review.Profiles), func(value string) bool { return value == id })
 				}
 			}
@@ -91,7 +95,7 @@ func (s *Server) deleteProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func readProfile(w http.ResponseWriter, r *http.Request) (ChildProfile, bool) {
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, 16384)
 	var p ChildProfile
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -115,7 +119,7 @@ func readProfile(w http.ResponseWriter, r *http.Request) (ChildProfile, bool) {
 		write(w, 400, map[string]string{"error": "Invalid avatar or maximum video length."})
 		return p, false
 	}
-	if !p.Discovery.valid() {
+	if len(p.BlockedSeries) > 2048 || len(p.BlockedCreators) > 2048 || len(p.BlockedCategories) > 2048 || !p.Discovery.valid() {
 		write(w, 400, map[string]string{"error": "Invalid discovery settings."})
 		return p, false
 	}
