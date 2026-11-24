@@ -109,4 +109,4 @@ For the cutoff test, start a fresh session and choose **Finish by a clock time**
 | The dashboard works on the server but the TV can't connect | Open the same HTTPS address on your phone over Wi-Fi. Check household DNS, the certificate and the proxy's upstream port. |
 | The pairing code expired | Open the child's active session and choose **Get a new pairing code**. |
 
-The database holds household settings and approvals. Keep a separate backup of the video files. [Back up or restore the household database](https://github.com/JPLuker/FamilyTV/blob/main/docs/BACKUPS.md).
+PostgreSQL stores your child profiles, approvals and session settings. Keep a separate backup of the video files. [Back up or restore the household database](https://github.com/JPLuker/FamilyTV/blob/main/docs/BACKUPS.md).

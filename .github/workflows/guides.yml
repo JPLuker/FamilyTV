@@ -5,32 +5,32 @@ on:
     paths: ['docs/guide/**', '.github/workflows/guides.yml']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   pages: write
-  id-token: write
 concurrency:
-  group: familytv-pages
+  group: familytv-guide-source
   cancel-in-progress: false
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/jekyll-build-pages@v1
-        with:
-          source: docs/guide
-          destination: _site
-      - name: Check the setup guide
+      - name: Publish the guide folder to the Pages source branch
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          test -s _site/index.html
-          grep -Fq 'docker inspect plex' _site/index.html
-          grep -Fq 'id="connect-your-phone-and-tv"' _site/index.html
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - id: deploy
-        uses: actions/deploy-pages@v4
+          git fetch --no-tags origin refs/heads/gh-pages
+          previous=$(git rev-parse FETCH_HEAD)
+          guide=$(git rev-parse HEAD:docs/guide)
+          if [ "$guide" != "$(git rev-parse "$previous^{tree}")" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            commit=$(git commit-tree "$guide" -p "$previous" -m "Publish guides from $GITHUB_SHA")
+            git push origin "$commit:refs/heads/gh-pages"
+          fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
+      - name: Check the public setup guide
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors https://jpluker.github.io/FamilyTV/ -o "$RUNNER_TEMP/guide.html"
+          grep -Fq 'docker inspect plex' "$RUNNER_TEMP/guide.html"
+          grep -Fq 'id="connect-your-phone-and-tv"' "$RUNNER_TEMP/guide.html"
