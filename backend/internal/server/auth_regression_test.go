@@ -72,3 +72,47 @@ func TestClientLockSurvivesRestart(t *testing.T) {
 		t.Error("stale session retained")
 	}
 }
+
+func TestOptionalParentPINSetupAndRemoval(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "household.json")
+	s, err := New(path, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	send := func(method, path, body string, parent *http.Cookie) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		if parent != nil {
+			r.AddCookie(parent)
+		}
+		w := httptest.NewRecorder()
+		s.Routes().ServeHTTP(w, r)
+		return w
+	}
+	passwordOnly := `{"password":"correct horse battery staple"}`
+	credentials := `{"password":"correct horse battery staple","pin":"001234"}`
+	if send("POST", "/api/setup", credentials, nil).Code != 201 {
+		t.Fatal("setup with PIN")
+	}
+	s, err = New(path, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if send("POST", "/api/login", passwordOnly, nil).Code != 401 {
+		t.Fatal("missing PIN accepted")
+	}
+	w := send("POST", "/api/login", credentials, nil)
+	if w.Code != 200 {
+		t.Fatal(w.Code)
+	}
+	first := w.Result().Cookies()[0]
+	other := send("POST", "/api/login", credentials, nil).Result().Cookies()[0]
+	if send("PUT", "/api/admin/pin", `{}`, first).Code != 400 || send("PUT", "/api/admin/pin", `{"pin":"123a56"}`, first).Code != 400 {
+		t.Fatal("invalid change")
+	}
+	if send("PUT", "/api/admin/pin", `{"pin":""}`, first).Code != 200 {
+		t.Fatal("remove PIN")
+	}
+	if send("GET", "/api/admin", "", other).Code != 401 || send("GET", "/api/admin", "", first).Code != 200 || send("POST", "/api/login", passwordOnly, nil).Code != 200 {
+		t.Fatal("PIN removal or parent session rotation")
+	}
+}

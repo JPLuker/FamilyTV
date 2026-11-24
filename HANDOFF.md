@@ -113,3 +113,13 @@ Verified the starting source at 0ec7324 with Go tests, vet and the production we
 Verification commands: from backend, `go test ./...`, `go test -race ./...` and `go vet ./...`; from web, `npm run build` and `npx playwright test`. The browser scanned and batch-imported five synthetic season/special/playlist fixtures, checked the missing episode, verified VP8 and Opus, restored the imported title, forced a provider lookup failure, reloaded, and advanced the local playback clock. The same journey exercises approved artwork and caption settings. Go tests cover duplicate bytes, WebVTT delivery, range playback, and persistent codec enrichment of old records.
 
 Household media: untested. Confirm the catalog against the family's own season and playlist during final testing. M1 implementation is closed for this pass. M2 remains queued.
+
+## M2 development complete · 0.15.0
+
+Started from main at ee2b2f5. The parent dashboard guides a new household from profile creation to video approval and pairing. Profiles can use built-in system emoji avatars, independent reading detail and a hard maximum video length. The existing shared eligibility check enforces this limit in discovery, direct playback and live programming. A preferred length still affects ranking only. Accounts created before this change keep password sign-in and profiles retain their prior defaults.
+
+Parents can require a PIN at setup or change it in sign-in settings. A viewer link opened in a signed-in parent browser relinquishes its server-side parent session. Parents can revoke a paired screen and outstanding code without restarting the session clock. These changes reuse the existing credential digest, persisted login throttle, household transaction and viewer checks.
+
+Verification: backend `go test ./...`, `go test -race ./...` and `go vet ./...`; web `npm run build` and `npx playwright test`. The phone-sized browser journey covers guided setup, avatar, reading detail, PIN sign-in and viewing local media. Server tests give two profiles the same approved 61-second video and verify that only the profile with the soft preference can start it. Tests also exercise child access to parent routes, revocation, persisted PIN settings and signing out a shared browser while retaining the parent's separate device.
+
+Next milestone: M3 content approval and classification. Physical phone installation, TV remote, screen reader, caregiver usability and household-media checks are reserved for the testing pass.

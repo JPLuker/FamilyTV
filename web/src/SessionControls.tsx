@@ -7,13 +7,14 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
   const [minutes,setMinutes]=useState(30)
   const [finish,setFinish]=useState('')
   const [link,setLink]=useState('')
+  const [notice,setNotice]=useState('')
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const path='profiles/'+profile.id+'/session'
   const refresh=useCallback(async()=>setStatus(await request<Status>(path)),[path])
   useEffect(()=>{refresh().catch(e=>setError(errorMessage(e)))},[refresh])
   async function change(method:string){
-    setBusy(true);setError('')
+    setBusy(true);setError('');setNotice('')
     try{
       if(method==='POST'){
         const result=await request<{code:string}>(path,method,{mode,minutes,finish_by:mode==='finish_by'?new Date(finish).toISOString():''})
@@ -22,17 +23,24 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
       await refresh()
     }catch(e){setError(errorMessage(e))}finally{setBusy(false)}
   }
-  async function reissue(){
-    setBusy(true);setError('')
-    try{const {code}=await request<{code:string}>(path+'/pair','POST');setLink(location.origin+'/watch#'+code)}
+  async function pairing(method:"POST"|"DELETE"){
+    setBusy(true);setError('');setNotice('')
+    try{
+      const result=await request<{code?:string}>(path+'/pair',method)
+      setLink(result.code?location.origin+'/watch#'+result.code:'')
+      setNotice(result.code?'New pairing code ready.':'Viewer access revoked. The session timing is unchanged.')
+    }
     catch(e){setError(errorMessage(e))}finally{setBusy(false)}
   }
   return <section aria-label={'Viewing session for '+profile.name}><h3>Viewing session for {profile.name}</h3>
     {status?.active ? <>
       <p>{status.last?'Ends after the current video':status.deadline?'Ends '+new Date(status.deadline).toLocaleString():'Ends when you stop it'}</p>
       {link && <label>One-time viewer link · valid for 10 minutes<input readOnly value={link} onFocus={e=>e.target.select()}/></label>}
+      {link&&<p>Opening the viewer link signs the parent out of that browser.</p>}
       <p>{link&&<>TV pairing code <strong>{link.split('#')[1]}</strong></>}</p>
-      <button disabled={busy} onClick={reissue}>Get a new pairing code</button>
+      <button disabled={busy} onClick={()=>pairing('POST')}>Get a new pairing code</button>
+      <button disabled={busy} onClick={()=>pairing('DELETE')}>Revoke viewer access</button>
+      {notice&&<p role="status">{notice}</p>}
       <div className="actions"><button disabled={busy} onClick={()=>change('DELETE')}>End now</button>
       {!status.last&&<button disabled={busy} onClick={()=>change('PATCH')}>End after current video</button>}</div>
     </> : status && <form onSubmit={e=>{e.preventDefault();void change('POST')}}>

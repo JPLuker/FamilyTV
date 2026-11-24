@@ -22,8 +22,9 @@ function catalogGroups(media:Media[]){
   }
   return [...groups].sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true}))
 }
-export default function MediaLibrary(){
+export default function MediaLibrary({onApproval}:{onApproval:(approved:boolean)=>void}){
   const [media,setMedia]=useState<Media[]>([])
+  const [loaded,setLoaded]=useState(false)
   const [selected,setSelected]=useState<Media>()
   const [editing,setEditing]=useState<Media>()
   const [gaps,setGaps]=useState<{series:string;season:number;from:number;to:number}[]>([])
@@ -35,10 +36,11 @@ export default function MediaLibrary(){
   const [reload,setReload]=useState(0)
   useEffect(()=>{
     let active=true
-    request<{media:Media[];gaps:typeof gaps}>('media').then(result=>{if(active){setMedia(result.media);setGaps(result.gaps)}})
+    request<{media:Media[];gaps:typeof gaps}>('media').then(result=>{if(active){setMedia(result.media);setGaps(result.gaps);setLoaded(true)}})
       .catch(error=>{if(active)setError(errorMessage(error))})
     return ()=>{active=false}
   },[reload])
+  useEffect(()=>{if(loaded)onApproval(media.some(m=>Boolean(m.review.profiles?.length)))},[loaded,media,onApproval])
   async function add(e:React.FormEvent){
     e.preventDefault();setBusy(true);setError('')
     try{

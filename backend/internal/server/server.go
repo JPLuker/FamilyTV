@@ -21,8 +21,9 @@ import (
 )
 
 type account struct {
-	Salt string `json:"salt"`
-	Hash string `json:"hash"`
+	PINHash string `json:"pin_hash,omitempty"`
+	Salt    string `json:"salt"`
+	Hash    string `json:"hash"`
 }
 type loginAttempts struct {
 	Count int   `json:"count"`
@@ -114,18 +115,25 @@ func write(w http.ResponseWriter, code int, data any) {
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(data)
 }
-func credentials(r *http.Request) (string, error) {
+
+type parentCredentials struct {
+	Password string `json:"password"`
+	PIN      string `json:"pin"`
+}
+
+func validPIN(pin string) bool {
+	return pin == "" || (len(pin) >= 6 && len(pin) <= 12 && strings.Trim(pin, "0123456789") == "")
+}
+func credentials(r *http.Request) (parentCredentials, error) {
 	r.Body = http.MaxBytesReader(nil, r.Body, 4096)
-	var x struct {
-		Password string `json:"password"`
-	}
+	var x parentCredentials
 	if e := json.NewDecoder(r.Body).Decode(&x); e != nil {
-		return "", e
+		return x, e
 	}
-	if len(x.Password) < 12 || len(x.Password) > 256 {
-		return "", errors.New("password length")
+	if len(x.Password) < 12 || len(x.Password) > 256 || !validPIN(x.PIN) {
+		return x, errors.New("invalid credentials")
 	}
-	return x.Password, nil
+	return x, nil
 }
 func (s *Server) authorized(r *http.Request) bool {
 	c, e := r.Cookie("familytv_admin")
@@ -156,7 +164,10 @@ func (s *Server) Routes() http.Handler {
 			return
 		}
 		salt := token()
-		s.data.Account = &account{Salt: salt, Hash: digest(pass, salt)}
+		s.data.Account = &account{Salt: salt, Hash: digest(pass.Password, salt)}
+		if pass.PIN != "" {
+			s.data.Account.PINHash = digest(pass.PIN, "pin:"+salt)
+		}
 		if e = s.persist(); e != nil {
 			s.data.Account = nil
 			write(w, 500, map[string]string{"error": "storage failure"})
@@ -198,9 +209,13 @@ func (s *Server) Routes() http.Handler {
 			write(w, 429, map[string]string{"error": "too many attempts"})
 			return
 		}
-		hash := digest(pass, s.data.Account.Salt)
+		hash := digest(pass.Password, s.data.Account.Salt)
+		pinOK := true
+		if s.data.Account.PINHash != "" {
+			pinOK = subtle.ConstantTimeCompare([]byte(digest(pass.PIN, "pin:"+s.data.Account.Salt)), []byte(s.data.Account.PINHash)) == 1
+		}
 		before := s.data
-		if subtle.ConstantTimeCompare([]byte(hash), []byte(s.data.Account.Hash)) != 1 {
+		if subtle.ConstantTimeCompare([]byte(hash), []byte(s.data.Account.Hash)) != 1 || !pinOK {
 			attempt.Count++
 			if attempt.Count == 1 || attempt.Count == 5 {
 				attempt.Until = now.Add(5 * time.Minute).Unix()
@@ -233,6 +248,39 @@ func (s *Server) Routes() http.Handler {
 		http.SetCookie(w, &http.Cookie{Name: "familytv_admin", Value: t, Path: "/", HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteStrictMode, MaxAge: 43200})
 		write(w, 200, map[string]bool{"authenticated": true})
 	})
+	mux.HandleFunc("PUT /api/admin/pin", func(w http.ResponseWriter, r *http.Request) {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if !s.authorized(r) {
+			write(w, 401, map[string]string{"error": "Sign in again."})
+			return
+		}
+		var input struct {
+			PIN *string `json:"pin"`
+		}
+		if !readInput(w, r, &input) {
+			return
+		}
+		if input.PIN == nil || !validPIN(*input.PIN) {
+			write(w, 400, map[string]string{"error": "Enter 6 to 12 digits."})
+			return
+		}
+		before := s.data
+		updated := *s.data.Account
+		updated.PINHash = ""
+		if *input.PIN != "" {
+			updated.PINHash = digest(*input.PIN, "pin:"+updated.Salt)
+		}
+		s.data.Account = &updated
+		cookie, _ := r.Cookie("familytv_admin")
+		s.data.Sessions = map[string]int64{cookie.Value: before.Sessions[cookie.Value]}
+		if err := s.persist(); err != nil {
+			s.data = before
+			write(w, 500, map[string]string{"error": "Storage failure."})
+			return
+		}
+		write(w, 200, map[string]bool{"saved": true})
+	})
 	mux.HandleFunc("POST /api/logout", func(w http.ResponseWriter, r *http.Request) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -256,6 +304,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("DELETE /api/channels/{id}", s.parentChannels)
 	mux.HandleFunc("POST /api/watch/tune", s.tune)
 	mux.HandleFunc("POST /api/profiles/{id}/session/pair", s.parentViewing)
+	mux.HandleFunc("DELETE /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)
 	mux.HandleFunc("GET /api/watch", s.watchCatalog)
 	mux.HandleFunc("GET /api/watch/ending-music", s.endingMusic)

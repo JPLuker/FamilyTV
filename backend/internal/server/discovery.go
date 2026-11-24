@@ -7,6 +7,7 @@ import (
 )
 
 type Discovery struct {
+	Reading          string `json:"reading,omitempty"`
 	Preset           string `json:"preset,omitempty"`
 	Choices          int    `json:"choices,omitempty"`
 	PreferredMinutes int    `json:"preferred_minutes,omitempty"`
@@ -17,7 +18,7 @@ type Discovery struct {
 }
 
 func (d Discovery) valid() bool {
-	return slices.Contains([]string{"", "2-4", "5-7", "8-11", "12-14", "15-17"}, d.Preset) && slices.Contains([]int{0, 4, 6, 8, 12}, d.Choices) && d.PreferredMinutes >= 0 && d.PreferredMinutes <= 240 && slices.Contains([]string{"", "on", "off"}, d.Search) && len([]rune(d.Interests)) <= 250 && d.WarnMinutes >= 0 && d.WarnMinutes <= 15
+	return slices.Contains([]string{"", "brief", "detail"}, d.Reading) && slices.Contains([]string{"", "2-4", "5-7", "8-11", "12-14", "15-17"}, d.Preset) && slices.Contains([]int{0, 4, 6, 8, 12}, d.Choices) && d.PreferredMinutes >= 0 && d.PreferredMinutes <= 240 && slices.Contains([]string{"", "on", "off"}, d.Search) && len([]rune(d.Interests)) <= 250 && d.WarnMinutes >= 0 && d.WarnMinutes <= 15
 }
 func (d Discovery) page(items []WatchItem, page int) ([]WatchItem, int, int) {
 	topics := strings.Split(strings.ToLower(d.Interests), ",")

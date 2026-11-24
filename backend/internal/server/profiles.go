@@ -10,6 +10,8 @@ import (
 )
 
 type ChildProfile struct {
+	Avatar           string    `json:"avatar,omitempty"`
+	MaxVideoMinutes  int       `json:"max_video_minutes,omitempty"`
 	Discovery        Discovery `json:"discovery"`
 	LargeText        bool      `json:"large_text"`
 	HighContrast     bool      `json:"high_contrast"`
@@ -107,6 +109,10 @@ func readProfile(w http.ResponseWriter, r *http.Request) (ChildProfile, bool) {
 	}
 	if p.Navigation != "visual" && p.Navigation != "visual-text" && p.Navigation != "text" {
 		write(w, 400, map[string]string{"error": "invalid navigation mode"})
+		return p, false
+	}
+	if !slices.Contains([]string{"", "sun", "moon", "star", "leaf", "fish"}, p.Avatar) || p.MaxVideoMinutes < 0 || p.MaxVideoMinutes > 1440 {
+		write(w, 400, map[string]string{"error": "Invalid avatar or maximum video length."})
 		return p, false
 	}
 	if !p.Discovery.valid() {

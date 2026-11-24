@@ -4,7 +4,8 @@ import {ApiError,errorMessage,request} from './api'
 type Item={id:string;title:string;subject:string;duration_seconds:number;captions:boolean}
 type Airing={item:Item;start:number;end:number}
 type Guide={id:string;name:string;now:Airing|null;next:Airing|null}
-type Catalog={page:number;pages:number;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
+import {avatars} from './avatars'
+type Catalog={avatar?:string;page:number;pages:number;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
 import {facts} from './endingFacts'
 const nativeTV=navigator.userAgent.includes('FamilyTV-AndroidTV')
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
@@ -95,7 +96,7 @@ export default function Viewer(){
   return <main onFocus={e=>{if(catalog?.discovery.spoken_labels&&'speechSynthesis' in window){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
     if(text){const voice=speechSynthesis.getVoices().find(v=>v.localService);if(voice){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;speechSynthesis.speak(utterance)}}
-  }}} className={['viewer',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}><header><strong>FamilyTV</strong></header>
+  }}} className={['viewer',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}><header><strong>FamilyTV</strong>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>
     {ended?<section><h1>Viewing time is over</h1><h2>Did you know?</h2><p>{fact}</p>{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
@@ -117,7 +118,7 @@ export default function Viewer(){
         <ul>{catalog.items.filter(m=>(m.title+' '+m.subject).toLowerCase().includes(query.trim().toLowerCase())).map(m=><li key={m.id}><button aria-label={m.title} disabled={busy} onClick={()=>action('play',m.id)}>
           {catalog.navigation!=='text'&&<img loading="lazy" width="120" height="68" alt={catalog.navigation==='visual'?m.title:''} src={'/api/watch/media/'+m.id+'/picture'}/>}
           {catalog.navigation!=='visual'&&m.title}
-        </button> · {Math.ceil(m.duration_seconds/60)} min</li>)}</ul>
+        </button>{catalog.discovery.reading==='detail'&&m.subject&&<span> · {m.subject}</span>} · {Math.ceil(m.duration_seconds/60)} min</li>)}</ul>
         {catalog.pages>1&&<nav aria-label="Video pages"><button disabled={catalog.page===0} onClick={()=>setPage(catalog.page-1)}>Previous choices</button> {catalog.page+1} / {catalog.pages} <button disabled={catalog.page+1>=catalog.pages} onClick={()=>setPage(catalog.page+1)}>More choices</button></nav>}
         {!catalog.items.length&&<p>No videos are available for this session.</p>}</>}
       </section>)}

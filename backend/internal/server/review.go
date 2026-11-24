@@ -63,5 +63,8 @@ func (s *Server) reviewMedia(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 func eligible(m Media, p ChildProfile) bool {
+	if p.MaxVideoMinutes > 0 && (m.Duration <= 0 || m.Duration > float64(p.MaxVideoMinutes*60)) {
+		return false
+	}
 	return slices.Contains(m.Review.Profiles, p.ID) && (!p.Captions || (m.Captions && m.Review.Captions == "verified")) && (!p.AudioDescription || m.Review.Description == "verified")
 }

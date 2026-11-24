@@ -3,7 +3,11 @@ import DiscoverySettings,{discoveryDefaults,type Discovery} from './DiscoverySet
 import SessionControls from './SessionControls'
 import {ApiError, errorMessage, request} from './api'
 
+import {avatars} from './avatars'
+
 type Settings = {
+  avatar?:string
+  max_video_minutes?:number
   discovery:Discovery
   name: string
   navigation: string
@@ -19,7 +23,7 @@ const defaults: Settings = {discovery:discoveryDefaults,name:'', navigation:'vis
 const navigationModes: Record<string,string> = {visual:'Pictures', 'visual-text':'Pictures and text', text:'Text'}
 const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music']] as const
 
-export default function Profiles({onExpired}: {onExpired: () => void}) {
+export default function Profiles({onExpired,onProfiles}: {onExpired: () => void;onProfiles:(present:boolean)=>void}) {
   const [profiles,setProfiles] = useState<Profile[]>([])
   const [loading,setLoading] = useState(true)
   const [error,setError] = useState('')
@@ -45,6 +49,9 @@ export default function Profiles({onExpired}: {onExpired: () => void}) {
     return () => {active = false}
   }, [reload,onExpired])
 
+  useEffect(()=>{
+    if(!loading && !error)onProfiles(profiles.length>0)
+  },[loading,error,profiles,onProfiles])
   function reset() {
     setEditing(undefined)
     setSettings(defaults)
@@ -89,7 +96,7 @@ export default function Profiles({onExpired}: {onExpired: () => void}) {
     {error && <p role="alert">{error} <button onClick={() => setReload(n => n+1)}>Reload profiles</button></p>}
     {!error && !loading && !profiles.length && <p>Add a profile to choose a child’s viewing preferences.</p>}
     <ul>{profiles.map(p => <li key={p.id}>
-      <strong>{p.name}</strong> · {[navigationModes[p.navigation],...toggles.filter(([key])=>p[key]).map(([,label])=>label)].filter(Boolean).join(' · ')}
+      <strong><span aria-hidden="true">{avatars[p.avatar||'']}</span> {p.name}</strong> · {[navigationModes[p.navigation],...toggles.filter(([key])=>p[key]).map(([,label])=>label)].filter(Boolean).join(' · ')}
       <div className="actions">
         <button disabled={busy} aria-label={'Viewing session for '+p.name} onClick={()=>setSessionProfile(p)}>Session</button>
         <button disabled={busy} onClick={() => edit(p)} aria-label={'Edit '+p.name}>Edit</button>
@@ -101,6 +108,10 @@ export default function Profiles({onExpired}: {onExpired: () => void}) {
       <h3>{editing ? 'Edit profile' : 'New profile'}</h3>
       <label htmlFor="child-name">Profile name</label>
       <input ref={nameInput} id="child-name" value={settings.name} maxLength={50} required onChange={e => setSettings({...settings,name:e.target.value})}/>
+      <label>Profile avatar<select value={settings.avatar||''} onChange={e=>setSettings({...settings,avatar:e.target.value})}>
+        <option value="">None</option>{Object.entries(avatars).map(([name,symbol])=><option value={name} key={name}>{symbol} {name}</option>)}
+      </select></label>
+      <label>Maximum video length in minutes (0 for no limit)<input type="number" min="0" max="1440" required value={settings.max_video_minutes||0} onChange={e=>setSettings({...settings,max_video_minutes:Number(e.target.value)})}/></label>
       <label htmlFor="navigation">Navigation</label>
       <select id="navigation" value={settings.navigation} onChange={e => setSettings({...settings,navigation:e.target.value})}>
         {Object.entries(navigationModes).map(([value,label]) => <option key={value} value={value}>{label}</option>)}

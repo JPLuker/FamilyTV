@@ -97,6 +97,13 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 			write(w, 409, map[string]string{"error": "Start a viewing session first."})
 			return
 		}
+		if r.Method == "DELETE" {
+			v.CookieHash, v.JoinHash, v.JoinUntil = "", "", 0
+			if s.setViewing(w, id, &v) {
+				write(w, 200, map[string]bool{"revoked": true})
+			}
+			return
+		}
 		s.issueCode(w, id, v, now)
 		return
 	}
@@ -207,9 +214,22 @@ func (s *Server) joinViewing(w http.ResponseWriter, r *http.Request) {
 		v.CookieHash = secretHash(cookie)
 		v.JoinHash = ""
 		v.JoinUntil = 0
+		// A parent may open the viewer link on the same browser and hand it to a child.
+		// Drop that browser's parent session in the same write as the code exchange.
+		parent, _ := r.Cookie("familytv_admin")
+		var parentExpiry int64
+		if parent != nil {
+			parentExpiry = s.data.Sessions[parent.Value]
+			delete(s.data.Sessions, parent.Value)
+		}
 		if s.setViewing(w, id, &v) {
+			if parent != nil {
+				http.SetCookie(w, &http.Cookie{Name: "familytv_admin", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteStrictMode})
+			}
 			http.SetCookie(w, &http.Cookie{Name: "familytv_viewer", Value: cookie, Path: "/api/watch", HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteStrictMode})
 			write(w, 200, map[string]bool{"joined": true})
+		} else if parentExpiry != 0 {
+			s.data.Sessions[parent.Value] = parentExpiry
 		}
 		return
 	}
@@ -296,7 +316,7 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	items, page, pages := p.Discovery.page(items, page)
-	write(w, 200, map[string]any{"items": items, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_music": p.EndingMusic})
+	write(w, 200, map[string]any{"items": items, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_music": p.EndingMusic})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
