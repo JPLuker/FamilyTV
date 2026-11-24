@@ -3,9 +3,14 @@ import DiscoverySettings,{discoveryDefaults,type Discovery} from './DiscoverySet
 import SessionControls from './SessionControls'
 import {ApiError, errorMessage, request} from './api'
 
+import {factTopics} from "./endingFacts"
+import ProfileTime,{type Policy} from './ProfileTime'
 import {avatars} from './avatars'
 
 type Settings = {
+ ending_topic?:string
+ viewing_policy?:Policy
+ quiet_ending:boolean
   blocked_series?:string; blocked_creators?:string; blocked_categories?:string
   avatar?:string
   max_video_minutes?:number
@@ -20,9 +25,9 @@ type Settings = {
   reduced_motion: boolean
 }
 type Profile = Settings & {id: string}
-const defaults: Settings = {discovery:discoveryDefaults,name:'', navigation:'visual', captions:false, audio_description:false, reduced_motion:false,large_text:false,high_contrast:false,ending_music:false}
+const defaults: Settings = {quiet_ending:false,discovery:discoveryDefaults,name:'', navigation:'visual', captions:false, audio_description:false, reduced_motion:false,large_text:false,high_contrast:false,ending_music:false}
 const navigationModes: Record<string,string> = {visual:'Pictures', 'visual-text':'Pictures and text', text:'Text'}
-const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music']] as const
+const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music'], ['quiet_ending','Quiet ending (message only)']] as const
 
 export default function Profiles({onExpired,onProfiles,onChanged}: {onExpired: () => void;onProfiles:(present:boolean)=>void;onChanged:()=>void}) {
   const [profiles,setProfiles] = useState<Profile[]>([])
@@ -120,6 +125,8 @@ export default function Profiles({onExpired,onProfiles,onChanged}: {onExpired: (
       <details><summary>Content restrictions</summary><p>Enter one exact library name per line. These restrictions also apply to individually approved videos.</p>
         {([['blocked_series','Blocked series'],['blocked_creators','Blocked creators'],['blocked_categories','Blocked custom categories']] as const).map(([key,label])=><label key={key}>{label}<textarea rows={3} maxLength={2048} value={settings[key]||''} onChange={e=>setSettings({...settings,[key]:e.target.value})}/></label>)}
       </details>
+      <ProfileTime key={editing||"new"} value={settings.viewing_policy||{}} change={viewing_policy=>setSettings({...settings,viewing_policy})}/>
+      <label>Ending fact topic<select value={settings.ending_topic||''} onChange={e=>setSettings({...settings,ending_topic:e.target.value})}><option value="">Any topic</option>{factTopics.map(topic=><option key={topic}>{topic}</option>)}</select></label>
       <DiscoverySettings value={settings.discovery} change={discovery=>setSettings({...settings,discovery})}/>
       {toggles.map(([key,label]) => <label className="toggle" key={key}><input type="checkbox" checked={settings[key]} onChange={e=>setSettings({...settings,[key]:e.target.checked})}/> {label}</label>)}
       <button disabled={busy||loading}>{editing ? 'Save changes' : 'Add profile'}</button>

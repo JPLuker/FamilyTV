@@ -271,7 +271,7 @@ func (s *Server) playable(r *http.Request) (Media, int64) {
 			}
 		}
 	}
-	return media, v.Deadline
+	return media, v.cutoff()
 }
 func (s *Server) viewerMediaFile(w http.ResponseWriter, r *http.Request) {
 	media, deadline := s.playable(r)

@@ -1,3 +1,4 @@
+import {finishInstants} from '../src/finishTime'
 import AxeBuilder from '@axe-core/playwright'
 import {test,expect} from '@playwright/test'
 
@@ -42,6 +43,9 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await expect(page.getByLabel('Reduced motion')).toBeChecked()
   await expect(page.getByLabel('Navigation')).toHaveValue('visual-text')
   await page.getByLabel('Captions').check()
+  await page.getByText('Viewing windows and daily allowances',{exact:true}).click()
+  await page.getByLabel('Daily session minutes',{exact:false}).fill('45')
+  await page.getByLabel('Ending fact topic').selectOption('Weather')
   await page.getByRole('button',{name:'Save changes'}).click()
   await expect(page.getByRole('listitem')).toContainText('Captions')
   const signInSettings=page.getByText('Parent sign-in settings',{exact:true})
@@ -83,7 +87,7 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await page.getByRole('button',{name:'Review forest',exact:true}).click()
   await page.getByText('Education and family notes',{exact:true}).click()
   await page.getByLabel('Claimed learning goal').fill('Identify forest habitats')
-  await page.getByLabel('Custom category').fill('Nature studies')
+  await page.getByLabel('Custom category',{exact:true}).fill('Nature studies')
   await page.getByLabel('Reviewer',{exact:true}).fill('Parent')
   await page.getByLabel('Source or trusted review reference').fill('Local episode notes')
   await page.getByLabel('Learning goal evidence').selectOption('source-reviewed')
@@ -197,6 +201,28 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await expect(child.getByRole('heading',{name:'Viewing time is over'})).toBeVisible()
   expect((await child.request.get('/api/profiles')).status()).toBe(401)
   await checkAccessibility(child)
+  await expect(child.getByText('National Weather Service',{exact:true})).toBeVisible()
+  const sessionPath='/api/profiles/'+payload.profiles[0].id+'/session'
+  const cutoff=Date.now()+10000
+  const timed=await page.request.post(sessionPath,{data:{mode:'finish_by',finish_by:new Date(cutoff).toISOString()}})
+  expect(timed.status()).toBe(201)
+  await child.goto('about:blank')
+  await child.goto(new URL('/watch#'+(await timed.json()).code,link).href)
+  await expect(child.getByRole('button',{name:'forest',exact:true})).toBeVisible()
+  expect((await (await child.request.get('/api/watch')).json()).deadline).toBe(cutoff)
+  const moved=await page.request.post(sessionPath+'/pair')
+  const newScreen=await browser.newContext()
+  const paired=await newScreen.newPage()
+  await paired.goto(new URL('/watch#'+(await moved.json()).code,link).href)
+  await paired.getByRole('button',{name:'forest',exact:true}).click()
+  expect((await child.request.get('/api/watch')).status()).toBe(403)
+  await expect.poll(()=>paired.locator('video').evaluate(v=>v.readyState)).toBeGreaterThan(0)
+  expect(await paired.locator('video').evaluate(v=>v.paused)).toBe(true)
+  expect((await (await paired.request.get('/api/watch')).json()).deadline).toBe(cutoff)
+  await expect(paired.getByRole('heading',{name:'Viewing time is over'})).toBeVisible({timeout:12000})
+  await expect(paired.locator('video,audio')).toHaveCount(0)
+  expect((await paired.request.get('/api/watch/media/'+forestId+'/file')).status()).toBe(404)
+  await newScreen.close()
   await childContext.close()
   await checkAccessibility(page)
   page.once('dialog',d=>d.accept())
@@ -236,4 +262,13 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await page.getByRole('button',{name:'Sign out'}).click()
   await expect(page.getByRole('heading',{name:'Parent sign in'})).toBeVisible()
   expect((await page.request.get('/api/profiles/export')).status()).toBe(401)
+})
+
+test('a parent can distinguish repeated wall times and cannot choose a missing minute',()=>{
+  const previous=process.env.TZ
+  process.env.TZ='America/New_York'
+  try{
+    expect(finishInstants('2026-03-08T02:30')).toEqual([])
+    expect(finishInstants('2026-11-01T01:30').map(d=>d.toISOString())).toEqual(['2026-11-01T05:30:00.000Z','2026-11-01T06:30:00.000Z'])
+  }finally{if(previous===undefined)delete process.env.TZ;else process.env.TZ=previous}
 })

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"maps"
 	"math"
 	"net/http"
 	"strconv"
@@ -15,16 +16,17 @@ import (
 )
 
 type Viewing struct {
-	LastCreator string `json:"last_creator,omitempty"`
-	Channel     string `json:"channel,omitempty"`
-	Profile     string `json:"profile"`
-	Mode        string `json:"mode"`
-	Deadline    int64  `json:"deadline,omitempty"`
-	Current     string `json:"current,omitempty"`
-	Last        bool   `json:"last"`
-	JoinHash    string `json:"join_hash,omitempty"`
-	JoinUntil   int64  `json:"join_until,omitempty"`
-	CookieHash  string `json:"cookie_hash,omitempty"`
+	Budget      SessionBudget `json:"budget,omitempty"`
+	LastCreator string        `json:"last_creator,omitempty"`
+	Channel     string        `json:"channel,omitempty"`
+	Profile     string        `json:"profile"`
+	Mode        string        `json:"mode"`
+	Deadline    int64         `json:"deadline,omitempty"`
+	Current     string        `json:"current,omitempty"`
+	Last        bool          `json:"last"`
+	JoinHash    string        `json:"join_hash,omitempty"`
+	JoinUntil   int64         `json:"join_until,omitempty"`
+	CookieHash  string        `json:"cookie_hash,omitempty"`
 }
 type WatchItem struct {
 	creator  string
@@ -65,12 +67,30 @@ func (s *Server) setViewing(w http.ResponseWriter, id string, next *Viewing) boo
 		s.data.Viewing = map[string]Viewing{}
 	}
 	old, had := s.data.Viewing[id]
+	before := s.data.Usage
+	now := time.Now()
+	if old.Budget.Day != "" {
+		usage := s.usageAt(id, now)
+		s.data.Usage = maps.Clone(before)
+		if s.data.Usage == nil {
+			s.data.Usage = map[string]DailyUsage{}
+		}
+		s.data.Usage[id] = usage
+		if next != nil && next.Budget.Day == old.Budget.Day && next.Budget.Since == old.Budget.Since {
+			next.Budget.Remaining = maps.Clone(next.Budget.Remaining)
+			if key := old.Budget.Category; key != "" {
+				next.Budget.Remaining[key] = max(0, old.Budget.CategoryEnd-now.UnixMilli())
+			}
+			next.Budget.Since = now.UnixMilli()
+		}
+	}
 	if next == nil {
 		delete(s.data.Viewing, id)
 	} else {
 		s.data.Viewing[id] = *next
 	}
 	if err := s.persist(); err != nil {
+		s.data.Usage = before
 		if had {
 			s.data.Viewing[id] = old
 		} else {
@@ -82,7 +102,7 @@ func (s *Server) setViewing(w http.ResponseWriter, id string, next *Viewing) boo
 	return true
 }
 func active(v Viewing, now time.Time) bool {
-	return v.Profile != "" && (v.Deadline == 0 || v.Deadline > now.UnixMilli())
+	return v.Profile != "" && (v.cutoff() == 0 || v.cutoff() > now.UnixMilli())
 }
 func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
@@ -92,7 +112,8 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.PathValue("id")
-	if _, ok := s.profile(id); !ok {
+	profile, ok := s.profile(id)
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}
@@ -114,7 +135,7 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "GET" {
-		write(w, 200, map[string]any{"active": active(v, now), "mode": v.Mode, "deadline": v.Deadline, "playing": v.Current != "" || v.Channel != "", "last": v.Last})
+		write(w, 200, map[string]any{"active": active(v, now), "mode": v.Mode, "deadline": v.cutoff(), "playing": v.Current != "" || v.Channel != "", "last": v.Last})
 		return
 	}
 	if r.Method == "DELETE" {
@@ -182,6 +203,10 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		write(w, 400, map[string]string{"error": "Unknown session mode."})
 		return
 	}
+	if err := s.applyPolicy(&v, profile.Policy, now); err != nil {
+		write(w, 409, map[string]string{"error": err.Error()})
+		return
+	}
 	s.issueCode(w, id, v, now)
 }
 func (s *Server) issueCode(w http.ResponseWriter, id string, v Viewing, now time.Time) {
@@ -194,7 +219,7 @@ func (s *Server) issueCode(w http.ResponseWriter, id string, v Viewing, now time
 	v.JoinHash = secretHash(code)
 	v.JoinUntil = now.Add(10 * time.Minute).UnixMilli()
 	if s.setViewing(w, id, &v) {
-		write(w, 201, map[string]any{"code": code, "deadline": v.Deadline})
+		write(w, 201, map[string]any{"code": code, "deadline": v.cutoff()})
 	}
 }
 func (s *Server) joinViewing(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +238,8 @@ func (s *Server) joinViewing(w http.ResponseWriter, r *http.Request) {
 		if (v.JoinHash != hash && v.JoinHash != normalized) || !active(v, now) || v.JoinUntil <= now.UnixMilli() {
 			continue
 		}
-		if _, ok := s.profile(id); !ok {
+		_, ok := s.profile(id)
+		if !ok {
 			continue
 		}
 		cookie := token()
@@ -256,7 +282,11 @@ func (s *Server) viewer(r *http.Request) (Viewing, ChildProfile, bool) {
 	return Viewing{}, ChildProfile{}, false
 }
 func fits(m Media, v Viewing, now time.Time) bool {
-	return v.Deadline == 0 || int64(math.Ceil(m.Duration*1000)) <= v.Deadline-now.UnixMilli()
+	needed := int64(math.Ceil(m.Duration * 1000))
+	if left, limited := v.categoryLeft(m, now); limited && needed > left {
+		return false
+	}
+	return v.cutoff() == 0 || needed <= v.cutoff()-now.UnixMilli()
 }
 func available(m Media, p ChildProfile) bool {
 	if !eligible(m, p) {
@@ -334,7 +364,7 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			shelf = append(shelf, ShelfEntry{item, mark, true})
 		}
 	}
-	write(w, 200, map[string]any{"items": items, "list": list, "shelf": shelf, "resume": s.data.Bookmarks[p.ID][v.Current].Position, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.Deadline, "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_music": p.EndingMusic})
+	write(w, 200, map[string]any{"items": items, "list": list, "shelf": shelf, "resume": s.data.Bookmarks[p.ID][v.Current].Position, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.cutoff(), "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_topic": p.EndingTopic, "quiet_ending": p.QuietEnding, "ending_music": p.EndingMusic && !p.QuietEnding})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
@@ -375,6 +405,8 @@ func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 			}
 			s.changeBookmark(p.ID, v.Current, bookmark)
 		}
+		v.Budget.Category = ""
+		v.Budget.CategoryEnd = 0
 		v.Current = ""
 		v.Channel = ""
 		var next *Viewing = &v
@@ -413,6 +445,15 @@ func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, m := range s.data.Media {
 		if m.ID == input.ID && available(m, p) && (v.Current == m.ID || fits(m, v, time.Now())) {
+			if v.Current != m.ID {
+				left, limited := v.categoryLeft(m, time.Now())
+				v.Budget.Category = ""
+				v.Budget.CategoryEnd = 0
+				if limited {
+					v.Budget.Category = strings.ToLower(strings.TrimSpace(m.Review.Category))
+					v.Budget.CategoryEnd = time.Now().UnixMilli() + left
+				}
+			}
 			v.Current = m.ID
 			v.LastCreator = watchItem(m).creator
 			if s.setViewing(w, p.ID, &v) {

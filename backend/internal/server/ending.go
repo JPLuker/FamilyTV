@@ -12,7 +12,7 @@ func (s *Server) endingMusic(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	_, p, ok := s.viewer(r)
 	s.mu.Unlock()
-	if !ok || !p.EndingMusic {
+	if !ok || !p.EndingMusic || p.QuietEnding {
 		http.NotFound(w, r)
 		return
 	}

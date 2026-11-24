@@ -113,6 +113,9 @@ func (c Channel) slotAt(now int64) (int, int64) {
 }
 func (s *Server) guide(c Channel, p ChildProfile, v Viewing, now int64) Guide {
 	g := Guide{ID: c.ID, Name: c.Name}
+	if len(v.Budget.Remaining) > 0 {
+		return g
+	}
 	i, start := c.slotAt(now)
 	if i < 0 {
 		return g

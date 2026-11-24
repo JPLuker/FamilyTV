@@ -143,3 +143,11 @@ Started at 1556072 and verified the Go suite, vet, web build and Playwright jour
 Reviewed Jellyfin’s EncodingHelper stream-copy decisions. FamilyTV uses its already packaged FFmpeg for remux and transcoding with local file descriptors. It retains the selected default audio track, captions, range support and the same revocation checks on generated MP4s. Conversion limits and storage are documented in README.md.
 
 Tests: backend `go test ./...`, `go test -race ./...`, `go vet ./...`; web `npm run build`, `npx playwright test`. Generated MKV fixtures exercise H.264 copy and MPEG-4 conversion and identify the chosen audio by packet hash. Browser acceptance uses two approved videos to verify that finishing does not start the other video. It also covers favorites, saving for later, focus/Back, resume, Surprise me, range delivery and revocation. Device remote behavior, household files and caregiver usability remain for final testing. M5 is next.
+
+## M5 session control and endings · 0.18.0
+
+Started at d3f84f6. The parent can set a daily viewing window, total daily minutes and individual custom-category allowances per profile. New sessions take the saved settings. The server accounts elapsed session time (including pauses) and selected-category time, preserves elapsed time across pairing and restarts, and stops at the earliest applicable limit. Allowances reset on the next date in the configured IANA time zone. Midnight ends metered sessions. Finish-by selection distinguishes repeated local minutes and rejects nonexistent ones. The child viewer accounts for request latency when scheduling a deadline.
+
+Normal endings offer a short, locally bundled fact from a parent-selected topic, with an offline source credit and optional local music. A quiet ending displays only the lockout message. Hard cutoff suppresses the sign-off. The 40 starter facts have source references; the larger corpus and classroom presentation belong to M7A.
+
+Verification: Go tests, race detection, vet, production web build and Playwright. Synthetic sessions cover an overnight window, both daylight-saving transitions, category filtering, persisted allowance usage and transfer between two viewer contexts while a buffered video stays paused. Physical-device accessibility and family testing are pending. M6 retires the previously supported channel features.

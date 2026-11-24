@@ -9,8 +9,8 @@ import {avatars} from './avatars'
 type ShelfName='All videos'|'Favorites'|'Saved for later'|'Continue watching'
 const lists:Record<ShelfName,string>={'All videos':'','Favorites':'favorites','Saved for later':'later','Continue watching':'resume'}
 type Bookmark={favorite:boolean;later:boolean;position:number}
-type Catalog={list:string;shelf:{item:Item;bookmark:Bookmark;playable:boolean}[];resume:number;avatar?:string;page:number;pages:number;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
-import {facts} from './endingFacts'
+type Catalog={ending_topic:string;quiet_ending:boolean;list:string;shelf:{item:Item;bookmark:Bookmark;playable:boolean}[];resume:number;avatar?:string;page:number;pages:number;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
+import {chooseFact} from './endingFacts'
 const nativeTV=navigator.userAgent.includes('FamilyTV-AndroidTV')
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
 if(joinCode)history.replaceState(null,'','/watch')
@@ -19,7 +19,7 @@ export default function Viewer(){
   const [catalog,setCatalog]=useState<Catalog>()
   const [error,setError]=useState('')
   const [ended,setEnded]=useState(false)
-  const preferences=useRef({large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
+  const preferences=useRef({ending_topic:"",quiet_ending:true,large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
   const [query,setQuery]=useState('')
   const [shelf,setShelf]=useState<ShelfName>('All videos')
   const root=useRef<HTMLElement>(null)
@@ -29,7 +29,10 @@ export default function Viewer(){
   const pageNumber=useRef(0)
   const listName=useRef('')
   const [busy,setBusy]=useState(false)
-  const [fact]=useState(()=>facts[Math.floor(Math.random()*facts.length)])
+  const [fact,setFact]=useState<ReturnType<typeof chooseFact>>()
+  const localDeadline=useRef(0)
+  const [hardStop,setHardStop]=useState(false)
+  const [showSignOff,setShowSignOff]=useState(true)
   const [music,setMusic]=useState('')
   const musicEnabled=Boolean((catalog||preferences.current).ending_music)
   useEffect(()=>{
@@ -46,12 +49,13 @@ export default function Viewer(){
   const searchTerm=useRef('')
   const revision=useRef(0)
   const mounted=useRef(true)
-  const end=useCallback(()=>{revision.current++;setCatalog(undefined);setEnded(true);setError('')},[])
+  const end=useCallback(()=>{if(localDeadline.current && performance.now()>=localDeadline.current)setHardStop(true);revision.current++;setCatalog(undefined);setEnded(true);setError('')},[])
   const refresh=useCallback(async()=>{
     const n=++revision.current
+    const sent=performance.now()
     try{
       const next=await request<Catalog>('watch?'+new URLSearchParams({q:searchTerm.current,page:String(pageNumber.current),list:listName.current}))
-      if(mounted.current&&n===revision.current){preferences.current=next;setCatalog(next);setError('')}
+      if(mounted.current&&n===revision.current){next.server_time+=Math.ceil(performance.now()-sent);localDeadline.current=next.deadline?performance.now()+next.deadline-next.server_time:0;preferences.current=next;setCatalog(next);setError('')}
     }catch(e){
       if(mounted.current&&n===revision.current){
         if(e instanceof ApiError && e.status===403)end()
@@ -77,10 +81,16 @@ export default function Viewer(){
     return()=>{cancelled=true;mounted.current=false;clearTimeout(timer);window.removeEventListener('offline',disconnected)}
   },[ended,refresh])
   useEffect(()=>{
-    if(!catalog?.deadline)return
-    const timeout=setTimeout(end,Math.max(0,catalog.deadline-catalog.server_time))
+    if(!catalog?.deadline || catalog.deadline-catalog.server_time>2147483647)return
+    const timeout=setTimeout(()=>{setHardStop(true);end()},Math.min(2147483647,Math.max(0,catalog.deadline-catalog.server_time)))
     return()=>clearTimeout(timeout)
   },[catalog,end])
+  useEffect(()=>{
+    if(!ended)return
+    if(!preferences.current.quiet_ending&&!hardStop)setFact(chooseFact(preferences.current.ending_topic))
+    const timer=setTimeout(()=>setShowSignOff(false),12000)
+    return ()=>clearTimeout(timer)
+  },[ended])
   async function action(action:'play'|'finish'|'tune'|'leave',id:string){
     setBusy(true);setError('')
     try{
@@ -174,7 +184,7 @@ export default function Viewer(){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
     if(text){const voice=speechSynthesis.getVoices().find(v=>v.localService);if(voice){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;speechSynthesis.speak(utterance)}}
   }}} className={['viewer',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}><header><strong>FamilyTV</strong>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>
-    {ended?<section><h1>Viewing time is over</h1><h2>Did you know?</h2><p>{fact}</p>{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</section>:<>
+    {ended?<section><h1>Viewing time is over</h1>{showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog?.deadline&&Boolean(catalog.discovery.warn_minutes)&&catalog.deadline-catalog.server_time<=(catalog.discovery.warn_minutes||0)*60000?<p>Viewing time ends soon.</p>:null}

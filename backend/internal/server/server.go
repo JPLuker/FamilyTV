@@ -30,6 +30,7 @@ type loginAttempts struct {
 	Until int64 `json:"until"`
 }
 type state struct {
+	Usage       map[string]DailyUsage          `json:"usage,omitempty"`
 	Bookmarks   map[string]map[string]Bookmark `json:"bookmarks,omitempty"`
 	ApprovalLog []ApprovalEvent                `json:"approval_log,omitempty"`
 	Channels    []Channel                      `json:"channels,omitempty"`

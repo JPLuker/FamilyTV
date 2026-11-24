@@ -10,21 +10,24 @@ import (
 )
 
 type ChildProfile struct {
-	BlockedSeries     string    `json:"blocked_series,omitempty"`
-	BlockedCreators   string    `json:"blocked_creators,omitempty"`
-	BlockedCategories string    `json:"blocked_categories,omitempty"`
-	Avatar            string    `json:"avatar,omitempty"`
-	MaxVideoMinutes   int       `json:"max_video_minutes,omitempty"`
-	Discovery         Discovery `json:"discovery"`
-	LargeText         bool      `json:"large_text"`
-	HighContrast      bool      `json:"high_contrast"`
-	EndingMusic       bool      `json:"ending_music"`
-	ID                string    `json:"id"`
-	Name              string    `json:"name"`
-	Captions          bool      `json:"captions"`
-	ReducedMotion     bool      `json:"reduced_motion"`
-	AudioDescription  bool      `json:"audio_description"`
-	Navigation        string    `json:"navigation"`
+	EndingTopic       string        `json:"ending_topic,omitempty"`
+	Policy            ViewingPolicy `json:"viewing_policy,omitempty"`
+	QuietEnding       bool          `json:"quiet_ending,omitempty"`
+	BlockedSeries     string        `json:"blocked_series,omitempty"`
+	BlockedCreators   string        `json:"blocked_creators,omitempty"`
+	BlockedCategories string        `json:"blocked_categories,omitempty"`
+	Avatar            string        `json:"avatar,omitempty"`
+	MaxVideoMinutes   int           `json:"max_video_minutes,omitempty"`
+	Discovery         Discovery     `json:"discovery"`
+	LargeText         bool          `json:"large_text"`
+	HighContrast      bool          `json:"high_contrast"`
+	EndingMusic       bool          `json:"ending_music"`
+	ID                string        `json:"id"`
+	Name              string        `json:"name"`
+	Captions          bool          `json:"captions"`
+	ReducedMotion     bool          `json:"reduced_motion"`
+	AudioDescription  bool          `json:"audio_description"`
+	Navigation        string        `json:"navigation"`
 }
 
 func (s *Server) listProfiles(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +78,8 @@ func (s *Server) deleteProfile(w http.ResponseWriter, r *http.Request) {
 			s.data.Profiles = slices.Delete(slices.Clone(before.Profiles), i, i+1)
 			s.data.Bookmarks = maps.Clone(before.Bookmarks)
 			delete(s.data.Bookmarks, id)
+			s.data.Usage = maps.Clone(before.Usage)
+			delete(s.data.Usage, id)
 			s.data.Viewing = maps.Clone(before.Viewing)
 			delete(s.data.Viewing, id)
 			s.data.Media = slices.Clone(before.Media)
@@ -115,6 +120,14 @@ func readProfile(w http.ResponseWriter, r *http.Request) (ChildProfile, bool) {
 	}
 	if p.Navigation != "visual" && p.Navigation != "visual-text" && p.Navigation != "text" {
 		write(w, 400, map[string]string{"error": "invalid navigation mode"})
+		return p, false
+	}
+	if !slices.Contains([]string{"", "Space", "Animals", "Weather", "Plants", "Measurement"}, p.EndingTopic) {
+		write(w, 400, map[string]string{"error": "Unknown ending topic."})
+		return p, false
+	}
+	if !p.Policy.valid() {
+		write(w, 400, map[string]string{"error": "Check the time zone, viewing window and allowances."})
 		return p, false
 	}
 	if !slices.Contains([]string{"", "sun", "moon", "star", "leaf", "fish"}, p.Avatar) || p.MaxVideoMinutes < 0 || p.MaxVideoMinutes > 1440 {

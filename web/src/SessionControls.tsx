@@ -1,4 +1,5 @@
 import {useCallback,useEffect,useState} from 'react'
+import {finishInstants} from './finishTime'
 import {errorMessage,request} from './api'
 type Status={active:boolean;deadline:number;mode:string;playing:boolean;last:boolean}
 export default function SessionControls({profile,close}:{profile:{id:string;name:string};close:()=>void}){
@@ -6,6 +7,8 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
   const [mode,setMode]=useState('manual')
   const [minutes,setMinutes]=useState(30)
   const [finish,setFinish]=useState('')
+  const [occurrence,setOccurrence]=useState(0)
+  const instants=finishInstants(finish)
   const [link,setLink]=useState('')
   const [notice,setNotice]=useState('')
   const [busy,setBusy]=useState(false)
@@ -17,7 +20,7 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
     setBusy(true);setError('');setNotice('')
     try{
       if(method==='POST'){
-        const result=await request<{code:string}>(path,method,{mode,minutes,finish_by:mode==='finish_by'?new Date(finish).toISOString():''})
+        const result=await request<{code:string}>(path,method,{mode,minutes,finish_by:mode==='finish_by'?instants[occurrence].toISOString():''})
         setLink(location.origin+'/watch#'+result.code)
       }else{await request(path,method);if(method==='DELETE')setLink('')}
       await refresh()
@@ -48,8 +51,10 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
         <option value="manual">When I stop it</option><option value="one_video">After one video</option><option value="duration">After a duration</option><option value="finish_by">Finish by a clock time</option>
       </select></label>
       {mode==='duration'&&<label>Minutes<input type="number" min="1" max="1440" required value={minutes} onChange={e=>setMinutes(Number(e.target.value))}/></label>}
-      {mode==='finish_by'&&<label>Finish by ({Intl.DateTimeFormat().resolvedOptions().timeZone})<input type="datetime-local" required value={finish} onChange={e=>setFinish(e.target.value)}/></label>}
-      <button disabled={busy}>Start session</button>
+      {mode==='finish_by'&&<label>Finish by ({Intl.DateTimeFormat().resolvedOptions().timeZone})<input type="datetime-local" required value={finish} onChange={e=>{setFinish(e.target.value);setOccurrence(0)}}/></label>}
+      {mode==='finish_by'&&finish&&!instants.length&&<p role="alert">That local time does not exist. Choose another minute.</p>}
+      {mode==='finish_by'&&instants.length>1&&<label>Which occurrence?<select value={occurrence} onChange={e=>setOccurrence(Number(e.target.value))}>{instants.map((d,i)=><option key={d.getTime()} value={i}>{i===0?'First':'Second'} · {d.toLocaleTimeString([],{timeZoneName:'short'})}</option>)}</select></label>}
+      <button disabled={busy||(mode==='finish_by'&&!instants[occurrence])}>Start session</button>
     </form>}
     {error&&<p role="alert">{error}</p>}
     <button onClick={()=>refresh().catch(e=>setError(errorMessage(e)))}>Refresh session</button>
