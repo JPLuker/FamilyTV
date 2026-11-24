@@ -3,6 +3,8 @@ layout: default
 title: FamilyTV setup guide
 ---
 
+[FamilyTV home](https://jpluker.github.io/FamilyTV/)
+
 # Set up FamilyTV
 
 FamilyTV runs on your server. You manage it from a browser on your phone or computer, and your child watches in a browser or the Android TV app. GitHub Pages hosts this guide. Your dashboard, videos and profiles stay on your server.
