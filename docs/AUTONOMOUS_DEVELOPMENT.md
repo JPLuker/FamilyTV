@@ -27,6 +27,4 @@ An ordinary chat turn cannot execute indefinitely after the reply ends. Use a co
 
 ## Reuse before building
 
-Before implementing a substantial subsystem, check the existing FamilyTV code and at least one maintained upstream project that solves the same problem. Prefer consuming a supported API, library or tool when it meets the acceptance criteria. Record the candidate, the fit or specific gap, and the maintenance and licensing implications in the implementation decision. A few sentences suffice.
-
-For media catalogs, artwork, subtitle tracks, playback negotiation and transcoding, evaluate Jellyfin first. An optional Jellyfin integration must preserve standalone local playback. Keep upstream credentials on the server. Check profile approval and session limits on every child-facing playback path, including playlists, segments and subtitle requests. Test revocation and hard deadlines before enabling that path. Check the exact upstream license and preserve required notices before vendoring or adapting source.
+Follow the [shared source-code reuse standard](https://github.com/JPLuker/InternalDesignGuidelines#reuse-existing-code-before-building-from-scratch). For media work, inspect Jellyfin or another mature media project's implementation and tests before writing a new parser, matcher or playback routine. Adapt or port suitable code directly into FamilyTV when the license and maintenance cost fit. Keep local playback standalone and verify that the reused code respects FamilyTV's profile approvals, revocation and session deadlines.
