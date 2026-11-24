@@ -123,3 +123,5 @@ Parents can require a PIN at setup or change it in sign-in settings. A viewer li
 Verification: backend `go test ./...`, `go test -race ./...` and `go vet ./...`; web `npm run build` and `npx playwright test`. The phone-sized browser journey covers guided setup, avatar, reading detail, PIN sign-in and viewing local media. Server tests give two profiles the same approved 61-second video and verify that only the profile with the soft preference can start it. Tests also exercise child access to parent routes, revocation, persisted PIN settings and signing out a shared browser while retaining the parent's separate device.
 
 Next milestone: M3 content approval and classification. Physical phone installation, TV remote, screen reader, caregiver usability and household-media checks are reserved for the testing pass.
+
+Packaged Chrome identified a small touch target on the sign-in settings disclosure. Dashboard disclosure controls now have a 44-pixel minimum height and the browser journey checks that control directly.

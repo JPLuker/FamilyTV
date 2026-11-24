@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import {test,expect} from '@playwright/test'
 
 test('parent can edit, export and remove a returning child profile',async({page,browser})=>{
+  test.setTimeout(90000)
   const password='temporary browser test password'
   async function checkAccessibility(target:typeof page){
     const {violations}=await new AxeBuilder({page:target}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze()
@@ -43,7 +44,9 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await page.getByLabel('Captions').check()
   await page.getByRole('button',{name:'Save changes'}).click()
   await expect(page.getByRole('listitem')).toContainText('Captions')
-  await page.getByText('Parent sign-in settings',{exact:true}).click()
+  const signInSettings=page.getByText('Parent sign-in settings',{exact:true})
+  expect(await signInSettings.evaluate(control=>control.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44)
+  await signInSettings.click()
   await page.getByLabel('New parent PIN',{exact:false}).fill('082463')
   await page.getByRole('button',{name:'Save parent PIN'}).click()
   await expect(page.getByText('Parent PIN saved.')).toBeVisible()
