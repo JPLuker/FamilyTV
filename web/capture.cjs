@@ -11,7 +11,7 @@ const { chromium }=require('playwright');
   await page.goto('/');
   await page.getByRole('button',{name:'Viewing session for Robin'}).click();
   await page.getByLabel('Session ends').selectOption('duration');
-  await page.getByLabel('Minutes').fill('25');
+  await page.getByLabel('Minutes',{exact:true}).fill('25');
   await page.getByRole('heading',{name:'Viewing session for Robin'}).click();
   await page.getByRole('region',{name:'Viewing session for Robin'}).screenshot({path:'docs/guide/img/session.png'});
  }finally{await browser.close()}
