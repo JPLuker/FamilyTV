@@ -8,7 +8,7 @@
 - **M3 Approvals and Library Health:** parent-only approval, metadata review, accessibility and educational coverage.
 - **M4 Child viewer:** approved-content-only discovery, TV focus, no on-demand autoplay.
 - **M5 Sessions:** parent stop, after-video, duration and hard finish-by time; accessible ending.
-- **M6 Live TV:** channels, EPG, optional Tunarr integration.
+- **M6 Remove Live TV:** retire existing linear channels, EPG, XMLTV/Tunarr integration and continuous live playback; preserve on-demand media, session enforcement and user data unrelated to channels.
 - **M7 Android TV:** remote-first app and pairing.
 - **M7A Fun facts and Classroom Mode:** shared verified fact and authentic-image library, session endings, standalone fact presentation, teacher controls, grade/subject filters and lesson playlists.
 - **M7B Educational Arcade:** optional fact-driven learning games, reusable local game engines and teacher-hosted classroom quizzes; complete before validation.
@@ -29,6 +29,10 @@ A parent can configure an account, create two child profiles with different perm
 ## M3 acceptance
 
 Verify the full parent review flow, including an unapproved search and direct playback attempt from a paired child browser. Approve, revoke while paired and check the same paths again. Group and category restrictions override individual approval. Library coverage counts only currently playable approved files for the selected profile. Verify that optional creator variety and cooldown preserve hard restrictions and handle a small eligible library.
+
+## M6 scope change and acceptance
+
+Live TV is explicitly out of scope for FamilyTV v1.0. Remove existing channel management, guide UI, live playback routes and XMLTV/Tunarr integration from supported functionality. Safely migrate existing installations without deleting source media or unrelated household data. Audit web and Android TV navigation, API authorization, session enforcement, tests and documentation for obsolete live-TV references. Verify on-demand playback, hard deadlines and session endings remain intact. Existing milestone numbering is retained for traceability. This is a removal task, not a new live-TV implementation.
 
 ## M7B Educational Arcade acceptance
 
