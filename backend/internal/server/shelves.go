@@ -64,7 +64,7 @@ func (s *Server) bookmark(w http.ResponseWriter, r *http.Request) {
 		b := s.data.Bookmarks[p.ID][m.ID]
 		switch input.Kind {
 		case "position":
-			if v.Channel != "" || v.Current != m.ID || input.Position < 0 || math.IsNaN(input.Position) || input.Position > m.Duration {
+			if v.Current != m.ID || input.Position < 0 || math.IsNaN(input.Position) || input.Position > m.Duration {
 				write(w, 400, map[string]string{"error": "Invalid position."})
 				return
 			}

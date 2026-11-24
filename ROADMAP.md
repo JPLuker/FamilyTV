@@ -1,6 +1,6 @@
 # FamilyTV roadmap
 
-**M1 media library, M2 profiles, M3 approvals, M4 child viewing and M5 sessions are development-complete.** Automated acceptance uses synthetic media and profiles. Household and physical-device sign-off are reserved for testing. M6 live-TV retirement is next in sequence. Working name and mascot pending Joseph's design decisions.
+**M1 media library, M2 profiles, M3 approvals, M4 child viewing, M5 sessions and M6 live-TV retirement are development-complete.** Automated acceptance uses synthetic media and profiles. Household and physical-device sign-off are reserved for testing. M7 Android TV is next in sequence. Working name and mascot pending Joseph's design decisions.
 
 - **M0 Foundation:** Go API, parent authentication, web dashboard, PostgreSQL, Docker, CI, security and backups.
 - **M1 Media library:** local import, FFprobe, playback, metadata and captions.

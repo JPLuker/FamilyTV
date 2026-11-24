@@ -9,7 +9,7 @@ FamilyTV is a development build for a household-controlled installation. Keep th
 | Playback and discovery | The API checks profile, approval, local file identity, accessibility and deadline. Existing streams periodically recheck current state, including database-backed revocation. A viewer may already have received media bytes before a stop. FamilyTV provides household controls, not DRM. |
 | Local media | A read-only mount confines file access. Import and preview invoke FFmpeg tools with a supported container allowlist and a timeout. Only import files the household trusts. Keep FFmpeg, the operating system and container images updated. |
 | Stored household data | Household state includes preferences, approvals and active credentials. PostgreSQL uses a private Unix socket in Compose. A verified profile deletion removes the profile, session and approval assignments from live storage. Backups and the original migration source have separate retention. |
-| Network privacy | Direct playback, guide import and recommendations run locally. No analytics, ad requests or public account service. Browser tests and builds download dependencies. Installing Android TV requires Android/Gradle repositories. |
+| Network privacy | Direct playback and recommendations run locally. No analytics, ad requests or public account service. Browser tests and builds download dependencies. Installing Android TV requires Android/Gradle repositories. |
 | Release review | Independent security review, child privacy applicability review and real-device accessibility testing remain open. Automated tests exercise specific paths. |
 
 ## HTTPS on the household network

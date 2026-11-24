@@ -3,7 +3,6 @@ import {errorMessage,request} from './api'
 
 import {Scanner,MetadataEditor} from './CatalogTools'
 import ApprovalDesk from './ApprovalDesk'
-import Channels from './Channels'
 import MediaReview,{type ReviewedMedia as Media} from './MediaReview'
 function catalogGroup({metadata:m}:Media){
   if(m.series)return m.series+' · '+(m.kind==='special'?'Specials':'Season '+m.season)
@@ -83,7 +82,6 @@ export default function MediaLibrary({onApproval,profileRevision}:{profileRevisi
     </li>)}</ul></div>)}
     {editing&&<MetadataEditor key={editing.id} item={editing} close={()=>setEditing(undefined)} saved={item=>{setMedia(old=>old.map(m=>m.id===item.id?item:m));setEditing(undefined);setReload(n=>n+1)}}/>}
     {reviewing && <MediaReview key={reviewing.id} item={reviewing} close={()=>setReviewing(undefined)} saved={item=>{setMedia(old=>old.map(m=>m.id===item.id?item:m));setReviewing(undefined)}}/>}
-    <Channels media={media}/>
     {selected && <div>
       <h3>{selected.title}</h3>
       <video key={selected.id} controls preload="metadata" src={'/api/media/'+selected.id+'/file'} aria-label={selected.title}

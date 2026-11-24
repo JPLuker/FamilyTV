@@ -254,15 +254,6 @@ func (s *Server) playable(r *http.Request) (Media, int64) {
 	defer s.mu.Unlock()
 	v, p, ok := s.viewer(r)
 	var media Media
-	if ok && v.Channel != "" {
-		g := s.currentGuide(p, v, time.Now().UnixMilli())
-		if g != nil && g.Now != nil {
-			v.Current = g.Now.Item.ID
-			if v.Deadline == 0 || g.Now.End < v.Deadline {
-				v.Deadline = g.Now.End
-			}
-		}
-	}
 	if ok && v.Current == r.PathValue("id") {
 		for _, m := range s.data.Media {
 			if m.ID == v.Current && available(m, p) {

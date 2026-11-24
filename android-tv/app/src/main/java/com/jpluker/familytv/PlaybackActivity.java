@@ -37,7 +37,7 @@ public final class PlaybackActivity extends Activity {
     private final OkHttpClient controlHttp = http.newBuilder().callTimeout(5, TimeUnit.SECONDS).build();
     private final Runnable deadline = this::finish;
     private String server, cookie, playingKey = "", mediaId = "";
-    private boolean live, finishingVideo;
+    private boolean finishingVideo;
     private int generation, compatibilityAttempt;
     private long lastProgress;
     private MediaItem selectedItem;
@@ -75,7 +75,7 @@ public final class PlaybackActivity extends Activity {
                 player.prepare();
             }
             @Override public void onPlaybackStateChanged(int state) {
-                if (state == Player.STATE_ENDED && !live && !finishingVideo) finishVideo();
+                if (state == Player.STATE_ENDED && !finishingVideo) finishVideo();
             }
         });
         playingKey = "";
@@ -113,14 +113,10 @@ public final class PlaybackActivity extends Activity {
             if (end <= now) { finish(); return; }
             ui.postDelayed(deadline, end - now);
         }
-        JSONObject channel = state.optJSONObject("live");
-        JSONObject airing = channel == null ? null : channel.optJSONObject("now");
-        live = airing != null;
-        long start = live ? airing.getLong("start") : 0;
         String id = current.getString("id");
-        String key = id + ":" + start + ":" + state.optBoolean("captions");
+        String key = id + ":" + state.optBoolean("captions");
         if (key.equals(playingKey)) {
-            if (!live && player.isPlaying() && SystemClock.elapsedRealtime()-lastProgress >= 10000) saveProgress();
+            if (player.isPlaying() && SystemClock.elapsedRealtime()-lastProgress >= 10000) saveProgress();
             return;
         }
         compatibilityAttempt = 0;
@@ -136,12 +132,12 @@ public final class PlaybackActivity extends Activity {
         mediaId = id;
         selectedItem=item.build();
         lastProgress = SystemClock.elapsedRealtime();
-        player.setMediaItem(selectedItem, live ? Math.max(0, now - start) : (long)(state.optDouble("resume",0)*1000));
+        player.setMediaItem(selectedItem, (long)(state.optDouble("resume",0)*1000));
         player.prepare();
         player.play();
     }
     private void saveProgress() {
-        if (live || finishingVideo || player == null || mediaId.isEmpty() || player.getCurrentPosition()<=0) return;
+        if (finishingVideo || player == null || mediaId.isEmpty() || player.getCurrentPosition()<=0) return;
         final double seconds = player.getCurrentPosition()/1000.0;
         final String id=mediaId;
         lastProgress=SystemClock.elapsedRealtime();

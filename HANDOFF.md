@@ -1,5 +1,11 @@
 # FamilyTV handoff — 2026-11-23
 
+## Current checkpoint — M6, 0.19.0
+
+Removed channel management, XMLTV import, scheduling and tuning from the server, web viewer and Android player. On upgrade, PostgreSQL schema v2 archives old lineups and retires only sessions tuned to a channel. File-backed households use the same conversion. Existing on-demand sessions, media and bookmarks are retained. Earlier live-TV entries below are historical.
+
+Acceptance covers retired routes, a mixed-session upgrade, and the existing on-demand, accessibility and hard-deadline journeys. M7 Android TV is next. Physical TV acceptance remains open.
+
 ## Source of truth
 - Repository: https://github.com/JPLuker/FamilyTV (main)
 - Read: docs/AUTONOMOUS_DEVELOPMENT.md, ROADMAP.md, DECISIONS.md, NO_LIST.md, AGENTS.md and open issues.
@@ -28,7 +34,7 @@
 5. Keep issues and handoff updated as verified work lands. Bump versions per internal guidelines.
 
 ## Product boundaries
-Parent-only content approval. No child-facing watch requests. No on-demand autoplay; continuous playback only in live TV. Server-enforced session modes including absolute Finish By deadline. Individual accessibility settings. No analytics, ads or background third-party runtime requests. Child development and learning claims must not be overstated.
+Parent-only content approval. No child-facing watch requests. On-demand playback requires an explicit choice. Server-enforced session modes including absolute Finish By deadline. Individual accessibility settings. No analytics, ads or background third-party runtime requests. Child development and learning claims must not be overstated.
 
 ## Joseph's intervention
 Not required for the current technical backlog. Branding/mascot and optional theme decisions can remain pending while work continues. Only ask for decisions that genuinely block all remaining actionable work.

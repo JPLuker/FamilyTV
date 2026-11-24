@@ -74,11 +74,20 @@ func TestPostgresImportAndConcurrentUpdates(t *testing.T) {
 	if err = os.WriteFile(path, []byte("unreadable older state"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	// Rehearse a database upgrade with both an active channel and on-demand viewer.
+	if _, err = admin.Exec("UPDATE " + schema + `.familytv_household SET version=1,
+	document=document || '{"channels":[{"id":"old"}],"viewing":{"live":{"channel":"old"},"vod":{"current":"lesson"}}}'::jsonb`); err != nil {
+		t.Fatal(err)
+	}
 	restarted, closeAgain, err := OpenPostgres(context.Background(), u.String(), path, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer closeAgain()
+	var migrated bool
+	if err := admin.QueryRow("SELECT version=2 AND NOT (document ? 'channels') AND document->'archived_channels'->0->>'id'='old' AND NOT (document->'viewing' ? 'live') AND document->'viewing'->'vod'->>'current'='lesson' FROM " + schema + ".familytv_household").Scan(&migrated); err != nil || !migrated {
+		t.Fatal("channel retirement migration", migrated, err)
+	}
 	w := call(restarted, "GET", "")
 	if w.Code != 200 || strings.Count(w.Body.String(), `"Added"`) != 4 || !strings.Contains(w.Body.String(), "Original") {
 		t.Fatal(w.Code, w.Body.String())

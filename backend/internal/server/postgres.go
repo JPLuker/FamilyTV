@@ -29,7 +29,8 @@ func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) 
 		return nil, err
 	}
 	var version int
-	err = tx.QueryRowContext(ctx, "SELECT version FROM familytv_household WHERE singleton").Scan(&version)
+	var document []byte
+	err = tx.QueryRowContext(ctx, "SELECT version, document FROM familytv_household WHERE singleton FOR UPDATE").Scan(&version, &document)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		legacy, err := New(path, secure)
@@ -40,12 +41,20 @@ func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) 
 		if err != nil {
 			return nil, err
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO familytv_household VALUES (true,1,$1)", string(b)); err != nil {
+		if _, err = tx.ExecContext(ctx, "INSERT INTO familytv_household VALUES (true,2,$1)", string(b)); err != nil {
 			return nil, err
 		}
 	case err != nil:
 		return nil, err
-	case version != 1:
+	case version == 1:
+		migrated, err := retireChannels(document)
+		if err != nil {
+			return nil, err
+		}
+		if _, err = tx.ExecContext(ctx, "UPDATE familytv_household SET version=2,document=$1 WHERE singleton", string(migrated)); err != nil {
+			return nil, err
+		}
+	case version != 2:
 		return nil, errors.New("unsupported household schema version")
 	}
 	if err = tx.Commit(); err != nil {
@@ -66,7 +75,7 @@ func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) 
 			return
 		}
 		defer tx.Rollback()
-		query := "SELECT document FROM familytv_household WHERE singleton AND version=1"
+		query := "SELECT document FROM familytv_household WHERE singleton AND version=2"
 		if !readOnly {
 			query += " FOR UPDATE"
 		}
@@ -75,7 +84,7 @@ func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) 
 		s.currentState = func(ctx context.Context) (state, error) {
 			var current state
 			var snapshot []byte
-			e := db.QueryRowContext(ctx, "SELECT document FROM familytv_household WHERE singleton AND version=1").Scan(&snapshot)
+			e := db.QueryRowContext(ctx, "SELECT document FROM familytv_household WHERE singleton AND version=2").Scan(&snapshot)
 			if e == nil {
 				e = json.Unmarshal(snapshot, &current)
 			}
@@ -99,7 +108,7 @@ func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) 
 			if err != nil {
 				return err
 			}
-			if _, err = tx.ExecContext(ctx, "UPDATE familytv_household SET document=$1 WHERE singleton", string(b)); err != nil {
+			if _, err = tx.ExecContext(ctx, "UPDATE familytv_household SET document=$1 WHERE singleton AND version=2", string(b)); err != nil {
 				return err
 			}
 			return tx.Commit()

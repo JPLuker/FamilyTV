@@ -30,16 +30,16 @@ type loginAttempts struct {
 	Until int64 `json:"until"`
 }
 type state struct {
-	Usage       map[string]DailyUsage          `json:"usage,omitempty"`
-	Bookmarks   map[string]map[string]Bookmark `json:"bookmarks,omitempty"`
-	ApprovalLog []ApprovalEvent                `json:"approval_log,omitempty"`
-	Channels    []Channel                      `json:"channels,omitempty"`
-	Viewing     map[string]Viewing             `json:"viewing,omitempty"`
-	Media       []Media                        `json:"media,omitempty"`
-	Attempts    map[string]loginAttempts       `json:"login_attempts,omitempty"`
-	Account     *account                       `json:"account,omitempty"`
-	Sessions    map[string]int64               `json:"sessions,omitempty"`
-	Profiles    []ChildProfile                 `json:"profiles,omitempty"`
+	Usage            map[string]DailyUsage          `json:"usage,omitempty"`
+	Bookmarks        map[string]map[string]Bookmark `json:"bookmarks,omitempty"`
+	ApprovalLog      []ApprovalEvent                `json:"approval_log,omitempty"`
+	ArchivedChannels json.RawMessage                `json:"archived_channels,omitempty"`
+	Viewing          map[string]Viewing             `json:"viewing,omitempty"`
+	Media            []Media                        `json:"media,omitempty"`
+	Attempts         map[string]loginAttempts       `json:"login_attempts,omitempty"`
+	Account          *account                       `json:"account,omitempty"`
+	Sessions         map[string]int64               `json:"sessions,omitempty"`
+	Profiles         []ChildProfile                 `json:"profiles,omitempty"`
 }
 type Server struct {
 	currentState  func(context.Context) (state, error)
@@ -54,6 +54,9 @@ func New(path string, secure bool) (*Server, error) {
 	s := &Server{path: path, secureCookies: secure}
 	b, e := os.ReadFile(path)
 	if e == nil {
+		if b, e = retireChannels(b); e != nil {
+			return nil, e
+		}
 		if e = json.Unmarshal(b, &s.data); e != nil {
 			return nil, e
 		}
@@ -148,6 +151,9 @@ func (s *Server) authorized(r *http.Request) bool {
 }
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
+	for _, method := range []string{"GET", "POST", "PATCH", "PUT", "DELETE"} {
+		mux.HandleFunc(method+" /api/", http.NotFound)
+	}
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { write(w, 200, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /api/setup/status", func(w http.ResponseWriter, r *http.Request) {
 		s.mu.Lock()
@@ -302,10 +308,6 @@ func (s *Server) Routes() http.Handler {
 	for _, method := range []string{"GET", "POST", "PATCH", "DELETE"} {
 		mux.HandleFunc(method+" /api/profiles/{id}/session", s.parentViewing)
 	}
-	mux.HandleFunc("GET /api/channels", s.parentChannels)
-	mux.HandleFunc("POST /api/channels", s.parentChannels)
-	mux.HandleFunc("DELETE /api/channels/{id}", s.parentChannels)
-	mux.HandleFunc("POST /api/watch/tune", s.tune)
 	mux.HandleFunc("POST /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("DELETE /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)

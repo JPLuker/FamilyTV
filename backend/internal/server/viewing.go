@@ -18,7 +18,6 @@ import (
 type Viewing struct {
 	Budget      SessionBudget `json:"budget,omitempty"`
 	LastCreator string        `json:"last_creator,omitempty"`
-	Channel     string        `json:"channel,omitempty"`
 	Profile     string        `json:"profile"`
 	Mode        string        `json:"mode"`
 	Deadline    int64         `json:"deadline,omitempty"`
@@ -135,7 +134,7 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "GET" {
-		write(w, 200, map[string]any{"active": active(v, now), "mode": v.Mode, "deadline": v.cutoff(), "playing": v.Current != "" || v.Channel != "", "last": v.Last})
+		write(w, 200, map[string]any{"active": active(v, now), "mode": v.Mode, "deadline": v.cutoff(), "playing": v.Current != "", "last": v.Last})
 		return
 	}
 	if r.Method == "DELETE" {
@@ -145,18 +144,6 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "PATCH" {
-		if v.Channel != "" {
-			p, _ := s.profile(id)
-			g := s.currentGuide(p, v, now.UnixMilli())
-			if g != nil && g.Now != nil {
-				v.Last = true
-				v.Deadline = g.Now.End
-				if s.setViewing(w, id, &v) {
-					write(w, 200, map[string]bool{"last": true})
-				}
-				return
-			}
-		}
 		if !active(v, now) || v.Current == "" {
 			if s.setViewing(w, id, nil) {
 				write(w, 200, map[string]bool{"ended": true})
@@ -342,20 +329,6 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			items = append(items, item)
 		}
 	}
-	guides := []Guide{}
-	var live *Guide
-	for _, channel := range s.data.Channels {
-		g := s.guide(channel, p, v, now.UnixMilli())
-		if g.Now != nil || g.Next != nil {
-			guides = append(guides, g)
-		}
-		if channel.ID == v.Channel {
-			live = &g
-			if g.Now != nil {
-				current = &g.Now.Item
-			}
-		}
-	}
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	items, page, pages := p.Discovery.page(items, page, v.LastCreator)
 	shelf := []ShelfEntry{}
@@ -364,7 +337,7 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			shelf = append(shelf, ShelfEntry{item, mark, true})
 		}
 	}
-	write(w, 200, map[string]any{"items": items, "list": list, "shelf": shelf, "resume": s.data.Bookmarks[p.ID][v.Current].Position, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "channels": guides, "live": live, "tuned": v.Channel != "", "deadline": v.cutoff(), "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_topic": p.EndingTopic, "quiet_ending": p.QuietEnding, "ending_music": p.EndingMusic && !p.QuietEnding})
+	write(w, 200, map[string]any{"items": items, "list": list, "shelf": shelf, "resume": s.data.Bookmarks[p.ID][v.Current].Position, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "deadline": v.cutoff(), "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_topic": p.EndingTopic, "quiet_ending": p.QuietEnding, "ending_music": p.EndingMusic && !p.QuietEnding})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
@@ -382,33 +355,30 @@ func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/api/watch/finish" || r.URL.Path == "/api/watch/leave" {
-		if v.Channel == "" && (v.Current == "" || v.Current != input.ID) {
+		if v.Current == "" || v.Current != input.ID {
 			write(w, 409, map[string]string{"error": "Video is no longer playing."})
 			return
 		}
 		before := s.data.Bookmarks
-		if v.Channel == "" {
-			bookmark := s.data.Bookmarks[p.ID][v.Current]
-			if r.URL.Path == "/api/watch/finish" {
-				bookmark.Position = 0
-			} else if input.Position != nil {
-				for _, m := range s.data.Media {
-					if m.ID == v.Current {
-						if *input.Position < 0 || *input.Position > m.Duration {
-							write(w, 400, map[string]string{"error": "Invalid playback position."})
-							return
-						}
-						bookmark.Position = *input.Position
-						break
+		bookmark := s.data.Bookmarks[p.ID][v.Current]
+		if r.URL.Path == "/api/watch/finish" {
+			bookmark.Position = 0
+		} else if input.Position != nil {
+			for _, m := range s.data.Media {
+				if m.ID == v.Current {
+					if *input.Position < 0 || *input.Position > m.Duration {
+						write(w, 400, map[string]string{"error": "Invalid playback position."})
+						return
 					}
+					bookmark.Position = *input.Position
+					break
 				}
 			}
-			s.changeBookmark(p.ID, v.Current, bookmark)
 		}
+		s.changeBookmark(p.ID, v.Current, bookmark)
 		v.Budget.Category = ""
 		v.Budget.CategoryEnd = 0
 		v.Current = ""
-		v.Channel = ""
 		var next *Viewing = &v
 		if v.Last {
 			next = nil
@@ -418,10 +388,6 @@ func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 		} else {
 			s.data.Bookmarks = before
 		}
-		return
-	}
-	if v.Channel != "" {
-		write(w, 409, map[string]string{"error": "Leave the channel first."})
 		return
 	}
 	if v.Current != "" && v.Current != input.ID {

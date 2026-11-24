@@ -3,13 +3,11 @@ import {WatchPlayer} from './WatchPlayer'
 import type {Discovery} from './DiscoverySettings'
 import {ApiError,errorMessage,request} from './api'
 type Item={id:string;title:string;subject:string;duration_seconds:number;captions:boolean}
-type Airing={item:Item;start:number;end:number}
-type Guide={id:string;name:string;now:Airing|null;next:Airing|null}
 import {avatars} from './avatars'
 type ShelfName='All videos'|'Favorites'|'Saved for later'|'Continue watching'
 const lists:Record<ShelfName,string>={'All videos':'','Favorites':'favorites','Saved for later':'later','Continue watching':'resume'}
 type Bookmark={favorite:boolean;later:boolean;position:number}
-type Catalog={ending_topic:string;quiet_ending:boolean;list:string;shelf:{item:Item;bookmark:Bookmark;playable:boolean}[];resume:number;avatar?:string;page:number;pages:number;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;channels:Guide[];live:Guide|null;tuned:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
+type Catalog={ending_topic:string;quiet_ending:boolean;list:string;shelf:{item:Item;bookmark:Bookmark;playable:boolean}[];resume:number;avatar?:string;page:number;pages:number;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
 import {chooseFact} from './endingFacts'
 const nativeTV=navigator.userAgent.includes('FamilyTV-AndroidTV')
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
@@ -91,7 +89,7 @@ export default function Viewer(){
     const timer=setTimeout(()=>setShowSignOff(false),12000)
     return ()=>clearTimeout(timer)
   },[ended])
-  async function action(action:'play'|'finish'|'tune'|'leave',id:string){
+  async function action(action:'play'|'finish'|'leave',id:string){
     setBusy(true);setError('')
     try{
       if(action==='play')lastTile.current=id
@@ -120,7 +118,6 @@ export default function Viewer(){
     const id=setTimeout(()=>{if(!ended)void refresh()},200)
     return()=>clearTimeout(id)
   },[query,page,shelf])
-  const live=catalog?.live?.now
   const current=catalog?.current
   const bookmarks=new Map(catalog?.shelf.map(row=>[row.item.id,row.bookmark]))
   const items=catalog?.list===lists[shelf]?catalog.items:[]
@@ -142,7 +139,7 @@ export default function Viewer(){
     if(busy)return true
     const detail=root.current?.querySelector<HTMLDetailsElement>('details[open]')
     if(detail){detail.open=false;detail.querySelector('summary')?.focus();return true}
-    if(current||catalog?.tuned){void action('leave',current?.id||'');return true}
+    if(current){void action('leave',current?.id||'');return true}
     if(query){setQuery('');setPage(0);return true}
     if(shelf!=='All videos'||page>0){setShelf('All videos');setPage(0);return true}
     return false
@@ -152,7 +149,7 @@ export default function Viewer(){
     window.addEventListener('familytv-back',back)
     return ()=>window.removeEventListener('familytv-back',back)
   })
-  const nested=Boolean(current||catalog?.tuned||query||shelf!=='All videos'||page)
+  const nested=Boolean(current||query||shelf!=='All videos'||page)
   useEffect(()=>{
     if(nested && !history.state?.familytvViewer)history.pushState({familytvViewer:true},'',location.href)
     if(!nested && history.state?.familytvViewer)history.back()
@@ -189,18 +186,12 @@ export default function Viewer(){
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog?.deadline&&Boolean(catalog.discovery.warn_minutes)&&catalog.deadline-catalog.server_time<=(catalog.discovery.warn_minutes||0)*60000?<p>Viewing time ends soon.</p>:null}
       {catalog && (current?<section><h1>{current.title}</h1>
-        {nativeTV?<a className="play-native" href="/watch/native">Play on TV</a>:<WatchPlayer key={current.id+':'+(live?.start||0)} id={current.id} duration={current.duration_seconds} captions={current.captions} enableCaptions={catalog.captions}
-          resume={catalog.resume} liveOffset={live?Math.max(0,(catalog.server_time-live.start)/1000):undefined}
-          position={seconds=>{position.current=seconds}} finished={()=>live?void refresh():void action('finish',current.id)}/>}
-        {!catalog.tuned&&<button disabled={busy} onClick={()=>action('leave',current.id)}>Back to choices</button>}
-        <button disabled={busy} onClick={()=>action('finish',current.id)}>{catalog.tuned?'Leave channel':'Finish video'}</button>
+        {nativeTV?<a className="play-native" href="/watch/native">Play on TV</a>:<WatchPlayer key={current.id} id={current.id} duration={current.duration_seconds} captions={current.captions} enableCaptions={catalog.captions}
+          resume={catalog.resume}
+          position={seconds=>{position.current=seconds}} finished={()=>void action('finish',current.id)}/>}
+        <button disabled={busy} onClick={()=>action('leave',current.id)}>Back to choices</button>
+        <button disabled={busy} onClick={()=>action('finish',current.id)}>Finish video</button>
       </section>:<section><h1>Choose a video</h1>
-        {catalog.tuned?<><p>No approved program is on this channel right now.</p><button onClick={()=>action('finish','')}>Leave channel</button></>:<>
-        {catalog.channels.length>0&&<div><h2>Live TV</h2><ul>{catalog.channels.map(c=><li key={c.id}>
-          <button disabled={busy||!c.now} onClick={()=>action('tune',c.id)}>{c.name}</button>
-          {c.now&&<span> · Now playing {c.now.item.title}</span>}
-          {c.next&&<span> · {new Date(c.next.start).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})} {c.next.item.title}</span>}
-        </li>)}</ul></div>}
         {catalog.discovery.search!=='off'&&<label>Search videos<input value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/></label>}
         <nav className="watch-shelves" aria-label="Video lists">{(['All videos','Favorites','Saved for later','Continue watching'] as const).map(name=><button key={name} aria-pressed={shelf===name} onClick={()=>{setShelf(name);setPage(0);setQuery('')}}>{name}</button>)}</nav>
         {visible.length>0&&<button disabled={busy} onClick={()=>action('play',visible[Math.floor(Math.random()*visible.length)].id)}>Surprise me</button>}
@@ -214,7 +205,7 @@ export default function Viewer(){
             <button disabled={busy} aria-pressed={Boolean(bookmarks.get(m.id)?.later)} onClick={()=>mark(m,'later')}>Save for later</button>
           </details></li>)}</ul>
         {catalog.pages>1&&<nav aria-label="Video pages"><button disabled={catalog.page===0} onClick={()=>setPage(catalog.page-1)}>Previous choices</button> {catalog.page+1} / {catalog.pages} <button disabled={catalog.page+1>=catalog.pages} onClick={()=>setPage(catalog.page+1)}>More choices</button></nav>}
-        {!visible.length&&<p>{shelf==='All videos'?'No videos are available for this session.':'No matching videos in this list.'}</p>}</>}
+        {!visible.length&&<p>{shelf==='All videos'?'No videos are available for this session.':'No matching videos in this list.'}</p>}
       </section>)}
     </>}
   </main>
