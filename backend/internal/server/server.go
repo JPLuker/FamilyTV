@@ -309,6 +309,7 @@ func (s *Server) Routes() http.Handler {
 		mux.HandleFunc(method+" /api/profiles/{id}/session", s.parentViewing)
 	}
 	mux.HandleFunc("POST /api/profiles/{id}/session/pair", s.parentViewing)
+	mux.HandleFunc("PUT /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("DELETE /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)
 	mux.HandleFunc("GET /api/watch", s.watchCatalog)

@@ -1,6 +1,12 @@
 package com.jpluker.familytv;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.graphics.Bitmap;
+import android.widget.ImageView;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import java.security.NoSuchAlgorithmException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -57,8 +63,43 @@ public final class ViewerActivity extends Activity {
             getPreferences(MODE_PRIVATE).edit().putString("server", server).apply();
             openViewer(key);
         });
+        Button scan = new Button(this);
+        scan.setText("Pair using a phone");
+        form.addView(scan);
+        scan.setOnClickListener(v -> {
+            String origin = origin(address.getText().toString().trim());
+            if (origin == null) { address.setError("Enter your FamilyTV HTTPS address."); address.requestFocus(); return; }
+            showPhonePairing(origin);
+        });
         setContentView(scroll);
         (server.isEmpty() ? address : code).requestFocus();
+    }
+    private void showPhonePairing(String origin) {
+        try {
+            PhonePairing pairing = new PhonePairing(origin);
+            BitMatrix matrix = pairing.matrix;
+            Bitmap bitmap = Bitmap.createBitmap(matrix.getWidth(), matrix.getHeight(), Bitmap.Config.ARGB_8888);
+            int[] row = new int[matrix.getWidth()];
+            for (int y = 0; y < matrix.getHeight(); y++) {
+                for (int x = 0; x < row.length; x++) row[x] = matrix.get(x, y) ? 0xff000000 : 0xffffffff;
+                bitmap.setPixels(row, 0, row.length, 0, y, row.length, 1);
+            }
+            ImageView image = new ImageView(this);
+            image.setAdjustViewBounds(true);
+            image.setImageBitmap(bitmap);
+            image.setContentDescription("Scan with the parent's phone to choose a profile");
+            new AlertDialog.Builder(this).setTitle("Pair TV " + pairing.identifier)
+                    .setMessage("Scan with your phone. Confirm this TV code in the child's session controls, then open the viewer.")
+                    .setView(image).setNegativeButton("Cancel", null)
+                    .setPositiveButton("Open paired viewer", (dialog, which) -> {
+                        server = origin;
+                        getPreferences(MODE_PRIVATE).edit().putString("server", server).apply();
+                        openViewer(pairing.secret);
+                    }).show();
+        } catch (NoSuchAlgorithmException | WriterException | IllegalArgumentException ex) {
+            new AlertDialog.Builder(this).setMessage("QR pairing is unavailable. Use the pairing code instead.")
+                    .setPositiveButton("OK", null).show();
+        }
     }
     private EditText field(LinearLayout form, String label, int type) {
         TextView text = new TextView(this);

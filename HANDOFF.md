@@ -1,6 +1,12 @@
 # FamilyTV handoff — 2026-11-23
 
-## Current checkpoint — M6, 0.19.0
+## Current checkpoint — M7, 0.20.0
+
+Android TV supports remote code entry and phone-assisted pairing using ZXing. The TV displays a public challenge. A signed-in parent authorizes one active profile after comparing the TV identifier. The TV redeems its private one-use secret through the existing viewer exchange. Either pairing method preserves session deadlines. Media3 handles playback and audio focus.
+
+Automated checks cover phone approval, rejected viewer authorization, replay, transfer, focus restoration, the TV-native launch link and parent stop. Physical gate: install the debug APK on an Android TV, pair by phone and remote, check D-pad focus, native decoding, captions/audio, Back and a timed stop. Record model, Android version and results. Android build/lint and desktop browser tests cannot establish this result.
+
+## Previous checkpoint — M6, 0.19.0
 
 Removed channel management, XMLTV import, scheduling and tuning from the server, web viewer and Android player. On upgrade, PostgreSQL schema v2 archives old lineups and retires only sessions tuned to a channel. File-backed households use the same conversion. Existing on-demand sessions, media and bookmarks are retained. Earlier live-TV entries below are historical.
 

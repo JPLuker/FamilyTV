@@ -34,7 +34,7 @@ Finish by uses the time zone shown in the parent's browser. FamilyTV stores the 
 
 ## Android TV
 
-The Android TV debug APK is attached to the android-tv CI job. Install it on a TV for testing, enter the HTTPS origin of your FamilyTV server, then the pairing code shown in the parent's session controls. Back opens pairing again. A new code replaces an unused one. Redeeming it moves the session to the new viewer. The TV stores the server address and uses the viewer cookie for the session.
+The Android TV debug APK is attached to the android-tv CI job. Install it on a TV for testing, enter the HTTPS origin of your FamilyTV server, then the pairing code shown in the parent's session controls. For phone pairing, enter the server address on the TV and choose **Pair using a phone**. Scan the QR code, sign in to the parent dashboard, choose the child's Session and start it if needed. Match the eight characters on the TV before confirming the profile on the phone. Then choose **Open paired viewer** on the TV. Back returns to choices during browsing and opens pairing from the viewer home. A new code replaces an unused one. Redeeming it moves the session to the new viewer. The TV stores the server address and uses the viewer cookie for the session.
 
 ### Scanning and matching
 

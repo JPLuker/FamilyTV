@@ -63,6 +63,7 @@ public final class PlaybackActivity extends Activity {
         OkHttpDataSource.Factory source = new OkHttpDataSource.Factory(http);
         source.setDefaultRequestProperties(Collections.singletonMap("Cookie", cookie));
         player = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(source)).build();
+        player.setAudioAttributes(androidx.media3.common.AudioAttributes.DEFAULT, true);
         controls.setPlayer(player);
         controls.requestFocus();
         player.addListener(new Player.Listener() {
@@ -173,6 +174,7 @@ public final class PlaybackActivity extends Activity {
         generation++;
         ui.removeCallbacksAndMessages(null);
         if (player != null) { controls.setPlayer(null); player.release(); player = null; }
+        if (finishingVideo) finish();
         super.onStop();
     }
     @Override protected void onDestroy() {worker.shutdown(); super.onDestroy();}

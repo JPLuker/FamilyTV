@@ -29,7 +29,7 @@ const defaults: Settings = {quiet_ending:false,discovery:discoveryDefaults,name:
 const navigationModes: Record<string,string> = {visual:'Pictures', 'visual-text':'Pictures and text', text:'Text'}
 const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music'], ['quiet_ending','Quiet ending (message only)']] as const
 
-export default function Profiles({onExpired,onProfiles,onChanged}: {onExpired: () => void;onProfiles:(present:boolean)=>void;onChanged:()=>void}) {
+export default function Profiles({onExpired,onProfiles,onChanged,incomingTV,onPaired}: {incomingTV?:string;onPaired:()=>void;onExpired: () => void;onProfiles:(present:boolean)=>void;onChanged:()=>void}) {
   const [profiles,setProfiles] = useState<Profile[]>([])
   const [loading,setLoading] = useState(true)
   const [error,setError] = useState('')
@@ -109,7 +109,7 @@ export default function Profiles({onExpired,onProfiles,onChanged}: {onExpired: (
         <button disabled={busy} onClick={() => remove(p)} aria-label={'Remove '+p.name}>Remove</button>
       </div>
     </li>)}</ul>
-    {sessionProfile&&<SessionControls key={sessionProfile.id} profile={sessionProfile} close={()=>setSessionProfile(undefined)}/>}
+    {sessionProfile&&<SessionControls incomingTV={incomingTV} onPaired={onPaired} key={sessionProfile.id} profile={sessionProfile} close={()=>setSessionProfile(undefined)}/>}
     <form onSubmit={save}>
       <h3>{editing ? 'Edit profile' : 'New profile'}</h3>
       <label htmlFor="child-name">Profile name</label>

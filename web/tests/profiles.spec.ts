@@ -1,4 +1,5 @@
 import {finishInstants} from '../src/finishTime'
+import {createHash,randomUUID} from 'node:crypto'
 import AxeBuilder from '@axe-core/playwright'
 import {test,expect} from '@playwright/test'
 
@@ -214,6 +215,30 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await expect(paired.getByRole('heading',{name:'Viewing time is over'})).toBeVisible({timeout:12000})
   await expect(paired.locator('video,audio')).toHaveCount(0)
   expect((await paired.request.get('/api/watch/media/'+forestId+'/file')).status()).toBe(404)
+  // A parent scans a TV's public challenge. Only the TV holds the redeemable secret.
+  const tvSecret=randomUUID(),challenge=createHash('sha256').update(tvSecret).digest('hex')
+  const phone=await page.context().newPage()
+  await phone.goto('/#pair-tv='+challenge)
+  await phone.getByRole('button',{name:'Viewing session for Robin'}).click()
+  await phone.getByRole('button',{name:'Start session'}).click()
+  const tvContext=await browser.newContext({userAgent:'FamilyTV-AndroidTV'})
+  const tv=await tvContext.newPage()
+  expect((await tv.request.put(sessionPath+'/pair',{data:{challenge}})).status()).toBe(401)
+  await phone.getByRole('button',{name:'Pair TV '+challenge.slice(0,8)+' with Robin'}).click()
+  await expect(phone.getByRole('status').filter({hasText:'TV authorized for Robin'})).toBeVisible()
+  expect((await tv.request.post('/api/watch/join',{data:{code:challenge}})).status()).toBe(403)
+  await tv.goto('/watch#'+tvSecret)
+  const choice=tv.getByRole('button',{name:'forest',exact:true})
+  await choice.focus()
+  await tv.keyboard.press('Enter')
+  await expect(tv.getByRole('link',{name:'Play on TV'})).toHaveAttribute('href','/watch/native')
+  expect((await tv.request.post('/api/watch/join',{data:{code:tvSecret}})).status()).toBe(403)
+  await tv.keyboard.press('Escape')
+  await expect(choice).toBeFocused()
+  await phone.getByRole('button',{name:'End now'}).click()
+  await expect(tv.getByRole('heading',{name:'Viewing time is over'})).toBeVisible()
+  await phone.close()
+  await tvContext.close()
   await newScreen.close()
   await childContext.close()
   await checkAccessibility(page)

@@ -123,6 +123,32 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 			write(w, 409, map[string]string{"error": "Start a viewing session first."})
 			return
 		}
+		if r.Method == "PUT" {
+			var device struct {
+				Challenge string `json:"challenge"`
+			}
+			if !readInput(w, r, &device) {
+				return
+			}
+			decoded, err := hex.DecodeString(device.Challenge)
+			if err != nil || len(decoded) != sha256.Size {
+				write(w, 400, map[string]string{"error": "Invalid TV pairing request."})
+				return
+			}
+			hash := hex.EncodeToString(decoded)
+			for otherID, other := range s.data.Viewing {
+				if otherID != id && other.JoinHash == hash && other.JoinUntil > now.UnixMilli() && active(other, now) {
+					write(w, 409, map[string]string{"error": "This TV is waiting for another profile."})
+					return
+				}
+			}
+			v.JoinHash = hash
+			v.JoinUntil = now.Add(10 * time.Minute).UnixMilli()
+			if s.setViewing(w, id, &v) {
+				write(w, 200, map[string]bool{"ready": true})
+			}
+			return
+		}
 		if r.Method == "DELETE" {
 			v.CookieHash, v.JoinHash, v.JoinUntil = "", "", 0
 			if s.setViewing(w, id, &v) {

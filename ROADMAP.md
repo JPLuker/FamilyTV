@@ -1,6 +1,6 @@
 # FamilyTV roadmap
 
-**M1 media library, M2 profiles, M3 approvals, M4 child viewing, M5 sessions and M6 live-TV retirement are development-complete.** Automated acceptance uses synthetic media and profiles. Household and physical-device sign-off are reserved for testing. M7 Android TV is next in sequence. Working name and mascot pending Joseph's design decisions.
+**M1 media library, M2 profiles, M3 approvals, M4 child viewing, M5 sessions and M6 live-TV retirement are development-complete.** Automated acceptance uses synthetic media and profiles. Household and physical-device sign-off are reserved for testing. M7 Android TV implementation is ready for physical acceptance. Working name and mascot pending Joseph's design decisions.
 
 - **M0 Foundation:** Go API, parent authentication, web dashboard, PostgreSQL, Docker, CI, security and backups.
 - **M1 Media library:** local import, FFprobe, playback, metadata and captions.
@@ -41,6 +41,10 @@ Verify parent stop, finish-after-current, fixed duration and absolute cutoff. Pa
 ## M6 scope change and acceptance
 
 Live TV is explicitly out of scope for FamilyTV v1.0. Remove existing channel management, guide UI, live playback routes and XMLTV/Tunarr integration from supported functionality. Safely migrate existing installations without deleting source media or unrelated household data. Audit web and Android TV navigation, API authorization, session enforcement, tests and documentation for obsolete live-TV references. Verify on-demand playback, hard deadlines and session endings remain intact. Existing milestone numbering is retained for traceability. This is a removal task, not a new live-TV implementation.
+
+## M7 acceptance
+
+Install on physical Android TV, select a profile through parent-controlled pairing, navigate by remote, play an approved video with captions and audio, return with Back and verify the parent stop and timed cutoff. Record physical results separately from browser tests and Android build/lint.
 
 ## M7B Educational Arcade acceptance
 

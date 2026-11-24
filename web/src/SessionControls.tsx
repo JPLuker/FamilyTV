@@ -2,7 +2,7 @@ import {useCallback,useEffect,useState} from 'react'
 import {finishInstants} from './finishTime'
 import {errorMessage,request} from './api'
 type Status={active:boolean;deadline:number;mode:string;playing:boolean;last:boolean}
-export default function SessionControls({profile,close}:{profile:{id:string;name:string};close:()=>void}){
+export default function SessionControls({profile,close,incomingTV,onPaired}:{incomingTV?:string;onPaired:()=>void;profile:{id:string;name:string};close:()=>void}){
   const [status,setStatus]=useState<Status>()
   const [mode,setMode]=useState('manual')
   const [minutes,setMinutes]=useState(30)
@@ -26,6 +26,15 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
       await refresh()
     }catch(e){setError(errorMessage(e))}finally{setBusy(false)}
   }
+  async function pairTV(){
+    setBusy(true);setError('');setNotice('')
+    try{
+      await request(path+'/pair','PUT',{challenge:incomingTV})
+      setLink('')
+      onPaired()
+      setNotice('TV authorized for '+profile.name+'. Choose Open paired viewer on the TV.')
+    }catch(e){setError(errorMessage(e))}finally{setBusy(false)}
+  }
   async function pairing(method:"POST"|"DELETE"){
     setBusy(true);setError('');setNotice('')
     try{
@@ -41,6 +50,7 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
       {link && <label>One-time viewer link · valid for 10 minutes<input readOnly value={link} onFocus={e=>e.target.select()}/></label>}
       {link&&<p>Opening the viewer link signs the parent out of that browser.</p>}
       <p>{link&&<>TV pairing code <strong>{link.split('#')[1]}</strong></>}</p>
+      {incomingTV&&<button disabled={busy} onClick={pairTV}>Pair TV {incomingTV.slice(0,8)} with {profile.name}</button>}
       <button disabled={busy} onClick={()=>pairing('POST')}>Get a new pairing code</button>
       <button disabled={busy} onClick={()=>pairing('DELETE')}>Revoke viewer access</button>
       {notice&&<p role="status">{notice}</p>}

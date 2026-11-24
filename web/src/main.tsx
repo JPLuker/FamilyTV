@@ -31,6 +31,18 @@ function ParentPin({onExpired}:{onExpired:()=>void}){
   </form></details>
 }
 function App() {
+  const [incomingTV,setIncomingTV]=useState<string>()
+  useEffect(()=>{
+    function readPairing(){
+      const challenge=location.hash.match(/^#pair-tv=([0-9a-f]{64})$/)?.[1]
+      if(!challenge)return
+      setIncomingTV(challenge)
+      history.replaceState(null,'',location.pathname+location.search)
+    }
+    readPairing()
+    window.addEventListener('hashchange',readPairing)
+    return ()=>window.removeEventListener('hashchange',readPairing)
+  },[])
   const [phase,setPhase]=useState<Phase>('loading')
   const [pin,setPin]=useState('')
   const [profileRevision,setProfileRevision]=useState(0)
@@ -87,7 +99,8 @@ function App() {
           <a href="https://www.aap.org/en/patient-care/media-and-children/center-of-excellence-on-social-media-and-youth-mental-health/5-cs-quick-guide/">American Academy of Pediatrics guide to the 5 Cs</a>
         </details>
       </nav>}
-      <Profiles onExpired={onExpired} onProfiles={setHasProfiles} onChanged={()=>setProfileRevision(n=>n+1)}/>
+      {incomingTV&&<p>Choose Session beside the child who will watch. Start a session if needed, then confirm the code displayed on your TV.</p>}
+      <Profiles incomingTV={incomingTV} onPaired={()=>setIncomingTV(undefined)} onExpired={onExpired} onProfiles={setHasProfiles} onChanged={()=>setProfileRevision(n=>n+1)}/>
       <MediaLibrary profileRevision={profileRevision} onApproval={setHasApproval}/>
       <ParentPin onExpired={onExpired}/>
       {error&&<p role="alert">{error}</p>}
