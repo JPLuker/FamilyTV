@@ -10,6 +10,8 @@
 - **M5 Sessions:** parent stop, after-video, duration and hard finish-by time; accessible ending.
 - **M6 Live TV:** channels, EPG, optional Tunarr integration.
 - **M7 Android TV:** remote-first app and pairing.
+- **M7A Fun facts and Classroom Mode:** shared verified fact and authentic-image library, session endings, standalone fact presentation, teacher controls, grade/subject filters and lesson playlists.
+- **M7B Educational Arcade:** optional fact-driven learning games, reusable local game engines and teacher-hosted classroom quizzes; complete before validation.
 - **M8 Validation:** family usability, accessibility, security and reliability.
 - **M9 v1.0 release candidate:** bounded release candidate, backups and maintenance readiness.
 - **M10 Final user documentation and release:** complete user guides and optional copy-and-paste AI assistance prompts; final documentation verification and v1.0 release. This is the last roadmap milestone.
@@ -19,6 +21,12 @@
 Verify the full local import journey with a season of TV episodes and a creator playlist. Check episode order, specials, missing episodes, duplicate files, codec and duration metadata, captions and artwork. Correct an incorrect provider match, restore it, and confirm that already-imported media still plays when a metadata provider is unavailable. Record test fixtures and real-library results separately in HANDOFF.md.
 
 Scope freeze before RC. No perpetual polish cycle. Critical bugs, privacy and accessibility blockers only.
+
+## M7B Educational Arcade acceptance
+
+Build a reusable, offline-first educational arcade inspired by classic educational games and classroom quiz formats, without copying proprietary branding or assets. Target 20 formats, subject to verified data availability and accessibility: quiz show, true/false, picture detective, picture/name/fact matching, memory match, odd one out, clue-based identification, fact explorer, bigger/smaller, higher/lower, timeline ordering, geography explorer, habitat matching, classification sorting, fill in the blank, word scramble, image puzzle, fact-based arithmetic, knowledge adventure, and teacher-hosted classroom/team challenge. Start with quiz, picture identification, matching and memory; expand through shared engines rather than duplicating implementations. Audit the actual fact corpus and report eligible unique questions and activities by format, subject and age; do not promise a fixed count before inspecting it. Add structured entities, aliases, verified numeric values and units, dates, locations, taxonomy, habitat, approved questions, answers, distractors and explanations as applicable. Never infer unsupported answers from fact text; validate ambiguous questions and distractors, preserve provenance and image licensing, and skip ineligible records. Use prevalidated banks or deterministic templates; no runtime AI dependency.
+
+Parents and teachers can disable the arcade entirely or individual formats, choose age/grade, subjects, difficulty, sound and accessibility settings. Provide remote-friendly and touch-friendly controls, optional narration, untimed play, clear feedback and finite rounds. No ads, purchases, streak pressure, public leaderboards or automatic next rounds. Games respect hard session deadlines and never launch automatically after the end-of-session fact. Classroom quizzes support teacher-controlled presentation, pacing and optional local team scoring without requiring child accounts or public services. Test each shipped format for correctness, accessibility, offline operation, session limits and parental/teacher controls. Document any format deferred due to insufficient verified content. Include all shipped games in M10 user guides.
 
 ## M10 final documentation acceptance
 
