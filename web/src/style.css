@@ -18,3 +18,16 @@ details label:has(select), details label:has(textarea), details label:has(input:
 }
 textarea { max-width: 100%; font: inherit; }
 fieldset { min-width: 0; }
+
+.viewer { max-width: 80rem; }
+.viewer section { max-width: 72rem; margin: 2rem auto; }
+.watch-shelves { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+.watch-shelves [aria-pressed=true] { text-decoration: underline; text-underline-offset: .25em; }
+.watch-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,12rem),1fr)); gap: 1rem; padding: 0; list-style: none; }
+.watch-grid li { min-width: 0; }
+.watch-grid [data-choice] { width: 100%; display: block; margin-bottom: .4rem; }
+.watch-grid img { width: 100%; height: auto; aspect-ratio: 16/9; }
+.watch-grid details button { margin: .2rem; }
+@media (min-width: 1200px) { .viewer { font-size: 1.25rem; } .watch-grid {grid-template-columns:repeat(4,minmax(0,1fr));} }
+.viewer[data-input=remote] section { margin: 1rem auto; max-width: none; }
+.viewer[data-input=remote] button, .viewer[data-input=remote] summary { min-height: 3rem; }

@@ -1,6 +1,6 @@
 # FamilyTV roadmap
 
-**M1 media library, M2 profiles and M3 approvals are development-complete.** Automated acceptance uses synthetic media and profiles. Household and physical-device sign-off are reserved for testing. M4 child viewing is next in sequence. Working name and mascot pending Joseph's design decisions.
+**M1 media library, M2 profiles, M3 approvals and M4 child viewing are development-complete.** Automated acceptance uses synthetic media and profiles. Household and physical-device sign-off are reserved for testing. M5 session control is next in sequence. Working name and mascot pending Joseph's design decisions.
 
 - **M0 Foundation:** Go API, parent authentication, web dashboard, PostgreSQL, Docker, CI, security and backups.
 - **M1 Media library:** local import, FFprobe, playback, metadata and captions.
@@ -29,6 +29,10 @@ A parent can configure an account, create two child profiles with different perm
 ## M3 acceptance
 
 Verify the full parent review flow, including an unapproved search and direct playback attempt from a paired child browser. Approve, revoke while paired and check the same paths again. Group and category restrictions override individual approval. Library coverage counts only currently playable approved files for the selected profile. Verify that optional creator variety and cooldown preserve hard restrictions and handle a small eligible library.
+
+## M4 acceptance
+
+A paired child can browse with a D-pad, select and return to the same tile, save favorites and videos for later, resume a partially watched video and choose a surprise from eligible videos. Completing an on-demand video returns to choices with playback stopped. Approval, accessibility and deadline checks apply to shelves, subtitles, previews, direct playback and compatibility copies.
 
 ## M6 scope change and acceptance
 

@@ -135,3 +135,11 @@ Coverage counts playable files by subject, creator, duration, language, accessib
 Verification from backend: `go test ./...`, `go test -race ./...`, `go vet ./...`. From web: `npm run build` and `npx playwright test`. The browser checks unapproved and revoked search, play and file access while the child stays paired, successful approval, bulk changes, coverage and review history. Server regressions cover twelve distinct creators, scarce inventory, group blocks, persistence, idempotent bulk retries and rollback. The local detached worktree used GOFLAGS=-buildvcs=false because Go's VCS metadata lookup failed there. CI builds from a standard checkout.
 
 Next sequential milestone: M4. Household content review and assistive-device usability remain part of final testing.
+
+## M4 child viewer and playback · 0.17.0
+
+Started at 1556072 and verified the Go suite, vet, web build and Playwright journey before editing. Reused the existing profile-bookmark draft and the production eligibility, discovery and range-serving code. Favorites, saved videos and resume lists are profile-specific, persisted and filtered on the server. All use the same search, page size, variety settings and deadlines. Child browsing has directional focus, Back handling and a responsive grid. Surprise me picks among visible eligible choices. On-demand playback returns to choices on completion. The TV client saves progress and uses its existing Media3 player.
+
+Reviewed Jellyfin’s EncodingHelper stream-copy decisions. FamilyTV uses its already packaged FFmpeg for remux and transcoding with local file descriptors. It retains the selected default audio track, captions, range support and the same revocation checks on generated MP4s. Conversion limits and storage are documented in README.md.
+
+Tests: backend `go test ./...`, `go test -race ./...`, `go vet ./...`; web `npm run build`, `npx playwright test`. Generated MKV fixtures exercise H.264 copy and MPEG-4 conversion and identify the chosen audio by packet hash. Browser acceptance uses two approved videos to verify that finishing does not start the other video. It also covers favorites, saving for later, focus/Back, resume, Surprise me, range delivery and revocation. Device remote behavior, household files and caregiver usability remain for final testing. M5 is next.

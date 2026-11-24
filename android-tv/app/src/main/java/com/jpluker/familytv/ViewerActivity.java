@@ -121,7 +121,10 @@ public final class ViewerActivity extends Activity {
         viewer = null;
     }
     @Override public void onBackPressed() {
-        if (viewer == null) super.onBackPressed(); else showPairing();
+        if (viewer == null) { super.onBackPressed(); return; }
+        viewer.evaluateJavascript("window.dispatchEvent(new Event('familytv-back',{cancelable:true}))", result -> {
+            if ("true".equals(result)) showPairing();
+        });
     }
     @Override protected void onPause() {
         if (viewer != null) {viewer.evaluateJavascript("document.querySelector('video')?.pause()", null); viewer.onPause();}

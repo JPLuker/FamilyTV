@@ -24,7 +24,7 @@ No runtime analytics, tracking, advertising or external fonts. See ROADMAP.md an
 
 ## Local media
 
-Put an MP4 or WebM file in the project's media directory, or set FAMILYTV_MEDIA_ROOT to an existing directory before starting Compose. The host directory is mounted read-only. Enter the path relative to that folder in the parent dashboard. FamilyTV reads the video duration with FFprobe. A WebVTT file with the same base name supplies captions, for example Nature/Forest.vtt alongside Nature/Forest.mp4. Preview uses the browser's supported codecs. Back up the source media separately from the household database.
+Put an MP4, MKV or WebM file in the project's media directory, or set FAMILYTV_MEDIA_ROOT to an existing directory before starting Compose. The host directory is mounted read-only. Enter the path relative to that folder in the parent dashboard. FamilyTV reads the video duration with FFprobe. A WebVTT file with the same base name supplies captions, for example Nature/Forest.vtt alongside Nature/Forest.mp4. Preview uses the browser's supported codecs. Back up the source media separately from the household database.
 
 ## Viewing sessions
 
@@ -47,3 +47,9 @@ In Tunarr, save the XMLTV guide from /api/xmltv.xml. In FamilyTV, open Live TV c
 ### Scanning and matching
 
 Scan the read-only folder from the dashboard and select the files to import. FamilyTV recognizes S01E02-style names, adjacent episode/movie NFO files and local video .info.json records. Creator, playlist and episode organization work offline. A sampled fingerprint identifies possible copies, then a complete byte digest confirms duplicates. Catalog details lets a parent correct a match or restore the originally imported metadata. Episode gaps describe holes up to the highest indexed episode.
+
+### Child viewing and playback
+
+Open Options on a video to mark it as a favorite or save it for later. Back to choices keeps the current position. Finish video clears the position. In a one-video or finish-after-current session, leaving the video ends the session. Surprise me selects from the currently displayed choices. On-demand playback waits for Play. Live channels follow their schedule.
+
+The viewer tries the source file first. On decoder failure the server prepares a seekable MP4 with FFmpeg, copying supported H.264 video and AAC audio where possible. If the client still cannot decode it, it can retry with both tracks encoded. Compatibility playback uses the default audio track and the same WebVTT sidecar. Preparation runs one job at a time with a 15-minute limit and a 512 MiB output limit. A large source can take time to prepare or exceed these limits. One anonymous temporary copy is cached for repeat requests. Viewer access is checked during preparation and delivery.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"maps"
 	"math"
 	"net/http"
 	"os"
@@ -15,8 +16,9 @@ import (
 )
 
 type MediaStream struct {
-	Type  string `json:"codec_type"`
-	Codec string `json:"codec_name"`
+	Default bool   `json:"default,omitempty"`
+	Type    string `json:"codec_type"`
+	Codec   string `json:"codec_name"`
 }
 type Media struct {
 	ReviewVersion uint64        `json:"review_version,omitempty"`
@@ -39,6 +41,8 @@ func contentType(path string) string {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".mp4", ".m4v":
 		return "video/mp4"
+	case ".mkv":
+		return "video/x-matroska"
 	case ".webm":
 		return "video/webm"
 	}
@@ -73,7 +77,7 @@ func probeMedia(ctx context.Context, file *os.File) (float64, []MediaStream, err
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	// Probe the already-open file descriptor. Permit only the supported local containers.
-	cmd := exec.CommandContext(ctx, "ffprobe", "-v", "error", "-protocol_whitelist", "file", "-format_whitelist", "mov,matroska,webm", "-show_entries", "stream=codec_type,codec_name:stream_disposition=attached_pic:format=duration", "-of", "json", "/proc/self/fd/3")
+	cmd := exec.CommandContext(ctx, "ffprobe", "-v", "error", "-protocol_whitelist", "file", "-format_whitelist", "mov,matroska,webm", "-show_entries", "stream=codec_type,codec_name:stream_disposition=attached_pic,default:format=duration", "-of", "json", "/proc/self/fd/3")
 	cmd.ExtraFiles = []*os.File{file}
 	output, err := cmd.Output()
 	if err != nil {
@@ -87,6 +91,7 @@ func probeMedia(ctx context.Context, file *os.File) (float64, []MediaStream, err
 			MediaStream
 			Disposition struct {
 				Attached int `json:"attached_pic"`
+				Default  int `json:"default"`
 			} `json:"disposition"`
 		} `json:"streams"`
 	}
@@ -102,6 +107,7 @@ func probeMedia(ctx context.Context, file *os.File) (float64, []MediaStream, err
 		if track.Type == "video" {
 			video = true
 		}
+		track.MediaStream.Default = track.Disposition.Default != 0
 		streams = append(streams, track.MediaStream)
 	}
 	duration := result.Format.Duration
@@ -147,7 +153,7 @@ func (s *Server) importMedia(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192))
 	dec.DisallowUnknownFields()
 	if dec.Decode(&input) != nil || dec.Decode(&struct{}{}) != io.EOF || contentType(input.Path) == "" {
-		write(w, 400, map[string]string{"error": "Choose an MP4 or WebM file."})
+		write(w, 400, map[string]string{"error": "Choose an MP4, MKV or WebM file."})
 		return
 	}
 	input.Title = strings.TrimSpace(input.Title)
@@ -252,7 +258,9 @@ func (s *Server) playable(r *http.Request) (Media, int64) {
 		g := s.currentGuide(p, v, time.Now().UnixMilli())
 		if g != nil && g.Now != nil {
 			v.Current = g.Now.Item.ID
-			v.Deadline = g.Now.End
+			if v.Deadline == 0 || g.Now.End < v.Deadline {
+				v.Deadline = g.Now.End
+			}
 		}
 	}
 	if ok && v.Current == r.PathValue("id") {
@@ -323,6 +331,21 @@ func serveMedia(w http.ResponseWriter, r *http.Request, media Media, check func(
 		return
 	}
 	mime := contentType(media.Path)
+	if strings.HasSuffix(r.URL.Path, "/compatible") {
+		converted, err := compatibilityFile(r.Context(), media, f, r.URL.Query().Get("encode") == "1", check)
+		if err != nil {
+			write(w, 503, map[string]string{"error": "Compatible playback could not be prepared."})
+			return
+		}
+		defer converted.Close()
+		f = converted
+		info, err = f.Stat()
+		if err != nil || !check() {
+			http.NotFound(w, r)
+			return
+		}
+		mime = "video/mp4"
+	}
 	if strings.HasSuffix(r.URL.Path, "/captions") {
 		if !media.Captions {
 			http.NotFound(w, r)
@@ -358,8 +381,18 @@ func (s *Server) removeMedia(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		previous := s.data.Media
+		previousBookmarks := s.data.Bookmarks
+		s.data.Bookmarks = maps.Clone(previousBookmarks)
+		for profile, marks := range previousBookmarks {
+			if _, ok := marks[item.ID]; ok {
+				next := maps.Clone(marks)
+				delete(next, item.ID)
+				s.data.Bookmarks[profile] = next
+			}
+		}
 		s.data.Media = append(append([]Media(nil), previous[:i]...), previous[i+1:]...)
 		if err := s.persist(); err != nil {
+			s.data.Bookmarks = previousBookmarks
 			s.data.Media = previous
 			write(w, 500, map[string]string{"error": "storage failure"})
 			return

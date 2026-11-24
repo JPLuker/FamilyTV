@@ -21,6 +21,7 @@ for entry in 'Sesame Street S01E03 C' 'Sesame Street S01E01 A' 'Sesame Street S0
 done
 printf '%s' '{"title":"Lesson A","channel":"Crash Course","playlist_title":"Science","playlist_index":2}' > "$state/media/Lesson A.info.json"
 printf '%s' '{"title":"Lesson Z","channel":"Crash Course","playlist_title":"Science","playlist_index":1}' > "$state/media/Lesson Z.info.json"
+cp "$state/media/forest.vtt" "$state/media/Lesson Z.vtt"
 # Only the test server sees this unavailable upstream. Go build has already completed.
 export HTTPS_PROXY=http://127.0.0.1:1 NO_PROXY=127.0.0.1,localhost
 export FAMILYTV_MEDIA_DIR="$state/media"

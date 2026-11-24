@@ -54,3 +54,13 @@ func TestTwelveCreatorChoicesAndCooldownFallback(t *testing.T) {
 		t.Fatal("single eligible creator must remain available", items)
 	}
 }
+
+func TestConfiguredChoiceCounts(t *testing.T) {
+	items := make([]WatchItem, 15)
+	for _, limit := range []int{4, 6, 8, 12} {
+		page, _, pages := (Discovery{Choices: limit}).page(items, 0, "")
+		if len(page) != limit || pages != (len(items)+limit-1)/limit {
+			t.Fatal(limit, len(page), pages)
+		}
+	}
+}

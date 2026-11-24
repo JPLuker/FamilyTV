@@ -30,14 +30,15 @@ type loginAttempts struct {
 	Until int64 `json:"until"`
 }
 type state struct {
-	ApprovalLog []ApprovalEvent          `json:"approval_log,omitempty"`
-	Channels    []Channel                `json:"channels,omitempty"`
-	Viewing     map[string]Viewing       `json:"viewing,omitempty"`
-	Media       []Media                  `json:"media,omitempty"`
-	Attempts    map[string]loginAttempts `json:"login_attempts,omitempty"`
-	Account     *account                 `json:"account,omitempty"`
-	Sessions    map[string]int64         `json:"sessions,omitempty"`
-	Profiles    []ChildProfile           `json:"profiles,omitempty"`
+	Bookmarks   map[string]map[string]Bookmark `json:"bookmarks,omitempty"`
+	ApprovalLog []ApprovalEvent                `json:"approval_log,omitempty"`
+	Channels    []Channel                      `json:"channels,omitempty"`
+	Viewing     map[string]Viewing             `json:"viewing,omitempty"`
+	Media       []Media                        `json:"media,omitempty"`
+	Attempts    map[string]loginAttempts       `json:"login_attempts,omitempty"`
+	Account     *account                       `json:"account,omitempty"`
+	Sessions    map[string]int64               `json:"sessions,omitempty"`
+	Profiles    []ChildProfile                 `json:"profiles,omitempty"`
 }
 type Server struct {
 	currentState  func(context.Context) (state, error)
@@ -309,6 +310,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)
 	mux.HandleFunc("GET /api/watch", s.watchCatalog)
 	mux.HandleFunc("GET /api/watch/ending-music", s.endingMusic)
+	mux.HandleFunc("POST /api/watch/bookmark", s.bookmark)
+	mux.HandleFunc("POST /api/watch/leave", s.watchAction)
+	mux.HandleFunc("GET /api/watch/media/{id}/compatible", s.viewerMediaFile)
 	mux.HandleFunc("POST /api/watch/play", s.watchAction)
 	mux.HandleFunc("POST /api/watch/finish", s.watchAction)
 	mux.HandleFunc("GET /api/watch/media/{id}/picture", s.picture)

@@ -38,7 +38,9 @@ public final class PlaybackActivity extends Activity {
     private final Runnable deadline = this::finish;
     private String server, cookie, playingKey = "", mediaId = "";
     private boolean live, finishingVideo;
-    private int generation;
+    private int generation, compatibilityAttempt;
+    private long lastProgress;
+    private MediaItem selectedItem;
     private ExoPlayer player;
     private PlayerView controls;
 
@@ -64,7 +66,14 @@ public final class PlaybackActivity extends Activity {
         controls.setPlayer(player);
         controls.requestFocus();
         player.addListener(new Player.Listener() {
-            @Override public void onPlayerError(PlaybackException error) { fail("This video could not be played."); }
+            @Override public void onPlayerError(PlaybackException error) {
+                if (selectedItem == null || compatibilityAttempt >= 2 || finishingVideo) { fail("This video could not be played."); return; }
+                compatibilityAttempt++;
+                String path = server + "/api/watch/media/" + android.net.Uri.encode(mediaId) + "/compatible"
+                        + (compatibilityAttempt == 2 ? "?encode=1" : "");
+                player.setMediaItem(selectedItem.buildUpon().setUri(path).build(), Math.max(0,player.getCurrentPosition()));
+                player.prepare();
+            }
             @Override public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_ENDED && !live && !finishingVideo) finishVideo();
             }
@@ -110,7 +119,11 @@ public final class PlaybackActivity extends Activity {
         long start = live ? airing.getLong("start") : 0;
         String id = current.getString("id");
         String key = id + ":" + start + ":" + state.optBoolean("captions");
-        if (key.equals(playingKey)) return;
+        if (key.equals(playingKey)) {
+            if (!live && player.isPlaying() && SystemClock.elapsedRealtime()-lastProgress >= 10000) saveProgress();
+            return;
+        }
+        compatibilityAttempt = 0;
         String base = server + "/api/watch/media/" + android.net.Uri.encode(id);
         MediaItem.Builder item = new MediaItem.Builder().setUri(base + "/file");
         if (current.optBoolean("captions")) {
@@ -121,9 +134,26 @@ public final class PlaybackActivity extends Activity {
         }
         playingKey = key;
         mediaId = id;
-        player.setMediaItem(item.build(), live ? Math.max(0, now - start) : 0);
+        selectedItem=item.build();
+        lastProgress = SystemClock.elapsedRealtime();
+        player.setMediaItem(selectedItem, live ? Math.max(0, now - start) : (long)(state.optDouble("resume",0)*1000));
         player.prepare();
         player.play();
+    }
+    private void saveProgress() {
+        if (live || finishingVideo || player == null || mediaId.isEmpty() || player.getCurrentPosition()<=0) return;
+        final double seconds = player.getCurrentPosition()/1000.0;
+        final String id=mediaId;
+        lastProgress=SystemClock.elapsedRealtime();
+        worker.execute(() -> {
+            try {
+                String json=new JSONObject().put("id",id).put("kind","position").put("position",seconds).toString();
+                Request req=request("/api/watch/bookmark").post(RequestBody.create(okhttp3.MediaType.parse("application/json"),json)).build();
+                try (Response response=controlHttp.newCall(req).execute()) {
+                    if (!response.isSuccessful()) return;
+                }
+            } catch(Exception ignored) { /* Playback continues. The next checkpoint retries. */ }
+        });
     }
     private void finishVideo() {
         finishingVideo = true;
@@ -143,10 +173,11 @@ public final class PlaybackActivity extends Activity {
     }
     private void fail(String message) {Toast.makeText(this,message,Toast.LENGTH_SHORT).show(); finish();}
     @Override protected void onStop() {
+        saveProgress();
         generation++;
         ui.removeCallbacksAndMessages(null);
         if (player != null) { controls.setPlayer(null); player.release(); player = null; }
         super.onStop();
     }
-    @Override protected void onDestroy() {worker.shutdownNow(); super.onDestroy();}
+    @Override protected void onDestroy() {worker.shutdown(); super.onDestroy();}
 }

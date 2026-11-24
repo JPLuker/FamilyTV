@@ -73,6 +73,8 @@ func (s *Server) deleteProfile(w http.ResponseWriter, r *http.Request) {
 		if p.ID == id {
 			before := s.data
 			s.data.Profiles = slices.Delete(slices.Clone(before.Profiles), i, i+1)
+			s.data.Bookmarks = maps.Clone(before.Bookmarks)
+			delete(s.data.Bookmarks, id)
 			s.data.Viewing = maps.Clone(before.Viewing)
 			delete(s.data.Viewing, id)
 			s.data.Media = slices.Clone(before.Media)
