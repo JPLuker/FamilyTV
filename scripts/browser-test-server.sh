@@ -3,7 +3,15 @@ set -eu
 cd "$(dirname "$0")/.."
 state=$(mktemp -d)
 trap 'rm -rf "$state"' EXIT
-(cd backend && go build -o "$state/server" ./cmd/server)
+if [[ -n ${FAMILYTV_TEST_IMAGE:-} ]]; then
+  # Run fixture generation as the workspace owner so cleanup works on the host.
+  ffmpeg() {
+    docker run --rm --network none --user "$(id -u):$(id -g)" \
+      --volume "$state:$state" --entrypoint ffmpeg "$FAMILYTV_TEST_IMAGE" "$@"
+  }
+else
+  (cd backend && go build -o "$state/server" ./cmd/server)
+fi
 mkdir "$state/media"
 ffmpeg -v error -f lavfi -i color=c=blue:s=64x64:d=1 -c:v libvpx -threads 1 "$state/media/forest.webm"
 printf "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nForest\n" > "$state/media/forest.vtt"
@@ -17,7 +25,17 @@ printf '%s' '{"title":"Lesson Z","channel":"Crash Course","playlist_title":"Scie
 export HTTPS_PROXY=http://127.0.0.1:1 NO_PROXY=127.0.0.1,localhost
 export FAMILYTV_MEDIA_DIR="$state/media"
 export FAMILYTV_STATE_PATH="$state/state.json" FAMILYTV_WEB_DIR="$PWD/web/dist" FAMILYTV_LISTEN=127.0.0.1:17881
-"$state/server" &
-pid=$!
-trap 'kill "$pid" 2>/dev/null || true' TERM INT
-wait "$pid"
+if [[ -n ${FAMILYTV_TEST_IMAGE:-} ]]; then
+  container=$(docker run -d --rm --publish 127.0.0.1:17881:8080 \
+    --volume "$state/media:/media:ro" --env FAMILYTV_MEDIA_DIR=/media \
+    --env HTTPS_PROXY --env NO_PROXY "$FAMILYTV_TEST_IMAGE")
+  trap 'docker stop "$container" >/dev/null 2>&1 || true; rm -rf "$state"' EXIT
+  trap 'exit 0' TERM INT
+  docker wait "$container" &
+  wait "$!"
+else
+  "$state/server" &
+  pid=$!
+  trap 'kill "$pid" 2>/dev/null || true' TERM INT
+  wait "$pid"
+fi

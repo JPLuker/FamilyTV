@@ -35,14 +35,12 @@ jobs:
       - run: npm run build
         working-directory: web
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-      - run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y ffmpeg)
-      - run: npx playwright install --with-deps chromium --only-shell
-        working-directory: web
+      - run: docker build -t familytv-browser-test .
       - run: npx playwright test
         working-directory: web
+        env:
+          FAMILYTV_TEST_IMAGE: familytv-browser-test
+          FAMILYTV_TEST_BROWSER: chrome
 
   deployment:
     runs-on: ubuntu-latest
