@@ -17,7 +17,8 @@ jobs:
       - run: npm ci && npm run build
         working-directory: web
       - run: |
-          bash scripts/browser-test-server.sh &
+          (cd backend && go build -o "$RUNNER_TEMP/familytv" ./cmd/server)
+          FAMILYTV_LISTEN=127.0.0.1:17881 FAMILYTV_WEB_DIR="$PWD/web/dist" FAMILYTV_STATE_PATH="$RUNNER_TEMP/test/state.json" "$RUNNER_TEMP/familytv" &
           server=$!
           trap 'kill "$server" || true' EXIT
           curl -fsS --retry 50 --retry-connrefused --retry-delay 1 http://localhost:17881/api/health
