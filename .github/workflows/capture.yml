@@ -1,0 +1,28 @@
+name: Capture session controls
+on: [push]
+permissions:
+  contents: write
+jobs:
+  capture:
+    if: github.ref_name == 'verify/landing-capture' && !startsWith(github.event.head_commit.message, 'Save session screenshot')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+        working-directory: web
+      - run: |
+          bash scripts/browser-test-server.sh &
+          server=$!
+          trap 'kill "$server" || true' EXIT
+          curl -fsS --retry 50 --retry-connrefused --retry-delay 1 http://localhost:17881/api/health
+          mkdir -p docs/guide/img
+          node web/capture.cjs
+          git add docs/guide/img/session.png
+          git -c user.name=github-actions -c user.email=actions@users.noreply.github.com commit -m 'Save session screenshot'
+          git push origin HEAD:refs/heads/verify/landing-capture
