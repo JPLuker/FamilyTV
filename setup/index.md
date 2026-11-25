@@ -102,7 +102,7 @@ Open your HTTPS address on your phone and sign in. Keep this development build o
 
 ## Test a session
 
-The quick bar sits above the choices. Children get one board of up to 12 eligible videos. A new session can bring different videos onto the board. If you want a child’s next play to start where they stopped, enable **Resume a video from its saved position** in the parent profile settings. It starts off.
+The quick bar sits above the choices. Children get up to 12 eligible videos strung together in two rows. Swipe sideways or use the arrows to see the rest of the session’s choices. A new session can bring different videos onto the board. If you want a child’s next play to start where they stopped, enable **Resume a video from its saved position** in the parent profile settings. It starts off.
 
 Videos appear under the subjects you entered in Review. On a video, open **•••** and choose **Save for later** to put it aside. It leaves this board and gets priority in the next session it fits. Finishing it clears the save.
 
@@ -127,8 +127,8 @@ PostgreSQL stores your child profiles, approvals and session settings. Keep a se
 These screens show a test profile with 12 approved sample clips. Download an individual PNG or save all three together.
 
 <div class="shots">
-<figure><img loading="lazy" src="../downloads/viewer-preview.png" alt="Twelve choices grouped by illustrated topic bookends beneath the quick bar"><figcaption><a href="../downloads/viewer-preview.png" download="familytv-viewer.png">Child viewer PNG</a></figcaption></figure>
-<figure><img loading="lazy" src="../downloads/phone-preview.png" alt="Topic bookends and their videos together on a phone"><figcaption><a href="../downloads/phone-preview.png" download="familytv-phone.png">Phone view PNG</a></figcaption></figure>
+<figure><img loading="lazy" src="../downloads/viewer-preview.png" alt="Two staggered rows with topic markers between groups of videos"><figcaption><a href="../downloads/viewer-preview.png" download="familytv-viewer.png">Child viewer PNG</a></figcaption></figure>
+<figure><img loading="lazy" src="../downloads/phone-preview.png" alt="A phone showing the start of the two rows and the sideways navigation arrows"><figcaption><a href="../downloads/phone-preview.png" download="familytv-phone.png">Phone view PNG</a></figcaption></figure>
 <figure><img loading="lazy" src="../downloads/ending-preview.png" alt="The moon and a short fact after the session ends"><figcaption><a href="../downloads/ending-preview.png" download="familytv-ending.png">Ending screen PNG</a></figcaption></figure>
 </div>
 
