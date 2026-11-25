@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -32,9 +33,7 @@ import org.json.JSONObject;
 public final class PlaybackActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
-    private final OkHttpClient http = new OkHttpClient.Builder().followRedirects(false)
-            .followSslRedirects(false).build();
-    private final OkHttpClient controlHttp = http.newBuilder().callTimeout(5, TimeUnit.SECONDS).build();
+    private OkHttpClient http, controlHttp;
     private final Runnable deadline = this::finish;
     private String server, cookie, playingKey = "", mediaId = "";
     private boolean finishingVideo;
@@ -46,8 +45,20 @@ public final class PlaybackActivity extends Activity {
 
     @Override protected void onCreate(Bundle saved) {
         super.onCreate(saved);
+        ViewerWindow.configure(this);
         server = getIntent().getStringExtra("server");
-        if (server == null || ViewerActivity.origin(server) == null) { finish(); return; }
+        if (server == null || ViewerActivity.origin(server, getString(R.string.local_test_origin)) == null) { finish(); return; }
+        HttpUrl origin = HttpUrl.get(server);
+        http = new OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
+                .addInterceptor(chain -> {
+                    HttpUrl url = chain.request().url();
+                    if (!url.scheme().equals(origin.scheme()) || !url.host().equals(origin.host())
+                            || url.port() != origin.port() || !(url.encodedPath().equals("/api/watch") || url.encodedPath().startsWith("/api/watch/"))) {
+                        throw new IOException("Outside the configured viewer endpoint");
+                    }
+                    return chain.proceed(chain.request());
+                }).build();
+        controlHttp = http.newBuilder().callTimeout(5, TimeUnit.SECONDS).build();
         String cookies = CookieManager.getInstance().getCookie(server + "/api/watch");
         if (cookies != null) for (String part : cookies.split(";")) {
             if (part.trim().startsWith("familytv_viewer=")) cookie = part.trim();

@@ -34,9 +34,11 @@ Open Session next to a profile, choose the ending rule and start the session. Op
 
 Finish by uses the time zone shown in the parent's browser. FamilyTV stores the absolute deadline and filters the catalog by remaining time, approval and required accessibility settings. The child starts each on-demand video. A lost connection pauses viewing until the service is available.
 
-## Android TV
+## Android phones, tablets and TV
 
-The Android TV debug APK is attached to the android-tv CI job. Install it on a TV for testing, enter the HTTPS origin of your FamilyTV server, then the pairing code shown in the parent's session controls. For phone pairing, enter the server address on the TV and choose **Pair using a phone**. Scan the QR code, sign in to the parent dashboard, choose the child's Session and start it if needed. Match the eight characters on the TV before confirming the profile on the phone. Then choose **Open paired viewer** on the TV. Back returns to choices during browsing and opens pairing from the viewer home. A new code replaces an unused one. Redeeming it moves the session to the new viewer. The TV stores the server address and uses the viewer cookie for the session.
+The same APK opens from the Android app drawer or TV home screen. Phones and tablets support touch and rotation in pairing, browsing and Media3 playback. Enter the server address and a 13-character code from the parent dashboard. TV also supports remote navigation and phone-assisted pairing. For LukerPlus testing on trusted Wi-Fi, the debug APK accepts `http://192.168.86.163:8095` when entered explicitly. HTTP exposes viewer traffic to the network. The release configuration requires HTTPS.
+
+The FamilyTV-Android-debug APK archive is attached to the android-tv CI job. Install it on a TV for testing, enter the HTTPS origin of your FamilyTV server, then the pairing code shown in the parent's session controls. For phone pairing, enter the server address on the TV and choose **Pair using a phone**. Scan the QR code, sign in to the parent dashboard, choose the child's Session and start it if needed. Match the eight characters on the TV before confirming the profile on the phone. Then choose **Open paired viewer** on the TV. Back returns to choices during browsing and opens pairing from the viewer home. A new code replaces an unused one. Redeeming it moves the session to the new viewer. The TV stores the server address and uses the viewer cookie for the session.
 
 ### Scanning and matching
 

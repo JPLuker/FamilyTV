@@ -9,7 +9,7 @@
 - **M4 Child viewer:** approved-content-only discovery, TV focus, no on-demand autoplay.
 - **M5 Sessions:** parent stop, after-video, duration and hard finish-by time; accessible ending.
 - **M6 Remove Live TV:** retire existing linear channels, EPG, XMLTV/Tunarr integration and continuous live playback; preserve on-demand media, session enforcement and user data unrelated to channels.
-- **M7 Android TV:** remote-first app and pairing.
+- **M7 Android viewer:** shared phone, tablet and TV app with touch, remote and parent-controlled pairing.
 - **M7A Fun facts and Classroom Mode:** shared verified fact and authentic-image library, session endings, standalone fact presentation, teacher controls, grade/subject filters and lesson playlists.
 - **M7B Educational Arcade (optional, time-boxed):** up to five lightweight fact-driven formats using shared components; never block v1.0 for additional games.
 - **M8 Validation:** family usability, accessibility, security and reliability.
@@ -44,7 +44,7 @@ Live TV is explicitly out of scope for FamilyTV v1.0. Remove existing channel ma
 
 ## M7 acceptance
 
-Install on physical Android TV, select a profile through parent-controlled pairing, navigate by remote, play an approved video with captions and audio, return with Back and verify the parent stop and timed cutoff. Record physical results separately from browser tests and Android build/lint.
+Install on a phone and tablet and verify app-drawer launch, touch and rotation during pairing and playback. Install on physical Android TV, select a profile through parent-controlled pairing, navigate by remote, play an approved video with captions and audio, return with Back and verify the parent stop and timed cutoff. Record physical results separately from browser tests and Android build/lint.
 
 ## M7B Educational Arcade acceptance
 

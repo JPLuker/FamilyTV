@@ -1,5 +1,11 @@
 # FamilyTV handoff — 2026-11-23
 
+## Unified Android viewer, 0.30.0
+
+Phone, tablet and TV share the existing package, pairing exchange, WebView and native player. TV mode retains the phone-assisted QR workflow and landscape remote UI. Handhelds use touch and follow device rotation. The debug build allows the explicitly entered LukerPlus HTTP origin. Release builds require HTTPS. Robolectric regression cases exercise the launcher and pairing surface in phone, tablet and TV configurations. CI builds the APK and runs Android tests and lint. Check the workflow for the result for each commit.
+
+Physical acceptance remains open in #1. Verify app-drawer launch, rotation while entering a code and while playing, captions, audio, Back, parent stop and paused deadline on LukerPlus. Repeat TV remote and QR pairing. Separate testing findings are tracked in #2 (recursive imports), #3 (Snap Docker confinement) and #4 (published address).
+
 ## Child viewer update, 0.29.0
 
 Two staggered rows move horizontally together. Swipe, arrow buttons and remote focus reveal the rest of the same session pool. Topic markers lead each group.

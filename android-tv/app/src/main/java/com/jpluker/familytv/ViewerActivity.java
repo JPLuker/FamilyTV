@@ -32,8 +32,9 @@ public final class ViewerActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
+        ViewerWindow.configure(this);
         server = getPreferences(MODE_PRIVATE).getString("server", "");
-        if (server.isEmpty()) showPairing(); else openViewer("");
+        if (origin(server, getString(R.string.local_test_origin)) == null) showPairing(); else openViewer("");
     }
 
     private void showPairing() {
@@ -41,7 +42,8 @@ public final class ViewerActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
-        int margin = (int)(32 * getResources().getDisplayMetrics().density);
+        boolean tv = getResources().getBoolean(R.bool.television);
+        int margin = (int)((tv ? 32 : 20) * getResources().getDisplayMetrics().density);
         form.setPadding(margin, margin, margin, margin);
         scroll.addView(form);
         TextView heading = new TextView(this);
@@ -50,31 +52,35 @@ public final class ViewerActivity extends Activity {
         heading.setTypeface(getResources().getFont(R.font.jua));
         heading.setPadding(0, 0, 0, margin / 2);
         form.addView(heading);
-        EditText address = field(form, "FamilyTV HTTPS address", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        EditText address = field(form, getString(R.string.local_test_origin).isEmpty() ? "FamilyTV HTTPS address" : "FamilyTV server address", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         address.setText(server);
         EditText code = field(form, "Pairing code from the parent dashboard", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
         Button join = new Button(this);
         join.setText("Open viewer");
         addPairingButton(form, join, margin / 3);
         join.setOnClickListener(v -> {
-            String origin = origin(address.getText().toString().trim());
-            if (origin == null) { address.setError("Enter an HTTPS server address, including its port if needed."); address.requestFocus(); return; }
+            String origin = origin(address.getText().toString().trim(), getString(R.string.local_test_origin));
+            if (origin == null) { address.setError("Enter an HTTPS address or the configured local test address."); address.requestFocus(); return; }
             String key = code.getText().toString().trim().replace("-", "").toUpperCase(Locale.ROOT);
             if (!key.matches("[A-Z2-7]{13}")) { code.setError("Enter the 13-character code shown on the parent dashboard."); code.requestFocus(); return; }
             server = origin;
             getPreferences(MODE_PRIVATE).edit().putString("server", server).apply();
             openViewer(key);
         });
+        if (tv) addPhonePairing(form, address, margin);
+        setContentView(scroll);
+        if (tv) (server.isEmpty() ? address : code).requestFocus();
+    }
+
+    private void addPhonePairing(LinearLayout form, EditText address, int margin) {
         Button scan = new Button(this);
         scan.setText("Pair using a phone");
         addPairingButton(form, scan, margin / 3);
         scan.setOnClickListener(v -> {
-            String origin = origin(address.getText().toString().trim());
-            if (origin == null) { address.setError("Enter your FamilyTV HTTPS address."); address.requestFocus(); return; }
+            String origin = origin(address.getText().toString().trim(), getString(R.string.local_test_origin));
+            if (origin == null) { address.setError("Check your FamilyTV server address."); address.requestFocus(); return; }
             showPhonePairing(origin);
         });
-        setContentView(scroll);
-        (server.isEmpty() ? address : code).requestFocus();
     }
     private void addPairingButton(LinearLayout form, Button button, int spacing) {
         LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(
@@ -122,17 +128,20 @@ public final class ViewerActivity extends Activity {
         form.addView(input);
         return input;
     }
-    static String origin(String value) {
+    static String origin(String value, String localTestOrigin) {
         try {
             URI uri = URI.create(value);
-            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null
+            if (uri.getHost() == null || uri.getUserInfo() != null
                     || uri.getQuery() != null || uri.getFragment() != null || (!uri.getPath().isEmpty() && !uri.getPath().equals("/"))
                     || uri.getPort() == 0 || uri.getPort() > 65535) return null;
-            return "https://" + uri.getRawAuthority();
+            if ("https".equalsIgnoreCase(uri.getScheme())) return "https://" + uri.getRawAuthority();
+            String origin = uri.getScheme() + "://" + uri.getRawAuthority();
+            return origin.equals(localTestOrigin) ? origin : null;
         } catch (IllegalArgumentException ex) { return null; }
     }
     private boolean allowed(Uri url, boolean top) {
-        if (!"https".equals(url.getScheme()) || !Uri.parse(server).getEncodedAuthority().equalsIgnoreCase(url.getEncodedAuthority())) return false;
+        Uri configured = Uri.parse(server);
+        if (!configured.getScheme().equals(url.getScheme()) || !configured.getEncodedAuthority().equalsIgnoreCase(url.getEncodedAuthority())) return false;
         String path = url.getEncodedPath();
         if ("/watch".equals(path)) return true;
         return !top && path != null && !path.contains("%") && !path.contains("..") &&
@@ -142,7 +151,8 @@ public final class ViewerActivity extends Activity {
         destroyViewer();
         viewer = new WebView(this);
         viewer.getSettings().setJavaScriptEnabled(true);
-        viewer.getSettings().setUserAgentString(viewer.getSettings().getUserAgentString() + " FamilyTV-AndroidTV");
+        viewer.getSettings().setUserAgentString(viewer.getSettings().getUserAgentString() +
+                (getResources().getBoolean(R.bool.television) ? " FamilyTV-AndroidTV" : " FamilyTV-AndroidTV FamilyTV-Handheld"));
         viewer.getSettings().setAllowFileAccess(false);
         viewer.getSettings().setAllowContentAccess(false);
         CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);

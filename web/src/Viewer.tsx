@@ -8,7 +8,8 @@ type Item={id:string;title:string;subject:string;duration_seconds:number;caption
 import {avatars} from './avatars'
 type Catalog={rotation:string;ending_topic:string;quiet_ending:boolean;resume:number;avatar?:string;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
 import {chooseFact} from './endingFacts'
-const nativeTV=navigator.userAgent.includes('FamilyTV-AndroidTV')
+const nativePlayer=navigator.userAgent.includes('FamilyTV-AndroidTV')
+const nativeTV=nativePlayer && !navigator.userAgent.includes('FamilyTV-Handheld')
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
 if(joinCode)history.replaceState(null,'','/watch')
 let joining:Promise<unknown>|undefined
@@ -219,7 +220,7 @@ export default function Viewer(){
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog?.deadline&&Boolean(catalog.discovery.warn_minutes)&&catalog.deadline-catalog.server_time<=(catalog.discovery.warn_minutes||0)*60000?<p>Viewing time ends soon.</p>:null}
       {catalog && (current?<section><h1>{current.title}</h1>
-        {nativeTV?<a className="play-native" href="/watch/native">Play on TV</a>:<WatchPlayer key={current.id} id={current.id} duration={current.duration_seconds} captions={current.captions} enableCaptions={catalog.captions}
+        {nativePlayer?<a className="play-native" href="/watch/native">{nativeTV ? "Play on TV" : "Play video"}</a>:<WatchPlayer key={current.id} id={current.id} duration={current.duration_seconds} captions={current.captions} enableCaptions={catalog.captions}
           resume={catalog.resume}
           position={seconds=>{position.current=seconds}} finished={()=>void action('finish',current.id)}/>}
         <button disabled={busy} onClick={()=>action('leave',current.id)}>Back to choices</button>

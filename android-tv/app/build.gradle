@@ -5,16 +5,18 @@ plugins {
 android {
     namespace 'com.jpluker.familytv'
     compileSdk 35
+    testOptions.unitTests.includeAndroidResources = true
     defaultConfig {
         applicationId 'com.jpluker.familytv'
         minSdk 26
         targetSdk 35
-        versionCode 29
-        versionName '0.29.0'
+        versionCode 30
+        versionName '0.30.0'
     }
 }
 
 dependencies {
+    testImplementation 'org.robolectric:robolectric:4.14.1'
     testImplementation 'junit:junit:4.13.2'
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'androidx.media3:media3-exoplayer:1.6.1'
