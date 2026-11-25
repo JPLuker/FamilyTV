@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page.title | escape }}</title>
+<link rel="stylesheet" href="../assets/playroom.css">
+<link rel="stylesheet" href="../assets/guide.css">
+</head>
+<body>
+<header><a class="brand" href="../" aria-label="FamilyTV home">Family<b>TV</b></a>
+<nav aria-label="Main"><a href="../">Home</a><a href="#screenshots">Screenshots</a></nav></header>
+<main class="manual">{{ content }}</main>
+<footer><span>© 2026 Joseph Luker</span><nav aria-label="Footer"><a href="../">FamilyTV home</a><a href="https://github.com/JPLuker/FamilyTV">Source</a></nav></footer>
+<script>
+for (const pre of document.querySelectorAll('.manual pre')) {
+  const code = pre.querySelector('code');
+  if (!code || !navigator.clipboard) continue;
+  const copy = document.createElement('button');
+  copy.type = 'button';
+  copy.textContent = 'Copy';
+  pre.before(copy);
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      copy.textContent = 'Copied';
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(code);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      copy.textContent = 'Selected for copying';
+    }
+  });
+}
+</script>
+</body>
+</html>

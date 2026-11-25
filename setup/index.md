@@ -1,15 +1,20 @@
 ---
-layout: default
+layout: guide
 title: FamilyTV setup guide
 ---
-
-[FamilyTV home](https://jpluker.github.io/FamilyTV/)
 
 # Set up FamilyTV
 
 FamilyTV runs on your server. You manage it from a browser on your phone or computer, and your child watches in a browser or the Android TV app. GitHub Pages hosts this guide. Your dashboard, videos and profiles stay on your server.
 
-[Install on your server](#install-on-your-server) · [Share a Plex folder](#share-a-plex-folder) · [Approve a video](#approve-a-video) · [Connect your phone and TV](#connect-your-phone-and-tv) · [Test a session](#test-a-session)
+<nav class="jump" aria-label="Guide sections">
+<a href="#install-on-your-server">Install</a>
+<a href="#share-a-plex-folder">Share a Plex folder</a>
+<a href="#approve-a-video">Approve a video</a>
+<a href="#connect-your-phone-and-tv">Pair your TV</a>
+<a href="#test-a-session">Test a session</a>
+<a href="#if-setup-gets-stuck">Troubleshooting</a>
+</nav>
 
 ## Install on your server
 
@@ -112,3 +117,15 @@ For the cutoff test, start a fresh session and choose **Finish by a clock time**
 | The pairing code expired | Open the child's active session and choose **Get a new pairing code**. |
 
 PostgreSQL stores your child profiles, approvals and session settings. Keep a separate backup of the video files. [Back up or restore the household database](https://github.com/JPLuker/FamilyTV/blob/main/docs/BACKUPS.md).
+
+## Screenshots
+
+These screens show a test profile with four approved sample clips. Download an individual PNG or save all three together.
+
+<div class="shots">
+<figure><img loading="lazy" src="../downloads/viewer-preview.png" alt="Four approved episodes in the child viewer"><figcaption><a href="../downloads/viewer-preview.png" download="familytv-viewer.png">Child viewer PNG</a></figcaption></figure>
+<figure><img loading="lazy" src="../downloads/phone-preview.png" alt="The same episodes in two columns on a phone"><figcaption><a href="../downloads/phone-preview.png" download="familytv-phone.png">Phone view PNG</a></figcaption></figure>
+<figure><img loading="lazy" src="../downloads/ending-preview.png" alt="The moon and a short fact after the session ends"><figcaption><a href="../downloads/ending-preview.png" download="familytv-ending.png">Ending screen PNG</a></figcaption></figure>
+</div>
+
+<a class="download" href="../downloads/familytv-screenshots.zip" download>Download all screenshots (ZIP)</a>
