@@ -124,11 +124,11 @@ PostgreSQL stores your child profiles, approvals and session settings. Keep a se
 
 ## Screenshots
 
-These screens show a test profile with four approved sample clips. Download an individual PNG or save all three together.
+These screens show a test profile with 12 approved sample clips. Download an individual PNG or save all three together.
 
 <div class="shots">
-<figure><img loading="lazy" src="../downloads/viewer-preview.png" alt="Four approved episodes in the child viewer"><figcaption><a href="../downloads/viewer-preview.png" download="familytv-viewer.png">Child viewer PNG</a></figcaption></figure>
-<figure><img loading="lazy" src="../downloads/phone-preview.png" alt="The same episodes in two columns on a phone"><figcaption><a href="../downloads/phone-preview.png" download="familytv-phone.png">Phone view PNG</a></figcaption></figure>
+<figure><img loading="lazy" src="../downloads/viewer-preview.png" alt="Twelve approved choices beneath the child quick bar"><figcaption><a href="../downloads/viewer-preview.png" download="familytv-viewer.png">Child viewer PNG</a></figcaption></figure>
+<figure><img loading="lazy" src="../downloads/phone-preview.png" alt="The same episodes in three columns on a phone"><figcaption><a href="../downloads/phone-preview.png" download="familytv-phone.png">Phone view PNG</a></figcaption></figure>
 <figure><img loading="lazy" src="../downloads/ending-preview.png" alt="The moon and a short fact after the session ends"><figcaption><a href="../downloads/ending-preview.png" download="familytv-ending.png">Ending screen PNG</a></figcaption></figure>
 </div>
 

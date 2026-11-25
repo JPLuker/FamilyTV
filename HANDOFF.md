@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Child viewer update, 0.24.0
+
+Saved for later, Surprise me and profile-enabled Find sit above a single-screen grid of up to 12 eligible choices. All videos and Continue watching are absent from the child UI. Parents can enable resuming a selected video from its saved position per profile. It defaults off and existing deadline checks apply. Browser tests cover phone portrait and landscape, tablet, 720p and 1080p. Issue #1 tracks physical TV acceptance.
+
 ## Child viewer update, 0.23.0
 
 Subjects head groups on each page of eligible videos. A new session shuffles the subject order. Reopening or transferring that session keeps its order. Save for later defers an episode from the main choices until a later eligible session. Completing the video clears the save. Older favorites remain stored. Physical acceptance is tracked in issue #1.
