@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Child viewer update, 0.28.0
+
+The choice board has wider gutters, floating rounded thumbnails and compact topic markers. Its single-screen choice limit and remote controls are unchanged.
+
 ## Child viewer update, 0.27.0
 
 Surprise me is the only quick action above the choices. Save for later in a video’s menu defers that video and gives it priority in a future eligible pool.
