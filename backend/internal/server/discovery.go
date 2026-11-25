@@ -1,6 +1,9 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
+	"math/rand"
 	"slices"
 	"sort"
 	"strings"
@@ -24,7 +27,7 @@ type Discovery struct {
 func (d Discovery) valid() bool {
 	return slices.Contains([]string{"", "brief", "detail"}, d.Reading) && slices.Contains([]string{"", "2-4", "5-7", "8-11", "12-14", "15-17"}, d.Preset) && slices.Contains([]int{0, 4, 6, 8, 12}, d.Choices) && d.PreferredMinutes >= 0 && d.PreferredMinutes <= 240 && slices.Contains([]string{"", "on", "off"}, d.Search) && len([]rune(d.Interests)) <= 250 && d.WarnMinutes >= 0 && d.WarnMinutes <= 15
 }
-func (d Discovery) page(items []WatchItem, page int, lastCreator string) ([]WatchItem, int, int) {
+func (d Discovery) board(items []WatchItem, rotation, lastCreator string) []WatchItem {
 	topics := strings.Split(strings.ToLower(d.Interests), ",")
 	preferred := func(m WatchItem) int {
 		score := 0
@@ -39,11 +42,16 @@ func (d Discovery) page(items []WatchItem, page int, lastCreator string) ([]Watc
 		}
 		return score
 	}
-	sort.SliceStable(items, func(i, j int) bool { return preferred(items[i]) > preferred(items[j]) })
 	limit := d.Choices
 	if limit == 0 {
 		limit = 12
 	}
+	if len(items) > limit && rotation != "" {
+		seed := sha256.Sum256([]byte(rotation))
+		random := rand.New(rand.NewSource(int64(binary.BigEndian.Uint64(seed[:8]))))
+		random.Shuffle(len(items), func(i, j int) { items[i], items[j] = items[j], items[i] })
+	}
+	sort.SliceStable(items, func(i, j int) bool { return preferred(items[i]) > preferred(items[j]) })
 	if d.MixSubjects {
 		items = spread(items, func(m WatchItem) string { return strings.ToLower(m.Subject) })
 	}
@@ -53,31 +61,17 @@ func (d Discovery) page(items []WatchItem, page int, lastCreator string) ([]Watc
 	if d.CreatorCooldown && lastCreator != "" {
 		sort.SliceStable(items, func(i, j int) bool { return items[i].creator != lastCreator && items[j].creator == lastCreator })
 	}
-	// Return deferred choices before filling the page, retaining creator grouping.
+	// Return deferred choices before filling the board, retaining creator grouping.
 	sort.SliceStable(items, func(i, j int) bool { return items[i].returning && !items[j].returning })
-	if d.UniqueCreators && len(items) > 0 {
-		groups := buckets(items, func(m WatchItem) string { return m.creator })
-		var pages [][]WatchItem
-		for len(groups) > 0 {
-			width := min(limit, len(groups))
-			batch := make([]WatchItem, 0, width)
-			for range width {
-				g := groups[0]
-				groups = groups[1:]
-				batch = append(batch, g[0])
-				if len(g) > 1 {
-					groups = append(groups, g[1:])
-				}
-			}
-			pages = append(pages, batch)
-		}
-		page = max(0, min(page, len(pages)-1))
-		return pages[page], page, len(pages)
+	if d.UniqueCreators {
+		seen := make(map[string]bool)
+		items = slices.DeleteFunc(items, func(item WatchItem) bool {
+			duplicate := seen[item.creator]
+			seen[item.creator] = true
+			return duplicate
+		})
 	}
-	pages := max(1, (len(items)+limit-1)/limit)
-	page = max(0, min(page, pages-1))
-	start := page * limit
-	return items[start:min(start+limit, len(items))], page, pages
+	return items[:min(limit, len(items))]
 }
 
 // Preserve the existing preference order within each group. Unknown labels share a bucket.

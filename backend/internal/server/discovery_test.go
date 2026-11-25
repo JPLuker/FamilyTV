@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestDiscoveryPreferencesAndStablePages(t *testing.T) {
+func TestDiscoveryPreferencesAndSingleBoard(t *testing.T) {
 	var rows []WatchItem
 	for i := 0; i < 15; i++ {
 		rows = append(rows, WatchItem{ID: fmt.Sprint(i), Subject: "Other", Duration: 600})
@@ -13,13 +13,9 @@ func TestDiscoveryPreferencesAndStablePages(t *testing.T) {
 	rows[13].Subject = "Nature"
 	rows[14].Duration = 30
 	d := Discovery{Choices: 4, Interests: "nature", PreferredMinutes: 2}
-	first, index, pages := d.page(rows, 0, "")
-	if index != 0 || pages != 4 || len(first) != 4 || first[0].ID != "13" || first[1].ID != "14" || first[2].ID != "0" {
-		t.Fatal(first, index, pages)
-	}
-	last, index, _ := d.page(rows, 9999, "")
-	if index != 3 || len(last) != 3 {
-		t.Fatal(last, index)
+	first := d.board(rows, "", "")
+	if len(first) != 4 || first[0].ID != "13" || first[1].ID != "14" || first[2].ID != "0" {
+		t.Fatal(first)
 	}
 	if (Discovery{Choices: 7}).valid() || !(Discovery{Preset: "2-4", Search: "on", Choices: 12}).valid() {
 		t.Fatal("capability validation")
@@ -34,23 +30,19 @@ func TestTwelveCreatorChoicesAndCooldownFallback(t *testing.T) {
 		}
 	}
 	settings := Discovery{Choices: 12, UniqueCreators: true, CreatorCooldown: true}
-	seen := map[string]bool{}
-	for page := 0; page < 2; page++ {
-		items, index, pages := settings.page(rows, page, "0")
-		creators := map[string]bool{}
-		if pages != 2 || index != page || len(items) != 12 || items[0].creator == "0" {
-			t.Fatal(index, pages, items)
-		}
-		for _, m := range items {
-			if creators[m.creator] || seen[m.ID] {
-				t.Fatal("duplicate", m)
-			}
-			creators[m.creator] = true
-			seen[m.ID] = true
-		}
+	items := settings.board(rows, "rotation", "0")
+	creators := map[string]bool{}
+	if len(items) != 12 || items[0].creator == "0" {
+		t.Fatal(items)
 	}
-	items, _, pages := settings.page([]WatchItem{{creator: "0", ID: "a"}, {creator: "0", ID: "b"}}, 0, "0")
-	if pages != 2 || len(items) != 1 || items[0].creator != "0" {
+	for _, m := range items {
+		if creators[m.creator] {
+			t.Fatal("duplicate", m)
+		}
+		creators[m.creator] = true
+	}
+	items = settings.board([]WatchItem{{creator: "0", ID: "a"}, {creator: "0", ID: "b"}}, "rotation", "0")
+	if len(items) != 1 || items[0].creator != "0" {
 		t.Fatal("single eligible creator must remain available", items)
 	}
 }
@@ -58,23 +50,23 @@ func TestTwelveCreatorChoicesAndCooldownFallback(t *testing.T) {
 func TestConfiguredChoiceCounts(t *testing.T) {
 	items := make([]WatchItem, 15)
 	for _, limit := range []int{4, 6, 8, 12} {
-		page, _, pages := (Discovery{Choices: limit}).page(items, 0, "")
-		if len(page) != limit || pages != (len(items)+limit-1)/limit {
-			t.Fatal(limit, len(page), pages)
+		page := (Discovery{Choices: limit}).board(items, "", "")
+		if len(page) != limit {
+			t.Fatal(limit, len(page))
 		}
 	}
 }
 
-func TestReturningSavedVideoFitsFirstPage(t *testing.T) {
+func TestReturningSavedVideoFitsBoard(t *testing.T) {
 	rows := []WatchItem{
 		{ID: "a", creator: "first"}, {ID: "b", creator: "second"},
 		{ID: "c", creator: "third"}, {ID: "d", creator: "fourth"},
 		{ID: "saved", creator: "first", returning: true},
 	}
 	d := Discovery{Choices: 4, UniqueCreators: true}
-	first, _, pages := d.page(rows, 0, "")
-	if len(first) != 4 || first[0].ID != "saved" || pages != 2 {
-		t.Fatalf("saved choice missed the first page: %v", first)
+	first := d.board(rows, "", "")
+	if len(first) != 4 || first[0].ID != "saved" {
+		t.Fatalf("saved choice missed the board: %v", first)
 	}
 	for _, item := range first[1:] {
 		if item.creator == "first" {

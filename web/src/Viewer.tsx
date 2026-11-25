@@ -9,7 +9,7 @@ import {avatars} from './avatars'
 type ShelfName='choices'|'Saved for later'
 const lists:Record<ShelfName,string>={'choices':'','Saved for later':'later'}
 type Bookmark={later:boolean;position:number}
-type Catalog={rotation:string;ending_topic:string;quiet_ending:boolean;list:string;shelf:{item:Item;bookmark:Bookmark;playable:boolean}[];resume:number;avatar?:string;page:number;pages:number;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
+type Catalog={rotation:string;ending_topic:string;quiet_ending:boolean;list:string;shelf:{item:Item;bookmark:Bookmark;playable:boolean}[];resume:number;avatar?:string;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
 import {chooseFact} from './endingFacts'
 const nativeTV=navigator.userAgent.includes('FamilyTV-AndroidTV')
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
@@ -32,8 +32,6 @@ export default function Viewer(){
   const root=useRef<HTMLElement>(null)
   const lastTile=useRef('')
   const position=useRef<number|undefined>(undefined)
-  const [page,setPage]=useState(0)
-  const pageNumber=useRef(0)
   const listName=useRef('')
   const [busy,setBusy]=useState(false)
   const [fact,setFact]=useState<ReturnType<typeof chooseFact>>()
@@ -53,7 +51,6 @@ export default function Viewer(){
     }).catch(()=>{/* Ending music is optional. The visual ending remains available. */})
     return()=>{active=false;controller.abort();if(url)URL.revokeObjectURL(url)}
   },[musicEnabled])
-  const searchTerm=useRef('')
   const revision=useRef(0)
   const mounted=useRef(true)
   const end=useCallback(()=>{if(localDeadline.current && performance.now()>=localDeadline.current)setHardStop(true);revision.current++;setCatalog(undefined);setEnded(true);setError('')},[])
@@ -61,7 +58,7 @@ export default function Viewer(){
     const n=++revision.current
     const sent=performance.now()
     try{
-      const next=await request<Catalog>('watch?'+new URLSearchParams({q:searchTerm.current,page:String(pageNumber.current),list:listName.current}))
+      const next=await request<Catalog>('watch?'+new URLSearchParams({list:listName.current}))
       if(mounted.current&&n===revision.current){next.server_time+=Math.ceil(performance.now()-sent);localDeadline.current=next.deadline?performance.now()+next.deadline-next.server_time:0;preferences.current=next;setCatalog(next);setError('')}
     }catch(e){
       if(mounted.current&&n===revision.current){
@@ -128,11 +125,11 @@ export default function Viewer(){
     e.preventDefault();candidates[0]?.el.focus()
   }
   useEffect(()=>{
-    searchTerm.current=query.trim();pageNumber.current=page;listName.current=lists[shelf]
-    if(!query && !catalog)return
+    listName.current=lists[shelf]
+    if(!catalog)return
     const id=setTimeout(()=>{if(!ended)void refresh()},200)
     return()=>clearTimeout(id)
-  },[query,page,shelf])
+  },[shelf])
   const current=catalog?.current
   const bookmarks=new Map(catalog?.shelf.map(row=>[row.item.id,row.bookmark]))
   const items=catalog?.list===lists[shelf]?catalog.items:[]
@@ -146,7 +143,7 @@ export default function Viewer(){
   }
   const rows=Array.from(groups.values()).sort((a,b)=>subjectOrder(catalog?.rotation||'',a.label)-subjectOrder(catalog?.rotation||'',b.label))
   function chooseShelf(name:ShelfName){
-    setShelf(name);setPage(0);setQuery('');setSearchOpen(false)
+    setShelf(name);setQuery('');setSearchOpen(false)
   }
   async function mark(m:Item){
     const control=document.activeElement as HTMLElement|null
@@ -165,8 +162,8 @@ export default function Viewer(){
     const detail=root.current?.querySelector<HTMLDetailsElement>('details[open]')
     if(detail){detail.open=false;detail.querySelector('summary')?.focus();return true}
     if(current){void action('leave',current?.id||'');return true}
-    if(searchOpen){setSearchOpen(false);setQuery('');setPage(0);document.getElementById('viewer-find')?.focus();return true}
-    if(shelf!=='choices'||page>0){setShelf('choices');setPage(0);return true}
+    if(searchOpen){setSearchOpen(false);setQuery('');document.getElementById('viewer-find')?.focus();return true}
+    if(shelf!=='choices'){setShelf('choices');return true}
     return false
   }
   useEffect(()=>{
@@ -174,7 +171,7 @@ export default function Viewer(){
     window.addEventListener('familytv-back',back)
     return ()=>window.removeEventListener('familytv-back',back)
   })
-  const nested=Boolean(current||searchOpen||shelf!=='choices'||page)
+  const nested=Boolean(current||searchOpen||shelf!=='choices')
   useEffect(()=>{
     if(nested && !history.state?.familytvViewer)history.pushState({familytvViewer:true},'',location.href)
     if(!nested && history.state?.familytvViewer)history.back()
@@ -221,10 +218,10 @@ export default function Viewer(){
           <nav className="quick-bar" aria-label="Viewing choices">
             <button aria-pressed={shelf==='Saved for later'} onClick={()=>chooseShelf(shelf==='choices'?'Saved for later':'choices')}>{shelf==='choices'?'Saved for later':'Back to choices'}</button>
             {visible.length>0&&<button className="surprise" disabled={busy} onClick={()=>action('play',visible[Math.floor(Math.random()*visible.length)].id)}>Surprise me</button>}
-          {catalog.discovery.search!=='off'&&<button id="viewer-find" aria-expanded={searchOpen} onClick={()=>{setSearchOpen(!searchOpen);setQuery('');setPage(0)}}><span aria-hidden="true">⌕ </span>Find</button>}
+          {catalog.discovery.search!=='off'&&<button id="viewer-find" aria-expanded={searchOpen} onClick={()=>{setSearchOpen(!searchOpen);setQuery('')}}><span aria-hidden="true">⌕ </span>Find</button>}
           </nav>
         </div>
-        {searchOpen&&catalog.discovery.search!=='off'&&<label className="find-box">Search videos<input autoFocus value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/></label>}
+        {searchOpen&&catalog.discovery.search!=='off'&&<label className="find-box">Search videos<input autoFocus value={query} onChange={e=>{setQuery(e.target.value)}}/></label>}
         <div className="choice-board">{rows.map(group=><section className="subject-row" key={group.items[0].subject.trim().toLowerCase()} aria-label={group.label}>
 
           <ul className="picture-wall">{group.items.map((m,index)=><li key={m.id} className={index===0?'starts-topic':undefined}>
@@ -243,7 +240,6 @@ export default function Viewer(){
             <button disabled={busy} onClick={()=>mark(m)}>{bookmarks.get(m.id)?.later?'Remove from saved':'Save for later'}</button>
           </details></div></li>)}</ul></section>)}</div>
         {!visible.length&&<p className="empty-shelf">{query?'No videos match your search.':shelf==='choices'?'No videos are available for this session.':'No matching videos in this list.'}</p>}
-        {catalog.pages>1&&<nav aria-label="Video pages"><button disabled={catalog.page===0} onClick={()=>{setPage(catalog.page-1)}}>Previous choices</button> {catalog.page+1} / {catalog.pages} <button disabled={catalog.page+1>=catalog.pages} onClick={()=>{setPage(catalog.page+1)}}>More choices</button></nav>}
 
       </section>)}
     </>}

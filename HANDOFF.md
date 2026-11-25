@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Child viewer update, 0.26.0
+
+Child discovery has one bounded board. The session rotation varies the candidates when more fit than the profile allows. Search filters the selected choices. Older clients receive a single page.
+
 ## Child viewer update, 0.25.0
 
 Each subject starts with a colored bookend showing the topic name and a circular picture from its first approved video. The marker stays beside that video when the grid wraps. Text-only profiles see the label alone.

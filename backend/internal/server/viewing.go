@@ -10,7 +10,7 @@ import (
 	"maps"
 	"math"
 	"net/http"
-	"strconv"
+	"slices"
 	"strings"
 	"time"
 )
@@ -350,19 +350,22 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			current = &item
 		}
 		bookmark := marks[m.ID]
-		if list == "" && bookmark.Later && bookmark.SavedDuring == v.Rotation {
-			continue
-		}
 		item.returning = list == "" && bookmark.Later && bookmark.SavedDuring != v.Rotation
 		if list == "favorites" && !bookmark.Favorite || list == "later" && !bookmark.Later || list == "resume" && (!p.ResumeVideos || bookmark.Position <= 0) {
 			continue
 		}
-		if fits(m, v, now) && strings.Contains(strings.ToLower(m.Title+" "+m.Review.Subject), term) {
+		if fits(m, v, now) {
 			items = append(items, item)
 		}
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	items, page, pages := p.Discovery.page(items, page, v.LastCreator)
+	items = p.Discovery.board(items, v.Rotation, v.LastCreator)
+	items = slices.DeleteFunc(items, func(item WatchItem) bool {
+		mark := marks[item.ID]
+		if list == "" && mark.Later && mark.SavedDuring == v.Rotation {
+			return true
+		}
+		return term != "" && !strings.Contains(strings.ToLower(item.Title+" "+item.Subject), term)
+	})
 	shelf := []ShelfEntry{}
 	for _, item := range items {
 		if mark, ok := marks[item.ID]; ok {
@@ -373,7 +376,7 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 	if p.ResumeVideos {
 		resume = marks[v.Current].Position
 	}
-	write(w, 200, map[string]any{"rotation": v.Rotation, "items": items, "list": list, "shelf": shelf, "resume": resume, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "deadline": v.cutoff(), "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_topic": p.EndingTopic, "quiet_ending": p.QuietEnding, "ending_music": p.EndingMusic && !p.QuietEnding})
+	write(w, 200, map[string]any{"rotation": v.Rotation, "items": items, "list": list, "shelf": shelf, "resume": resume, "page": 0, "pages": 1, "discovery": p.Discovery, "current": current, "deadline": v.cutoff(), "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_topic": p.EndingTopic, "quiet_ending": p.QuietEnding, "ending_music": p.EndingMusic && !p.QuietEnding})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()

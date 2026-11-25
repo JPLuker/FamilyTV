@@ -318,6 +318,8 @@ test('twelve subject choices and the quick bar fit the screen',async({page})=>{
     await page.setViewportSize({width,height})
     await page.goto('/watch')
     await expect(page.locator('[data-choice]')).toHaveCount(12)
+    await expect(page.getByRole('navigation',{name:'Video pages'})).toHaveCount(0)
+    await expect(page.getByRole('button',{name:/more choices|previous choices/i})).toHaveCount(0)
     await expect(page.locator('.topic-bookend')).toHaveCount(12)
     const firstMarker=await page.locator('.topic-bookend').first().boundingBox()
     const firstVideo=await page.locator('[data-choice]').first().boundingBox()
