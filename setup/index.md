@@ -5,7 +5,7 @@ title: FamilyTV setup guide
 
 # Set up FamilyTV
 
-FamilyTV runs on your server. You manage it from a browser on your phone or computer, and your child watches in a browser or the Android TV app. GitHub Pages hosts this guide. Your dashboard, videos and profiles stay on your server.
+FamilyTV runs on your server. You manage it from a browser on your phone or computer, and your child watches in a browser or the Android app. GitHub Pages hosts this guide. Your dashboard, videos and profiles stay on your server.
 
 <nav class="jump" aria-label="Guide sections">
 <a href="#install-on-your-server">Install</a>
@@ -95,7 +95,9 @@ docker compose up -d api
 
 Open your HTTPS address on your phone and sign in. Keep this development build on your household network.
 
-1. Install the APK from the Android TV test issue. Download the ZIP, extract it and sideload the APK onto your Android TV. [APK and device checklist](https://github.com/JPLuker/FamilyTV/issues/1).
+For a LukerPlus debug test, connect to the same trusted Wi-Fi and enter `http://192.168.86.163:8095`. HTTP testing requires the server’s local HTTP cookie setting (Compose defaults to `FAMILYTV_SECURE_COOKIES=false`). Keep secure cookies enabled on production HTTPS deployments.
+
+1. Install the APK from the Android device test issue. Download the ZIP, extract it and sideload the APK onto your Android device. On phones and tablets open FamilyTV from the app drawer and enter the server address and the 13-character code from the parent dashboard. [APK and device checklist](https://github.com/JPLuker/FamilyTV/issues/1).
 2. On the TV, enter your FamilyTV HTTPS address. Choose **Pair using a phone** and scan the QR code with your phone.
 3. On the phone, open **Session** for the child and start a session if needed. Match the eight characters shown on the TV, then confirm the profile. Choose **Open paired viewer** on the TV.
 4. To pair with the remote instead, open the child's session controls on your phone and enter the 13-character pairing code on the TV. A new code expires after ten minutes. Redeeming it moves that session to the new viewer.
