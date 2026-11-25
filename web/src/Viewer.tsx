@@ -106,6 +106,12 @@ export default function Viewer(){
     if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return
     const target=e.target as HTMLElement
     if(target.tagName==='VIDEO'||(target.tagName==='INPUT'&&['ArrowLeft','ArrowRight'].includes(e.key)))return
+    const card=target.closest('.picture-wall li')
+    if(card){
+      const sibling=e.key==='ArrowDown'&&target.hasAttribute('data-choice')?card.querySelector('summary'):
+        e.key==='ArrowUp'&&target.tagName==='SUMMARY'?card.querySelector<HTMLElement>('[data-choice]'):null
+      if(sibling){e.preventDefault();sibling.focus();return}
+    }
     const controls=Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input,video,summary')).filter(el=>el.getClientRects().length)
     const box=target.getBoundingClientRect()
     const horizontal=e.key==='ArrowLeft'||e.key==='ArrowRight', sign=e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1
