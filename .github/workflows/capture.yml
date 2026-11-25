@@ -1,0 +1,42 @@
+name: Capture the child viewer
+on: [push]
+permissions:
+  contents: write
+jobs:
+  capture:
+    if: github.ref_name == 'verify/defer-preview' && !startsWith(github.event.head_commit.message, 'Save session screenshot')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+        working-directory: web
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          mkdir -p "$RUNNER_TEMP/kid-media"
+          cd "$RUNNER_TEMP/kid-media"
+          for photo in astronaut.png rocket.jpg moon.png hubble_deep_field.jpg; do
+            curl --fail --location --retry 3 --silent --show-error "https://raw.githubusercontent.com/scikit-image/scikit-image/v0.24.0/skimage/data/$photo" -o "$photo"
+            for cut in 1 2 3; do
+              ffmpeg -loglevel error -loop 1 -i "$photo" -vf "scale=$((640+cut*100)):$((360+cut*60)):force_original_aspect_ratio=increase,crop=640:360" -t 1 -threads 1 -c:v libx264 -pix_fmt yuv420p "${photo%.*}-$cut.mp4"
+            done
+          done
+      - run: |
+          (cd backend && go build -o "$RUNNER_TEMP/familytv" ./cmd/server)
+          FAMILYTV_MEDIA_DIR="$RUNNER_TEMP/kid-media" FAMILYTV_LISTEN=127.0.0.1:17881 FAMILYTV_WEB_DIR="$PWD/web/dist" FAMILYTV_STATE_PATH="$RUNNER_TEMP/test/state.json" "$RUNNER_TEMP/familytv" &
+          server=$!
+          trap 'kill "$server" || true' EXIT
+          curl -fsS --retry 50 --retry-connrefused --retry-delay 1 http://localhost:17881/api/health
+          mkdir -p docs/guide/img
+          node web/capture.cjs
+          mv viewer-preview.png phone-preview.png ending-preview.png docs/guide/downloads/
+          (cd docs/guide/downloads && zip -q familytv-screenshots.zip *-preview.png)
+          git add docs/guide/downloads/
+          git -c user.name=github-actions -c user.email=actions@users.noreply.github.com commit -m 'Save session screenshot'
+          git push origin HEAD:refs/heads/verify/defer-preview
