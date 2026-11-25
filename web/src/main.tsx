@@ -1,3 +1,4 @@
+import Brand, {ToyTV} from './Brand'
 import React,{useCallback,useEffect,useState} from 'react'
 import {createRoot} from 'react-dom/client'
 import Viewer from './Viewer'
@@ -83,13 +84,13 @@ function App() {
     setError('')
     try{await request('logout','POST');setPhase('login')}catch(error){setError(errorMessage(error))}
   }
-  return <main>
-    <header><strong>FamilyTV</strong><span>Parent dashboard · Development preview</span></header>
+  return <main className="parent">
+    <header><Brand/><span>Parent dashboard · Development preview</span></header>
     {phase==='loading' ? <>
       <p role="status">{error||'Connecting…'}</p>
       {error && <button onClick={()=>{setError('');setAttempt(n=>n+1)}}>Retry connection</button>}
     </> : phase==='dashboard' ? <section aria-labelledby="welcome">
-      <h1 id="welcome">Dashboard</h1>
+      <div className="welcome-card"><h1 id="welcome">Dashboard</h1><ToyTV/></div>
       {hasProfiles!==undefined && hasApproval!==undefined && (!hasProfiles || !hasApproval) && <nav aria-label="Household setup">
         <h2>Set up family viewing</h2>
         {hasProfiles ? <p><a href="#media-path">Add a video</a>, then choose Review to approve it for a child.</p> : <p><a href="#child-name">Create your first child profile</a> and choose how they browse.</p>}
@@ -106,7 +107,7 @@ function App() {
       {error&&<p role="alert">{error}</p>}
       <p><button onClick={logout}>Sign out</button></p>
     </section> : <section aria-labelledby="heading">
-      <h1 id="heading">{phase==='setup'?'Create parent account':'Parent sign in'}</h1>
+      <div className="welcome-card"><h1 id="heading">{phase==='setup'?'Create parent account':'Parent sign in'}</h1><ToyTV/></div>
       <p>{phase==='setup'?'Choose a parent password of at least 12 characters.':'Enter your parent password.'}</p>
       <form onSubmit={submit}>
         <label htmlFor="password">Password</label>

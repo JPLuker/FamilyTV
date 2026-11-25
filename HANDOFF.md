@@ -1,6 +1,10 @@
 # FamilyTV handoff — 2026-11-23
 
-## Current checkpoint — M7, 0.20.0
+## App design update, 0.21.0
+
+The parent dashboard, child viewer and Android TV pairing screen use the round type and colors from the FamilyTV homepage. The web app bundles the same licensed font locally. Profile and system reduced-motion settings suppress the one-time TV bounce. High contrast, large text and remote navigation remain available. Physical Android TV acceptance is tracked in issue #1.
+
+## Previous checkpoint — M7, 0.20.0
 
 Android TV supports remote code entry and phone-assisted pairing using ZXing. The TV displays a public challenge. A signed-in parent authorizes one active profile after comparing the TV identifier. The TV redeems its private one-use secret through the existing viewer exchange. Either pairing method preserves session deadlines. Media3 handles playback and audio focus.
 

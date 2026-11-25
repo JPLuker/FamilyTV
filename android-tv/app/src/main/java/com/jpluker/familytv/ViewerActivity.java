@@ -46,14 +46,16 @@ public final class ViewerActivity extends Activity {
         scroll.addView(form);
         TextView heading = new TextView(this);
         heading.setText("Pair FamilyTV");
-        heading.setTextSize(28);
+        heading.setTextSize(36);
+        heading.setTypeface(getResources().getFont(R.font.jua));
+        heading.setPadding(0, 0, 0, margin / 2);
         form.addView(heading);
         EditText address = field(form, "FamilyTV HTTPS address", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         address.setText(server);
         EditText code = field(form, "Pairing code from the parent dashboard", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
         Button join = new Button(this);
         join.setText("Open viewer");
-        form.addView(join);
+        addPairingButton(form, join, margin / 3);
         join.setOnClickListener(v -> {
             String origin = origin(address.getText().toString().trim());
             if (origin == null) { address.setError("Enter an HTTPS server address, including its port if needed."); address.requestFocus(); return; }
@@ -65,7 +67,7 @@ public final class ViewerActivity extends Activity {
         });
         Button scan = new Button(this);
         scan.setText("Pair using a phone");
-        form.addView(scan);
+        addPairingButton(form, scan, margin / 3);
         scan.setOnClickListener(v -> {
             String origin = origin(address.getText().toString().trim());
             if (origin == null) { address.setError("Enter your FamilyTV HTTPS address."); address.requestFocus(); return; }
@@ -74,6 +76,13 @@ public final class ViewerActivity extends Activity {
         setContentView(scroll);
         (server.isEmpty() ? address : code).requestFocus();
     }
+    private void addPairingButton(LinearLayout form, Button button, int spacing) {
+        LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layout.topMargin = spacing;
+        form.addView(button, layout);
+    }
+
     private void showPhonePairing(String origin) {
         try {
             PhonePairing pairing = new PhonePairing(origin);

@@ -1,3 +1,4 @@
+import Brand, {ToyTV} from './Brand'
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {WatchPlayer} from './WatchPlayer'
 import type {Discovery} from './DiscoverySettings'
@@ -180,7 +181,7 @@ export default function Viewer(){
   return <main data-input={nativeTV?"remote":undefined} ref={root} onFocus={e=>{if(catalog?.discovery.spoken_labels&&'speechSynthesis' in window){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
     if(text){const voice=speechSynthesis.getVoices().find(v=>v.localService);if(voice){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;speechSynthesis.speak(utterance)}}
-  }}} className={['viewer',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}><header><strong>FamilyTV</strong>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>
+  }}} className={['viewer',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}><header><Brand/>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>
     {ended?<section><h1>Viewing time is over</h1>{showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
@@ -191,10 +192,10 @@ export default function Viewer(){
           position={seconds=>{position.current=seconds}} finished={()=>void action('finish',current.id)}/>}
         <button disabled={busy} onClick={()=>action('leave',current.id)}>Back to choices</button>
         <button disabled={busy} onClick={()=>action('finish',current.id)}>Finish video</button>
-      </section>:<section><h1>Choose a video</h1>
+      </section>:<section><div className="welcome-card"><h1>Choose a video</h1><ToyTV/></div>
         {catalog.discovery.search!=='off'&&<label>Search videos<input value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/></label>}
         <nav className="watch-shelves" aria-label="Video lists">{(['All videos','Favorites','Saved for later','Continue watching'] as const).map(name=><button key={name} aria-pressed={shelf===name} onClick={()=>{setShelf(name);setPage(0);setQuery('')}}>{name}</button>)}</nav>
-        {visible.length>0&&<button disabled={busy} onClick={()=>action('play',visible[Math.floor(Math.random()*visible.length)].id)}>Surprise me</button>}
+        {visible.length>0&&<button className="surprise" disabled={busy} onClick={()=>action('play',visible[Math.floor(Math.random()*visible.length)].id)}>Surprise me</button>}
         <ul className="watch-grid">{visible.map(m=><li key={m.id}>
           <button id={'choice-'+m.id} data-choice aria-label={m.title} disabled={busy} onClick={()=>action('play',m.id)}>
             {catalog.navigation!=='text'&&<img loading="lazy" width="240" height="135" alt={catalog.navigation==='visual'?m.title:''} src={'/api/watch/media/'+m.id+'/picture'}/>}
