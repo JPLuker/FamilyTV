@@ -64,3 +64,21 @@ func TestConfiguredChoiceCounts(t *testing.T) {
 		}
 	}
 }
+
+func TestReturningSavedVideoFitsFirstPage(t *testing.T) {
+	rows := []WatchItem{
+		{ID: "a", creator: "first"}, {ID: "b", creator: "second"},
+		{ID: "c", creator: "third"}, {ID: "d", creator: "fourth"},
+		{ID: "saved", creator: "first", returning: true},
+	}
+	d := Discovery{Choices: 4, UniqueCreators: true}
+	first, _, pages := d.page(rows, 0, "")
+	if len(first) != 4 || first[0].ID != "saved" || pages != 2 {
+		t.Fatalf("saved choice missed the first page: %v", first)
+	}
+	for _, item := range first[1:] {
+		if item.creator == "first" {
+			t.Fatal("saved choice bypassed creator variety")
+		}
+	}
+}
