@@ -1,0 +1,29 @@
+name: Capture session controls
+on: [push]
+permissions:
+  contents: write
+jobs:
+  capture:
+    if: github.ref_name == 'verify/playroom-preview' && !startsWith(github.event.head_commit.message, 'Save session screenshot')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+        working-directory: web
+      - run: |
+          (cd backend && go build -o "$RUNNER_TEMP/familytv" ./cmd/server)
+          FAMILYTV_LISTEN=127.0.0.1:17881 FAMILYTV_WEB_DIR="$PWD/web/dist" FAMILYTV_STATE_PATH="$RUNNER_TEMP/test/state.json" "$RUNNER_TEMP/familytv" &
+          server=$!
+          trap 'kill "$server" || true' EXIT
+          curl -fsS --retry 50 --retry-connrefused --retry-delay 1 http://localhost:17881/api/health
+          mkdir -p docs/guide/img
+          node web/capture.cjs
+          git add docs/guide/img/session.png viewer-preview.png
+          git -c user.name=github-actions -c user.email=actions@users.noreply.github.com commit -m 'Save session screenshot'
+          git push origin HEAD:refs/heads/verify/playroom-preview
