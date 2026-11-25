@@ -49,3 +49,29 @@ main.child-world.contrast{--sky-ink:white;--card:#111;--cloud:#111;background:#1
 .subject-row h2{display:flex;align-items:center;gap:.45em;font-size:clamp(1.45em,3vw,2em);margin:0 0 .45em}
 .subject-row h2 .topic-art{width:1.8em;height:1.8em;font-size:.85em}
 .subject-row .picture-wall{margin:0}
+
+/* Pack subject groups into a shared grid so a one-video subject doesn't consume a row. */
+main.child-world.choosing{box-sizing:border-box;height:100vh;height:100dvh;min-height:0;display:flex;flex-direction:column;padding:clamp(.45rem,1.4vh,1rem) clamp(.65rem,2vw,2.2rem)}
+.choosing>header{flex:none;margin:0 0 .35rem}.choosing>header .brand{font-size:1.3rem}
+.child-world.choosing .discovery{display:flex;flex:1;min-height:0;flex-direction:column;margin:0}
+.discovery-heading{flex-wrap:wrap;gap:.2rem .8rem;margin-bottom:.35rem}
+.discovery-heading h1{font-size:clamp(1.35rem,3.4vw,2.6rem);margin:0}
+.quick-bar{display:flex;flex-wrap:wrap;gap:.35rem}.quick-bar button{font-size:1rem;margin:0;min-height:44px}
+.choice-board{display:grid;flex:1;min-height:0;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:clamp(.25rem,1vh,.7rem) clamp(.35rem,1vw,.8rem);align-content:start}
+.choice-board .subject-row,.choice-board .picture-wall{display:contents}
+.choice-board li{position:relative;display:flex;flex-direction:column;min-height:0;max-height:17rem;border-radius:.75rem}
+.choice-board h2{display:flex;align-items:center;gap:.2em;font-size:1em;margin:0;position:absolute;top:.2em;left:.2em;right:auto;z-index:1;background:var(--card);border-radius:1em;padding:0 .4em 0 .2em;max-width:95%;overflow:hidden;white-space:nowrap;pointer-events:none}
+.choice-board h2 .topic-art{font-size:.8em;width:1.5em;height:1.5em}
+.choice-board [data-choice]{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch}
+.choice-board .cover{min-height:0;flex:1;aspect-ratio:auto}
+.choice-board strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:1em;padding:.12em .4em}
+.choice-board .tile-foot{padding:0 .4em;align-items:center;flex:none;min-height:24px}
+.choice-board .tile-foot>span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.choice-board .tile-foot summary{min-height:24px;padding:0}
+.choice-board .tile-foot details[open]{position:absolute;z-index:3;right:0;bottom:0;background:var(--card);border:2px solid currentColor;border-radius:.7rem;padding:.25em}
+.child-world[data-input=remote] .quick-bar button{min-height:44px}
+.child-world[data-input=remote] .choice-board summary{min-height:24px}
+.choosing .find-box{margin:0 0 .3rem}
+.choosing .empty-shelf{order:0}.choice-board:empty{display:none}
+@media(orientation:portrait){.choice-board{grid-template-columns:repeat(3,minmax(0,1fr))}.choice-board h2{font-size:.83em}.quick-bar button{padding:.35em .7em}.choice-board .tile-foot{font-size:.8em}}
+@media(orientation:landscape) and (max-height:500px){.choosing>header{display:none}.choice-board{grid-template-columns:repeat(6,minmax(0,1fr))}.choice-board strong,.choice-board h2{font-size:.85em}}

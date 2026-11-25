@@ -10,6 +10,7 @@ import {avatars} from './avatars'
 type Settings = {
  ending_topic?:string
  viewing_policy?:Policy
+ resume_videos?:boolean
  quiet_ending:boolean
   blocked_series?:string; blocked_creators?:string; blocked_categories?:string
   avatar?:string
@@ -27,7 +28,7 @@ type Settings = {
 type Profile = Settings & {id: string}
 const defaults: Settings = {quiet_ending:false,discovery:discoveryDefaults,name:'', navigation:'visual', captions:false, audio_description:false, reduced_motion:false,large_text:false,high_contrast:false,ending_music:false}
 const navigationModes: Record<string,string> = {visual:'Pictures', 'visual-text':'Pictures and text', text:'Text'}
-const toggles = [['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music'], ['quiet_ending','Quiet ending (message only)']] as const
+const toggles = [['resume_videos','Resume a video from its saved position'], ['captions','Captions'], ['audio_description','Audio description'], ['reduced_motion','Reduced motion'], ['large_text','Larger text'], ['high_contrast','High contrast'], ['ending_music','Session-ending music'], ['quiet_ending','Quiet ending (message only)']] as const
 
 export default function Profiles({onExpired,onProfiles,onChanged,incomingTV,onPaired}: {incomingTV?:string;onPaired:()=>void;onExpired: () => void;onProfiles:(present:boolean)=>void;onChanged:()=>void}) {
   const [profiles,setProfiles] = useState<Profile[]>([])

@@ -37,6 +37,8 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await page.getByLabel('Profile avatar').selectOption('leaf')
   await page.getByLabel('Maximum video length',{exact:false}).fill('5')
   await page.getByLabel('Profile name').fill('Robin')
+  await expect(page.getByLabel('Resume a video from its saved position')).not.toBeChecked()
+  await page.getByLabel('Resume a video from its saved position').check()
   await page.getByLabel('Reduced motion').check()
   await page.getByLabel('High contrast').check()
   await page.getByLabel('Larger text').check()
@@ -143,10 +145,10 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await gateVideo.focus()
   await gate.keyboard.press('Escape')
   await expect(tile).toBeFocused()
-  await gate.getByRole('button',{name:'Continue watching',exact:true}).click()
+  await expect(gate.getByRole('button',{name:'Continue watching',exact:true})).toHaveCount(0)
   const canDecodeMP4=await gate.evaluate(()=>Boolean(document.createElement('video').canPlayType('video/mp4; codecs="avc1.42E01E"')))
   if(canDecodeMP4)await gate.route('**/api/watch/media/'+forestId+'/file',route=>route.fulfill({status:415,body:''}))
-  await gate.getByRole('button',{name:'Surprise me',exact:true}).click()
+  await tile.click()
   if(canDecodeMP4)await expect(gateVideo).toHaveAttribute('src',/compatible/)
   await expect.poll(()=>gateVideo.evaluate(v=>v.currentTime)).toBeGreaterThan(.2)
   expect(await gateVideo.evaluate(v=>v.paused)).toBe(true)
@@ -306,4 +308,24 @@ test('a parent can distinguish repeated wall times and cannot choose a missing m
     expect(finishInstants('2026-03-08T02:30')).toEqual([])
     expect(finishInstants('2026-11-01T01:30').map(d=>d.toISOString())).toEqual(['2026-11-01T05:30:00.000Z','2026-11-01T06:30:00.000Z'])
   }finally{if(previous===undefined)delete process.env.TZ;else process.env.TZ=previous}
+})
+
+test('twelve subject choices and the quick bar fit the screen',async({page})=>{
+  const items=Array.from({length:12},(_,i)=>({id:String(i),title:'Episode '+i,subject:'Subject '+i,duration_seconds:60,captions:false}))
+  await page.route('**/api/watch?**',route=>route.fulfill({json:{items,list:'',shelf:[],page:0,pages:2,discovery:{search:'on'},current:null,rotation:'sample',deadline:0,server_time:Date.now(),navigation:'visual-text'}}))
+  await page.route('**/api/watch/media/*/picture',route=>route.fulfill({status:404}))
+  for(const [width,height] of [[390,730],[844,390],[1024,768],[1280,720],[1920,1080]]){
+    await page.setViewportSize({width,height})
+    await page.goto('/watch')
+    await expect(page.locator('[data-choice]')).toHaveCount(12)
+    await expect(page.getByText(/^(all videos|continue watching)$/i)).toHaveCount(0)
+    const fit=await page.evaluate(()=>{
+      const board=document.querySelector('.choice-board')!.getBoundingClientRect()
+      const bar=document.querySelector('.quick-bar')!.getBoundingClientRect()
+      const tiles=Array.from(document.querySelectorAll('[data-choice]'),el=>el.getBoundingClientRect())
+      return bar.bottom<=board.top+1 && document.documentElement.scrollHeight<=innerHeight+1 &&
+        document.documentElement.scrollWidth<=innerWidth && tiles.every(r=>r.height>=24 && r.top>=0 && r.bottom<=innerHeight)
+    })
+    expect(fit,'layout '+width+'×'+height).toBe(true)
+  }
 })

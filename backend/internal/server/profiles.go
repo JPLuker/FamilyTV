@@ -12,6 +12,7 @@ import (
 type ChildProfile struct {
 	EndingTopic       string        `json:"ending_topic,omitempty"`
 	Policy            ViewingPolicy `json:"viewing_policy,omitempty"`
+	ResumeVideos      bool          `json:"resume_videos,omitempty"`
 	QuietEnding       bool          `json:"quiet_ending,omitempty"`
 	BlockedSeries     string        `json:"blocked_series,omitempty"`
 	BlockedCreators   string        `json:"blocked_creators,omitempty"`

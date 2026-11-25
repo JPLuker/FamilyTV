@@ -6,8 +6,8 @@ import type {Discovery} from './DiscoverySettings'
 import {ApiError,errorMessage,request} from './api'
 type Item={id:string;title:string;subject:string;duration_seconds:number;captions:boolean}
 import {avatars} from './avatars'
-type ShelfName='All videos'|'Saved for later'|'Continue watching'
-const lists:Record<ShelfName,string>={'All videos':'','Saved for later':'later','Continue watching':'resume'}
+type ShelfName='choices'|'Saved for later'
+const lists:Record<ShelfName,string>={'choices':'','Saved for later':'later'}
 type Bookmark={later:boolean;position:number}
 type Catalog={rotation:string;ending_topic:string;quiet_ending:boolean;list:string;shelf:{item:Item;bookmark:Bookmark;playable:boolean}[];resume:number;avatar?:string;page:number;pages:number;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
 import {chooseFact} from './endingFacts'
@@ -28,7 +28,7 @@ export default function Viewer(){
   const preferences=useRef({ending_topic:"",quiet_ending:true,large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
   const [query,setQuery]=useState('')
   const [searchOpen,setSearchOpen]=useState(false)
-  const [shelf,setShelf]=useState<ShelfName>('All videos')
+  const [shelf,setShelf]=useState<ShelfName>('choices')
   const root=useRef<HTMLElement>(null)
   const lastTile=useRef('')
   const position=useRef<number|undefined>(undefined)
@@ -166,7 +166,7 @@ export default function Viewer(){
     if(detail){detail.open=false;detail.querySelector('summary')?.focus();return true}
     if(current){void action('leave',current?.id||'');return true}
     if(searchOpen){setSearchOpen(false);setQuery('');setPage(0);document.getElementById('viewer-find')?.focus();return true}
-    if(shelf!=='All videos'||page>0){setShelf('All videos');setPage(0);return true}
+    if(shelf!=='choices'||page>0){setShelf('choices');setPage(0);return true}
     return false
   }
   useEffect(()=>{
@@ -174,7 +174,7 @@ export default function Viewer(){
     window.addEventListener('familytv-back',back)
     return ()=>window.removeEventListener('familytv-back',back)
   })
-  const nested=Boolean(current||searchOpen||shelf!=='All videos'||page)
+  const nested=Boolean(current||searchOpen||shelf!=='choices'||page)
   useEffect(()=>{
     if(nested && !history.state?.familytvViewer)history.pushState({familytvViewer:true},'',location.href)
     if(!nested && history.state?.familytvViewer)history.back()
@@ -205,7 +205,7 @@ export default function Viewer(){
   return <main data-input={nativeTV?"remote":undefined} ref={root} onFocus={e=>{if(catalog?.discovery.spoken_labels&&'speechSynthesis' in window){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
     if(text){const voice=speechSynthesis.getVoices().find(v=>v.localService);if(voice){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;speechSynthesis.speak(utterance)}}
-  }}} className={['viewer','child-world',ended?'night':'',ended&&preferences.current.quiet_ending?'quiet':'',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}>{!ended&&<header><Brand/>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>}
+  }}} className={['viewer','child-world',catalog&&!current?'choosing':'',ended?'night':'',ended&&preferences.current.quiet_ending?'quiet':'',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}>{!ended&&<header><Brand/>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>}
     {ended?<section className="night-ending"><span className="moon" aria-hidden="true"/><h1>Viewing time is over</h1>{showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
@@ -217,23 +217,26 @@ export default function Viewer(){
         <button disabled={busy} onClick={()=>action('leave',current.id)}>Back to choices</button>
         <button disabled={busy} onClick={()=>action('finish',current.id)}>Finish video</button>
       </section>:<section className="discovery">
-        <div className="discovery-heading"><h1>Choose a video</h1>
+        <div className="discovery-heading"><h1>{shelf==='choices'?'Choose a video':'Saved for later'}</h1>
+          <nav className="quick-bar" aria-label="Viewing choices">
+            <button aria-pressed={shelf==='Saved for later'} onClick={()=>chooseShelf(shelf==='choices'?'Saved for later':'choices')}>{shelf==='choices'?'Saved for later':'Back to choices'}</button>
+            {visible.length>0&&<button className="surprise" disabled={busy} onClick={()=>action('play',visible[Math.floor(Math.random()*visible.length)].id)}>Surprise me</button>}
           {catalog.discovery.search!=='off'&&<button id="viewer-find" aria-expanded={searchOpen} onClick={()=>{setSearchOpen(!searchOpen);setQuery('');setPage(0)}}><span aria-hidden="true">⌕ </span>Find</button>}
+          </nav>
         </div>
         {searchOpen&&catalog.discovery.search!=='off'&&<label className="find-box">Search videos<input autoFocus value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/></label>}
-        {rows.map(group=><section className="subject-row" key={group.items[0].subject.trim().toLowerCase()} aria-label={group.label}>
-          <h2><TopicBadge subject={group.label}/>{group.label}</h2>
-          <ul className="picture-wall">{group.items.map(m=><li key={m.id}>
+        <div className="choice-board">{rows.map(group=><section className="subject-row" key={group.items[0].subject.trim().toLowerCase()} aria-label={group.label}>
+
+          <ul className="picture-wall">{group.items.map((m,index)=><li key={m.id}>
+          {index===0&&<h2 title={group.label}><TopicBadge subject={group.label}/>{group.label}</h2>}
           <button id={'choice-'+m.id} data-choice aria-label={m.title} disabled={busy} onClick={()=>action('play',m.id)}>
             {catalog.navigation!=='text'&&<span className="cover"><span className="cover-fallback">{m.title}</span><img loading="lazy" width="480" height="270" alt="" src={'/api/watch/media/'+m.id+'/picture'} onError={e=>{e.currentTarget.hidden=true}}/><span className="play-dot" aria-hidden="true">▶</span></span>}
             {catalog.navigation!=='visual'&&<strong>{m.title}</strong>}
           </button><div className="tile-foot"><span>{catalog.discovery.reading==='detail'&&m.subject&&m.subject+' · '}{Math.ceil(m.duration_seconds/60)} min</span>
           <details><summary aria-label={'Options for '+m.title}>•••</summary>
             <button disabled={busy} onClick={()=>mark(m)}>{bookmarks.get(m.id)?.later?'Remove from saved':'Save for later'}</button>
-          </details></div></li>)}</ul></section>)}
-        {!visible.length&&<p className="empty-shelf">{query?'No videos match your search.':shelf==='All videos'?'No videos are available for this session.':'No matching videos in this list.'}</p>}
-        <nav className="watch-shelves" aria-label="Video lists">{(['All videos','Saved for later','Continue watching'] as const).map((name,i)=><button key={name} aria-pressed={shelf===name} onClick={()=>chooseShelf(name)}><span aria-hidden="true">{['▦','★','▶'][i]}</span>{name}</button>)}</nav>
-        {visible.length>0&&<button className="surprise" disabled={busy} onClick={()=>action('play',visible[Math.floor(Math.random()*visible.length)].id)}>Surprise me</button>}
+          </details></div></li>)}</ul></section>)}</div>
+        {!visible.length&&<p className="empty-shelf">{query?'No videos match your search.':shelf==='choices'?'No videos are available for this session.':'No matching videos in this list.'}</p>}
         {catalog.pages>1&&<nav aria-label="Video pages"><button disabled={catalog.page===0} onClick={()=>{setPage(catalog.page-1)}}>Previous choices</button> {catalog.page+1} / {catalog.pages} <button disabled={catalog.page+1>=catalog.pages} onClick={()=>{setPage(catalog.page+1)}}>More choices</button></nav>}
 
       </section>)}
