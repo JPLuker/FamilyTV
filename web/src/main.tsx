@@ -6,6 +6,7 @@ import Profiles from './Profiles'
 import MediaLibrary from './MediaLibrary'
 import {ApiError,errorMessage,request} from './api'
 import './style.css'
+import './childViewer.css'
 
 type Phase='loading'|'setup'|'login'|'dashboard'
 function ParentPin({onExpired}:{onExpired:()=>void}){

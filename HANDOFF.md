@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Child viewer update, 0.22.0
+
+The viewer opens on approved episode artwork. Topic buttons filter the current page using subjects from parent reviews. Saved lists sit below the video choices. Find opens search when the profile allows it. The ending has a separate night screen; quiet endings omit the illustration, fact and music. Real-TV remote and household usability testing remain open in issue #1.
+
 ## App design update, 0.21.0
 
 The parent dashboard, child viewer and Android TV pairing screen use the round type and colors from the FamilyTV homepage. The web app bundles the same licensed font locally. Profile and system reduced-motion settings suppress the one-time TV bounce. High contrast, large text and remote navigation remain available. Physical Android TV acceptance is tracked in issue #1.

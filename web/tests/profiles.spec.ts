@@ -84,6 +84,7 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await expect(gate.getByRole('heading',{name:'Choose a video'})).toBeVisible()
   const forestId=(await (await page.request.get('/api/media')).json()).media[0].id
   async function assertDenied(){
+    if(!await gate.getByLabel('Search videos').isVisible())await gate.getByRole('button',{name:'Find',exact:false}).click()
     await gate.getByLabel('Search videos').fill('forest')
     await expect(gate.getByRole('button',{name:'forest',exact:true})).toHaveCount(0)
     expect((await (await gate.request.get('/api/watch?q=forest')).json()).items).toEqual([])
@@ -109,6 +110,10 @@ test('parent can edit, export and remove a returning child profile',async({page,
   const second=(await extra.json()).id
   expect((await page.request.put('/api/media/'+second+'/review',{data:{profiles:[payload.profiles[0].id],subject:'Nature',caption_quality:'verified',audio_description:'unknown'}})).status()).toBe(200)
   await gate.getByLabel('Search videos').fill('')
+  await expect(gate.getByRole('button',{name:'Second lesson',exact:true})).toBeVisible()
+  await gate.getByRole('button',{name:'Forests',exact:true}).click()
+  await expect(gate.getByRole('button',{name:'Second lesson',exact:true})).toHaveCount(0)
+  await gate.getByRole('button',{name:'All topics',exact:true}).click()
   await expect(gate.getByRole('button',{name:'Second lesson',exact:true})).toBeVisible()
   const options=gate.getByLabel('Options for forest')
   await options.focus()
@@ -190,8 +195,8 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await checkAccessibility(child)
   await expect(child.locator('main')).toHaveClass(/contrast/)
   await expect(child.locator('main')).toHaveClass(/large/)
-  await expect(child.locator('.toy-tv')).toHaveCSS('animation-name','none')
-  await expect(child.locator('.toy-tv')).toBeHidden()
+  await expect(child.getByLabel('Search videos')).toBeHidden()
+  await expect(child.locator('.picture-wall')).toBeVisible()
   expect(await child.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
   const picture=child.getByRole('button',{name:'forest',exact:true}).locator('img')
   await expect.poll(()=>picture.evaluate(img=>img.naturalWidth)).toBeGreaterThan(0)
