@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Child viewer update, 0.25.0
+
+Each subject starts with a colored bookend showing the topic name and a circular picture from its first approved video. The marker stays beside that video when the grid wraps. Text-only profiles see the label alone.
+
 ## Child viewer update, 0.24.0
 
 Saved for later, Surprise me and profile-enabled Find sit above a single-screen grid of up to 12 eligible choices. All videos and Continue watching are absent from the child UI. Parents can enable resuming a selected video from its saved position per profile. It defaults off and existing deadline checks apply. Browser tests cover phone portrait and landscape, tablet, 720p and 1080p. Issue #1 tracks physical TV acceptance.
