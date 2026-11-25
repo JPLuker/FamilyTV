@@ -1,0 +1,36 @@
+@font-face{font-family:Jua;src:url(jua-latin.ttf) format("truetype");font-display:swap}
+:root{--ink:#322448;--paper:#fff8e9;--purple:#6539ae;--edge:3px solid var(--ink);font:100%/1.55 system-ui,sans-serif;color:var(--ink);background:var(--paper)}
+*{box-sizing:border-box}
+body,figure,h1,h2{margin:0}
+header,main,footer{width:min(71rem,91%);margin:auto}
+header,footer,nav{display:flex;align-items:center;justify-content:space-between;gap:1.2rem}
+header{padding:1.4rem 0}
+.brand,h1,h2,.button{font-family:Jua,ui-rounded,system-ui,sans-serif;font-weight:400}
+.brand{font-size:2.1rem;letter-spacing:-.07em;line-height:1}.brand b{display:inline-block;background:#ffd15b;border:var(--edge);border-radius:.35em;padding:.06em .14em .02em;transform:rotate(-7deg);font-weight:inherit;color:#322448}
+a{color:inherit;text-underline-offset:.25em}nav a{font-weight:650;text-decoration:none;padding:.5rem .2rem}a:hover{text-decoration:underline}a:focus-visible{outline:4px solid #cf561c;outline-offset:5px}
+.hero{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:2rem;padding:clamp(2rem,5vw,5rem) 0}
+h1{font-size:clamp(4rem,8vw,7.2rem);line-height:.94;letter-spacing:-.045em}h1 em{display:block;color:var(--purple);font-style:normal}
+.hero p{max-width:35ch;font-size:1.15rem;margin:1.2rem 0 1.5rem}
+.button{font-size:1.3rem;display:inline-flex;align-items:center;gap:1rem;padding:.7rem 1.35rem;color:white;background:#6539ae;border:var(--edge);border-radius:2rem;box-shadow:0 5px var(--ink);text-decoration:none}
+.button:after{content:'➜';font:inherit}.button:active{box-shadow:0 2px var(--ink);transform:translateY(3px)}
+/* Toy television, drawn with shapes. The dials are part of the illustration. */
+.stage{position:relative;aspect-ratio:1.28;display:grid;place-items:center;background:#a5def3;border:var(--edge);border-radius:47% 52% 44% 46%;isolation:isolate}
+.tv{position:relative;width:76%;height:60%;margin-top:7%;background:#fc8171;border:4px solid #322448;border-radius:16% / 23%;box-shadow:inset -7px -8px #d75557,5px 7px #322448;transform:rotate(-5deg);display:flex;align-items:center;justify-content:space-evenly}
+.tv:before,.tv:after{content:'';position:absolute;width:4%;height:30%;bottom:100%;left:47%;border-radius:8px;background:#322448;transform-origin:bottom;transform:rotate(-37deg)}
+.tv:after{transform:rotate(37deg)}
+.screen{position:relative;overflow:hidden;width:70%;height:73%;border:4px solid #322448;border-radius:21% / 25%;background:radial-gradient(ellipse at 28% 27%,#ffe279 0 10%,transparent 10.7%),#98daed}
+.screen:before,.screen:after{content:'';position:absolute;width:120%;height:90%;border-radius:50%;background:#76b79f;bottom:-40%;left:12%;transform:rotate(-17deg)}
+.screen:after{background:#37867b;left:-38%;bottom:-50%;transform:rotate(18deg)}
+.dials{width:11%;height:70%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9%}
+.dials i{width:100%;aspect-ratio:1;background:linear-gradient(130deg,#ffdc78 44%,#322448 45% 54%,#ffdc78 55%);border:3px solid #322448;border-radius:50%}
+.stage:before,.stage:after{position:absolute;content:'✦';font-size:clamp(2rem,6vw,5rem);color:#7148ad;top:0;right:8%;line-height:1}.stage:after{top:auto;right:auto;bottom:4%;left:7%;color:#ae3f5f;font-size:2.8rem}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;padding:1rem 0 3rem}
+.features section{border:var(--edge);border-radius:1.6rem;padding:1.45rem;box-shadow:0 5px var(--ink);background:#ffe095;color:#322448}
+.features section:nth-child(2){background:#cfb8f4}.features section:nth-child(3){background:#a9dfc7}
+h2{font-size:clamp(1.7rem,3vw,2.4rem);line-height:1.1}.features p{margin:.65rem 0 0}
+.details{display:grid;grid-template-columns:1fr 1fr;gap:2rem;border-top:2px dashed #9886a2;padding:2rem 0;align-items:center}
+.details img{max-width:100%;height:auto;display:block;border:var(--edge);border-radius:1rem}.report{padding:1rem 0 2rem}.report p{margin:.6rem 0}
+footer{padding:1rem 0 2rem;border-top:var(--edge);font-size:.9rem}nav{flex-wrap:wrap}
+@media(prefers-reduced-motion:no-preference){@keyframes settle{0%{transform:translateY(0) rotate(-5deg)}35%{transform:translateY(-10px) rotate(-3deg)}70%{transform:translateY(2px) rotate(-6deg)}100%{transform:translateY(0) rotate(-5deg)}}.tv{animation:settle .72s ease-out .1s 1}.button:hover{transform:translateY(-2px)}}
+@media(prefers-color-scheme:dark){:root{--paper:#231a30;--ink:#faf0dd;--purple:#d9b4ff}.stage{border-color:#322448}.features section,.details img,.brand b{border-color:#322448}.features section,.button{box-shadow:0 5px #100b1a}}
+@media(max-width:46rem){.hero,.features,.details{grid-template-columns:1fr}.hero{gap:1.75rem;padding-top:1.5rem}.stage{width:min(100%,26rem);justify-self:center}.features{gap:1rem}.brand{font-size:1.7rem}nav{gap:.6rem}footer{align-items:flex-start;flex-direction:column}.details img{width:min(100%,28rem)}}
