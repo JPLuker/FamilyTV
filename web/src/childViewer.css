@@ -93,5 +93,5 @@ main.child-world.choosing{box-sizing:border-box;height:100vh;height:100dvh;min-h
 .child-world[data-input=remote] .choice-board summary{min-height:24px}
 .choosing .find-box{margin:0 0 .3rem}
 .choosing .empty-shelf{order:0}.choice-board:empty{display:none}
-@media(orientation:portrait){.choice-board{grid-template-columns:repeat(7,minmax(0,1fr))}.choice-board h2{font-size:.83em}.quick-bar button{padding:.35em .7em}.choice-board .tile-foot{font-size:.8em}}
+@media(orientation:portrait){.choice-board{grid-template-columns:repeat(8,minmax(0,1fr))}.choice-board li.starts-topic{grid-column:span 4;grid-template-columns:repeat(2,minmax(0,1fr))}.choice-board h2{font-size:.83em}.quick-bar button{padding:.35em .7em}.choice-board .tile-foot{font-size:.8em}}
 @media(orientation:landscape) and (max-height:500px){.choosing>header{display:none}.choice-board{grid-template-columns:repeat(14,minmax(0,1fr))}.choice-board strong,.choice-board h2{font-size:.85em}}
