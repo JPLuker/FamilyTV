@@ -6,10 +6,7 @@ import type {Discovery} from './DiscoverySettings'
 import {ApiError,errorMessage,request} from './api'
 type Item={id:string;title:string;subject:string;duration_seconds:number;captions:boolean}
 import {avatars} from './avatars'
-type ShelfName='choices'|'Saved for later'
-const lists:Record<ShelfName,string>={'choices':'','Saved for later':'later'}
-type Bookmark={later:boolean;position:number}
-type Catalog={rotation:string;ending_topic:string;quiet_ending:boolean;list:string;shelf:{item:Item;bookmark:Bookmark;playable:boolean}[];resume:number;avatar?:string;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
+type Catalog={rotation:string;ending_topic:string;quiet_ending:boolean;resume:number;avatar?:string;discovery:Discovery;large_text:boolean;high_contrast:boolean;ending_music:boolean;items:Item[];current:Item|null;deadline:number;server_time:number;captions:boolean;navigation:string;reduced_motion:boolean}
 import {chooseFact} from './endingFacts'
 const nativeTV=navigator.userAgent.includes('FamilyTV-AndroidTV')
 const joinCode=location.pathname==='/watch'?location.hash.slice(1):''
@@ -26,13 +23,9 @@ export default function Viewer(){
   const [error,setError]=useState('')
   const [ended,setEnded]=useState(false)
   const preferences=useRef({ending_topic:"",quiet_ending:true,large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
-  const [query,setQuery]=useState('')
-  const [searchOpen,setSearchOpen]=useState(false)
-  const [shelf,setShelf]=useState<ShelfName>('choices')
   const root=useRef<HTMLElement>(null)
   const lastTile=useRef('')
   const position=useRef<number|undefined>(undefined)
-  const listName=useRef('')
   const [busy,setBusy]=useState(false)
   const [fact,setFact]=useState<ReturnType<typeof chooseFact>>()
   const localDeadline=useRef(0)
@@ -58,7 +51,7 @@ export default function Viewer(){
     const n=++revision.current
     const sent=performance.now()
     try{
-      const next=await request<Catalog>('watch?'+new URLSearchParams({list:listName.current}))
+      const next=await request<Catalog>('watch')
       if(mounted.current&&n===revision.current){next.server_time+=Math.ceil(performance.now()-sent);localDeadline.current=next.deadline?performance.now()+next.deadline-next.server_time:0;preferences.current=next;setCatalog(next);setError('')}
     }catch(e){
       if(mounted.current&&n===revision.current){
@@ -124,17 +117,8 @@ export default function Viewer(){
     }).filter(c=>c.forward>2).sort((a,b)=>(a.forward+4*a.side)-(b.forward+4*b.side))
     e.preventDefault();candidates[0]?.el.focus()
   }
-  useEffect(()=>{
-    listName.current=lists[shelf]
-    if(!catalog)return
-    const id=setTimeout(()=>{if(!ended)void refresh()},200)
-    return()=>clearTimeout(id)
-  },[shelf])
   const current=catalog?.current
-  const bookmarks=new Map(catalog?.shelf.map(row=>[row.item.id,row.bookmark]))
-  const items=catalog?.list===lists[shelf]?catalog.items:[]
-  const term=catalog?.discovery.search==='off'?'':query.trim().toLowerCase()
-  const visible=items.filter(m=>(m.title+' '+m.subject).toLowerCase().includes(term))
+  const visible=catalog?.items||[]
   const groups=new Map<string,{label:string;items:Item[]}>()
   for(const item of visible){
     const label=item.subject.trim(), key=label.toLowerCase()
@@ -142,18 +126,15 @@ export default function Viewer(){
     groups.get(key)!.items.push(item)
   }
   const rows=Array.from(groups.values()).sort((a,b)=>subjectOrder(catalog?.rotation||'',a.label)-subjectOrder(catalog?.rotation||'',b.label))
-  function chooseShelf(name:ShelfName){
-    setShelf(name);setQuery('');setSearchOpen(false)
-  }
   async function mark(m:Item){
     const control=document.activeElement as HTMLElement|null
     setBusy(true)
-    try{await request('watch/bookmark','POST',{id:m.id,kind:'later',enabled:!bookmarks.get(m.id)?.later});await refresh()}
+    try{await request('watch/bookmark','POST',{id:m.id,kind:'later',enabled:true});await refresh()}
     catch(e){setError(errorMessage(e))}finally{
       setBusy(false)
       requestAnimationFrame(()=>{
         if(control?.isConnected)control.focus()
-        else root.current?.querySelector<HTMLElement>('[data-choice],.watch-shelves [aria-pressed=true]')?.focus()
+        else root.current?.querySelector<HTMLElement>('[data-choice]')?.focus()
       })
     }
   }
@@ -162,8 +143,6 @@ export default function Viewer(){
     const detail=root.current?.querySelector<HTMLDetailsElement>('details[open]')
     if(detail){detail.open=false;detail.querySelector('summary')?.focus();return true}
     if(current){void action('leave',current?.id||'');return true}
-    if(searchOpen){setSearchOpen(false);setQuery('');document.getElementById('viewer-find')?.focus();return true}
-    if(shelf!=='choices'){setShelf('choices');return true}
     return false
   }
   useEffect(()=>{
@@ -171,7 +150,7 @@ export default function Viewer(){
     window.addEventListener('familytv-back',back)
     return ()=>window.removeEventListener('familytv-back',back)
   })
-  const nested=Boolean(current||searchOpen||shelf!=='choices')
+  const nested=Boolean(current)
   useEffect(()=>{
     if(nested && !history.state?.familytvViewer)history.pushState({familytvViewer:true},'',location.href)
     if(!nested && history.state?.familytvViewer)history.back()
@@ -198,7 +177,7 @@ export default function Viewer(){
     const focus=(current?root.current?.querySelector<HTMLElement>('video,.play-native'):
       document.getElementById('choice-'+lastTile.current))||root.current?.querySelector<HTMLElement>('[data-choice]')||root.current?.querySelector<HTMLElement>('button:not(:disabled),input')
     focus?.focus({preventScroll:true})
-  },[current?.id,hasCatalog,catalog?.list])
+  },[current?.id,hasCatalog])
   return <main data-input={nativeTV?"remote":undefined} ref={root} onFocus={e=>{if(catalog?.discovery.spoken_labels&&'speechSynthesis' in window){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
     if(text){const voice=speechSynthesis.getVoices().find(v=>v.localService);if(voice){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;speechSynthesis.speak(utterance)}}
@@ -214,14 +193,11 @@ export default function Viewer(){
         <button disabled={busy} onClick={()=>action('leave',current.id)}>Back to choices</button>
         <button disabled={busy} onClick={()=>action('finish',current.id)}>Finish video</button>
       </section>:<section className="discovery">
-        <div className="discovery-heading"><h1>{shelf==='choices'?'Choose a video':'Saved for later'}</h1>
+        <div className="discovery-heading"><h1>Choose a video</h1>
           <nav className="quick-bar" aria-label="Viewing choices">
-            <button aria-pressed={shelf==='Saved for later'} onClick={()=>chooseShelf(shelf==='choices'?'Saved for later':'choices')}>{shelf==='choices'?'Saved for later':'Back to choices'}</button>
             {visible.length>0&&<button className="surprise" disabled={busy} onClick={()=>action('play',visible[Math.floor(Math.random()*visible.length)].id)}>Surprise me</button>}
-          {catalog.discovery.search!=='off'&&<button id="viewer-find" aria-expanded={searchOpen} onClick={()=>{setSearchOpen(!searchOpen);setQuery('')}}><span aria-hidden="true">⌕ </span>Find</button>}
           </nav>
         </div>
-        {searchOpen&&catalog.discovery.search!=='off'&&<label className="find-box">Search videos<input autoFocus value={query} onChange={e=>{setQuery(e.target.value)}}/></label>}
         <div className="choice-board">{rows.map(group=><section className="subject-row" key={group.items[0].subject.trim().toLowerCase()} aria-label={group.label}>
 
           <ul className="picture-wall">{group.items.map((m,index)=><li key={m.id} className={index===0?'starts-topic':undefined}>
@@ -237,9 +213,9 @@ export default function Viewer(){
             {catalog.navigation!=='visual'&&<strong>{m.title}</strong>}
           </button><div className="tile-foot"><span>{catalog.discovery.reading==='detail'&&m.subject&&m.subject+' · '}{Math.ceil(m.duration_seconds/60)} min</span>
           <details><summary aria-label={'Options for '+m.title}>•••</summary>
-            <button disabled={busy} onClick={()=>mark(m)}>{bookmarks.get(m.id)?.later?'Remove from saved':'Save for later'}</button>
+            <button disabled={busy} onClick={()=>mark(m)}>Save for later</button>
           </details></div></li>)}</ul></section>)}</div>
-        {!visible.length&&<p className="empty-shelf">{query?'No videos match your search.':shelf==='choices'?'No videos are available for this session.':'No matching videos in this list.'}</p>}
+        {!visible.length&&<p className="empty-shelf">No videos are available for this session.</p>}
 
       </section>)}
     </>}

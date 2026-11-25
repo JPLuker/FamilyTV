@@ -14,7 +14,6 @@ export default function DiscoverySettings({value,change}:{value:Discovery;change
     <label>Preferred video length in minutes (0 for any)<input type="number" min="0" max="240" value={value.preferred_minutes||0} onChange={e=>change({...value,preferred_minutes:Number(e.target.value)})}/></label>
     <label>Favorite subjects, separated by commas<input maxLength={250} value={value.interests||''} onChange={e=>change({...value,interests:e.target.value})}/></label>
     <label>Transition warning in minutes (0 for none)<input type="number" min="0" max="15" value={value.warn_minutes||0} onChange={e=>change({...value,warn_minutes:Number(e.target.value)})}/></label>
-    <label className="toggle"><input type="checkbox" checked={value.search!=='off'} onChange={e=>change({...value,search:e.target.checked?'on':'off'})}/>Enable search</label>
     <label className="toggle"><input type="checkbox" checked={Boolean(value.spoken_labels)} onChange={e=>change({...value,spoken_labels:e.target.checked})}/>Speak focused titles using an available device voice</label>
   </details>
 }

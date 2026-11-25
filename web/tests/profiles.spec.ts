@@ -86,8 +86,6 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await expect(gate.getByRole('heading',{name:'Choose a video'})).toBeVisible()
   const forestId=(await (await page.request.get('/api/media')).json()).media[0].id
   async function assertDenied(){
-    if(!await gate.getByLabel('Search videos').isVisible())await gate.getByRole('button',{name:'Find',exact:false}).click()
-    await gate.getByLabel('Search videos').fill('forest')
     await expect(gate.getByRole('button',{name:'forest',exact:true})).toHaveCount(0)
     expect((await (await gate.request.get('/api/watch?q=forest')).json()).items).toEqual([])
     expect((await gate.request.post('/api/watch/play',{data:{id:forestId}})).status()).toBe(404)
@@ -111,7 +109,6 @@ test('parent can edit, export and remove a returning child profile',async({page,
   expect(extra.status()).toBe(201)
   const second=(await extra.json()).id
   expect((await page.request.put('/api/media/'+second+'/review',{data:{profiles:[payload.profiles[0].id],subject:'Nature',caption_quality:'verified',audio_description:'unknown'}})).status()).toBe(200)
-  await gate.getByLabel('Search videos').fill('')
   await expect(gate.getByRole('button',{name:'Second lesson',exact:true})).toBeVisible()
   const forestGroup=gate.getByRole('region',{name:'Forests',exact:true})
   await expect(forestGroup.getByRole('heading',{name:'Forests'})).toBeVisible()
@@ -123,8 +120,7 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await gate.getByRole('button',{name:'Save for later',exact:true}).click()
   const tile=gate.getByRole('button',{name:'forest',exact:true})
   await expect(tile).toHaveCount(0)
-  await gate.getByRole('button',{name:'Saved for later',exact:true}).click()
-  await expect(tile).toBeVisible()
+  await expect(gate.getByRole('button',{name:/^(Find|Saved for later)$/})).toHaveCount(0)
   const parentSession='/api/profiles/'+payload.profiles[0].id+'/session'
   expect((await page.request.delete(parentSession)).status()).toBe(200)
   const started=await page.request.post(parentSession,{data:{mode:'manual'}})
@@ -159,8 +155,8 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await gateVideo.evaluate(async v=>{v.muted=true;await v.play()})
   await expect(gate.getByRole('heading',{name:'Choose a video'})).toBeVisible()
   await expect(gate.locator('video')).toHaveCount(0)
-  await gate.getByRole('button',{name:'Saved for later',exact:true}).click()
-  await expect(tile).toHaveCount(0)
+  const afterFinish=await (await gate.request.get('/api/watch')).json()
+  expect(afterFinish.shelf.some((entry:{bookmark:{later:boolean}})=>entry.bookmark.later)).toBe(false)
   expect((await page.request.delete('/api/media/'+second)).status()).toBe(200)
   const desk=page.getByText('Approval queue and library coverage',{exact:true})
   await desk.click()
@@ -312,7 +308,7 @@ test('a parent can distinguish repeated wall times and cannot choose a missing m
 
 test('twelve subject choices and the quick bar fit the screen',async({page})=>{
   const items=Array.from({length:12},(_,i)=>({id:String(i),title:'Episode '+i,subject:'Subject '+i,duration_seconds:60,captions:false}))
-  await page.route('**/api/watch?**',route=>route.fulfill({json:{items,list:'',shelf:[],page:0,pages:2,discovery:{search:'on'},current:null,rotation:'sample',deadline:0,server_time:Date.now(),navigation:'visual-text'}}))
+  await page.route('**/api/watch',route=>route.fulfill({json:{items,list:'',shelf:[],page:0,pages:2,discovery:{search:'on'},current:null,rotation:'sample',deadline:0,server_time:Date.now(),navigation:'visual-text'}}))
   await page.route('**/api/watch/media/*/picture',route=>route.fulfill({status:404}))
   for(const [width,height] of [[390,730],[844,390],[1024,768],[1280,720],[1920,1080]]){
     await page.setViewportSize({width,height})
@@ -324,7 +320,7 @@ test('twelve subject choices and the quick bar fit the screen',async({page})=>{
     const firstMarker=await page.locator('.topic-bookend').first().boundingBox()
     const firstVideo=await page.locator('[data-choice]').first().boundingBox()
     expect(firstMarker!.x+firstMarker!.width).toBeLessThanOrEqual(firstVideo!.x+1)
-    await expect(page.getByText(/^(all videos|continue watching)$/i)).toHaveCount(0)
+    await expect(page.getByText(/^(all videos|continue watching|find|saved for later)$/i)).toHaveCount(0)
     const fit=await page.evaluate(()=>{
       const board=document.querySelector('.choice-board')!.getBoundingClientRect()
       const bar=document.querySelector('.quick-bar')!.getBoundingClientRect()
