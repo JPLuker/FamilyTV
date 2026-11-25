@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 )
 
@@ -44,6 +45,36 @@ func TestTwelveCreatorChoicesAndCooldownFallback(t *testing.T) {
 	items = settings.board([]WatchItem{{creator: "0", ID: "a"}, {creator: "0", ID: "b"}}, "rotation", "0")
 	if len(items) != 1 || items[0].creator != "0" {
 		t.Fatal("single eligible creator must remain available", items)
+	}
+}
+
+func TestBoardRotation(t *testing.T) {
+	var library []WatchItem
+	for i := 0; i < 24; i++ {
+		library = append(library, WatchItem{ID: fmt.Sprint(i), Subject: fmt.Sprint(i % 4)})
+	}
+	draw := func(rotation string) []string {
+		items := (Discovery{Choices: 4, MixSubjects: true}).board(slices.Clone(library), rotation, "")
+		var ids []string
+		topics := map[string]bool{}
+		for _, item := range items {
+			ids = append(ids, item.ID)
+			topics[item.Subject] = true
+		}
+		if len(ids) != 4 || len(topics) != 4 {
+			t.Fatalf("expected four choices across four topics, got %v", items)
+		}
+		return ids
+	}
+	first := draw("first session")
+	if !slices.Equal(first, draw("first session")) {
+		t.Fatal("refresh changed the selection")
+	}
+	slices.Sort(first)
+	next := draw("second session")
+	slices.Sort(next)
+	if slices.Equal(first, next) {
+		t.Fatal("expected these two sessions to draw different videos")
 	}
 }
 
