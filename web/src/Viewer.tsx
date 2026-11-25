@@ -227,8 +227,14 @@ export default function Viewer(){
         {searchOpen&&catalog.discovery.search!=='off'&&<label className="find-box">Search videos<input autoFocus value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/></label>}
         <div className="choice-board">{rows.map(group=><section className="subject-row" key={group.items[0].subject.trim().toLowerCase()} aria-label={group.label}>
 
-          <ul className="picture-wall">{group.items.map((m,index)=><li key={m.id}>
-          {index===0&&<h2 title={group.label}><TopicBadge subject={group.label}/>{group.label}</h2>}
+          <ul className="picture-wall">{group.items.map((m,index)=><li key={m.id} className={index===0?'starts-topic':undefined}>
+          {index===0&&<h2 className="topic-bookend" title={group.label}>
+            {catalog.navigation!=='text'&&<span className="topic-portrait">
+              <TopicBadge subject={group.label}/>
+              <img src={'/api/watch/media/'+m.id+'/picture'} alt="" onError={e=>{e.currentTarget.hidden=true}}/>
+            </span>}
+            <span className="bookend-label">{group.label}</span>
+          </h2>}
           <button id={'choice-'+m.id} data-choice aria-label={m.title} disabled={busy} onClick={()=>action('play',m.id)}>
             {catalog.navigation!=='text'&&<span className="cover"><span className="cover-fallback">{m.title}</span><img loading="lazy" width="480" height="270" alt="" src={'/api/watch/media/'+m.id+'/picture'} onError={e=>{e.currentTarget.hidden=true}}/><span className="play-dot" aria-hidden="true">▶</span></span>}
             {catalog.navigation!=='visual'&&<strong>{m.title}</strong>}

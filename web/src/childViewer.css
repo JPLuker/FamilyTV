@@ -57,11 +57,31 @@ main.child-world.choosing{box-sizing:border-box;height:100vh;height:100dvh;min-h
 .discovery-heading{flex-wrap:wrap;gap:.2rem .8rem;margin-bottom:.35rem}
 .discovery-heading h1{font-size:clamp(1.35rem,3.4vw,2.6rem);margin:0}
 .quick-bar{display:flex;flex-wrap:wrap;gap:.35rem}.quick-bar button{font-size:1rem;margin:0;min-height:44px}
-.choice-board{display:grid;flex:1;min-height:0;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:clamp(.25rem,1vh,.7rem) clamp(.35rem,1vw,.8rem);align-content:start}
+.choice-board{display:grid;flex:1;min-height:0;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:clamp(.25rem,1vh,.7rem) clamp(.35rem,1vw,.8rem);align-content:start}
 .choice-board .subject-row,.choice-board .picture-wall{display:contents}
-.choice-board li{position:relative;display:flex;flex-direction:column;min-height:0;max-height:17rem;border-radius:.75rem}
-.choice-board h2{display:flex;align-items:center;gap:.2em;font-size:1em;margin:0;position:absolute;top:.2em;left:.2em;right:auto;z-index:1;background:var(--card);border-radius:1em;padding:0 .4em 0 .2em;max-width:95%;overflow:hidden;white-space:nowrap;pointer-events:none}
-.choice-board h2 .topic-art{font-size:.8em;width:1.5em;height:1.5em}
+.choice-board li{grid-column:span 2;position:relative;display:flex;flex-direction:column;min-height:0;max-height:17rem;border-radius:.75rem}
+/* A topic marker travels with its first video even at a row break. */
+.choice-board li.starts-topic{
+  grid-column:span 3;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);
+  grid-template-rows:minmax(0,1fr) auto;column-gap:clamp(.25rem,.75vw,.65rem);
+  background:transparent;box-shadow:none;
+}
+.starts-topic .tile-foot{grid-column:2;background:var(--card);border-radius:0 0 .75rem .75rem}
+.starts-topic [data-choice]{border-radius:.75rem .75rem 0 0}
+.choice-board .topic-bookend{
+  grid-row:1 / 3;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:.4em;min-height:0;min-width:0;margin:0;padding:.3em;text-align:center;
+  background:#ffe396;color:#233852;border-inline-start:.32em solid #e8a646;
+  border-radius:1.6em .8em .8em 1.6em;font-size:clamp(.85rem,1.6vw,1.55rem);line-height:1.1;
+}
+.subject-row:nth-child(4n+2) .topic-bookend{background:#c8b9fa;border-color:#9882de}
+.subject-row:nth-child(4n+3) .topic-bookend{background:#aee6cd;border-color:#69b899}
+.subject-row:nth-child(4n+4) .topic-bookend{background:#ffc7b4;border-color:#e9967a}
+.topic-portrait{display:grid;place-items:center;position:relative;width:min(92%,5.5em);aspect-ratio:1;max-height:58%;min-height:0;overflow:hidden;border-radius:50%;background:var(--card)}
+.topic-portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.topic-bookend .topic-art{width:100%;height:100%;font-size:1.6em}
+.bookend-label{min-height:0;overflow:auto;overflow-wrap:anywhere;max-width:100%}
+.child-world.contrast .topic-bookend{background:#111;color:white;border:2px solid white}
 .choice-board [data-choice]{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch}
 .choice-board .cover{min-height:0;flex:1;aspect-ratio:auto}
 .choice-board strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:1em;padding:.12em .4em}
@@ -73,5 +93,5 @@ main.child-world.choosing{box-sizing:border-box;height:100vh;height:100dvh;min-h
 .child-world[data-input=remote] .choice-board summary{min-height:24px}
 .choosing .find-box{margin:0 0 .3rem}
 .choosing .empty-shelf{order:0}.choice-board:empty{display:none}
-@media(orientation:portrait){.choice-board{grid-template-columns:repeat(3,minmax(0,1fr))}.choice-board h2{font-size:.83em}.quick-bar button{padding:.35em .7em}.choice-board .tile-foot{font-size:.8em}}
-@media(orientation:landscape) and (max-height:500px){.choosing>header{display:none}.choice-board{grid-template-columns:repeat(6,minmax(0,1fr))}.choice-board strong,.choice-board h2{font-size:.85em}}
+@media(orientation:portrait){.choice-board{grid-template-columns:repeat(7,minmax(0,1fr))}.choice-board h2{font-size:.83em}.quick-bar button{padding:.35em .7em}.choice-board .tile-foot{font-size:.8em}}
+@media(orientation:landscape) and (max-height:500px){.choosing>header{display:none}.choice-board{grid-template-columns:repeat(14,minmax(0,1fr))}.choice-board strong,.choice-board h2{font-size:.85em}}
