@@ -16,6 +16,7 @@ import (
 )
 
 type Viewing struct {
+	Rotation string `json:"rotation,omitempty"`
 	Budget      SessionBudget `json:"budget,omitempty"`
 	LastCreator string        `json:"last_creator,omitempty"`
 	Profile     string        `json:"profile"`
@@ -28,6 +29,7 @@ type Viewing struct {
 	CookieHash  string        `json:"cookie_hash,omitempty"`
 }
 type WatchItem struct {
+	returning bool
 	creator  string
 	series   string
 	ID       string  `json:"id"`
@@ -194,7 +196,7 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		write(w, 409, map[string]string{"error": "End the active session first."})
 		return
 	}
-	v = Viewing{Profile: id, Mode: input.Mode}
+	v = Viewing{Profile: id, Mode: input.Mode, Rotation: token()[:12]}
 	switch input.Mode {
 	case "manual":
 	case "one_video":
@@ -348,6 +350,10 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			current = &item
 		}
 		bookmark := marks[m.ID]
+		if list == "" && bookmark.Later && bookmark.SavedDuring == v.Rotation {
+			continue
+		}
+		item.returning = list == "" && bookmark.Later && bookmark.SavedDuring != v.Rotation
 		if list == "favorites" && !bookmark.Favorite || list == "later" && !bookmark.Later || list == "resume" && bookmark.Position <= 0 {
 			continue
 		}
@@ -363,7 +369,7 @@ func (s *Server) watchCatalog(w http.ResponseWriter, r *http.Request) {
 			shelf = append(shelf, ShelfEntry{item, mark, true})
 		}
 	}
-	write(w, 200, map[string]any{"items": items, "list": list, "shelf": shelf, "resume": s.data.Bookmarks[p.ID][v.Current].Position, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "deadline": v.cutoff(), "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_topic": p.EndingTopic, "quiet_ending": p.QuietEnding, "ending_music": p.EndingMusic && !p.QuietEnding})
+	write(w, 200, map[string]any{"rotation": v.Rotation, "items": items, "list": list, "shelf": shelf, "resume": s.data.Bookmarks[p.ID][v.Current].Position, "page": page, "pages": pages, "discovery": p.Discovery, "current": current, "deadline": v.cutoff(), "server_time": now.UnixMilli(), "captions": p.Captions, "avatar": p.Avatar, "navigation": p.Navigation, "reduced_motion": p.ReducedMotion, "large_text": p.LargeText, "high_contrast": p.HighContrast, "ending_topic": p.EndingTopic, "quiet_ending": p.QuietEnding, "ending_music": p.EndingMusic && !p.QuietEnding})
 }
 func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
@@ -389,6 +395,8 @@ func (s *Server) watchAction(w http.ResponseWriter, r *http.Request) {
 		bookmark := s.data.Bookmarks[p.ID][v.Current]
 		if r.URL.Path == "/api/watch/finish" {
 			bookmark.Position = 0
+			bookmark.Later = false
+			bookmark.SavedDuring = ""
 		} else if input.Position != nil {
 			for _, m := range s.data.Media {
 				if m.ID == v.Current {

@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Child viewer update, 0.23.0
+
+Subjects head groups on each page of eligible videos. A new session shuffles the subject order. Reopening or transferring that session keeps its order. Save for later defers an episode from the main choices until a later eligible session. Completing the video clears the save. Older favorites remain stored. Physical acceptance is tracked in issue #1.
+
 ## Child viewer update, 0.22.0
 
 The viewer opens on approved episode artwork. Topic buttons filter the current page using subjects from parent reviews. Saved lists sit below the video choices. Find opens search when the profile allows it. The ending has a separate night screen; quiet endings omit the illustration, fact and music. Real-TV remote and household usability testing remain open in issue #1.

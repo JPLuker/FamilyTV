@@ -45,3 +45,7 @@ main.child-world.contrast{--sky-ink:white;--card:#111;--cloud:#111;background:#1
 .child-world.contrast :focus-visible{outline-color:#ffc400}
 @media(max-width:38rem){.picture-wall{grid-template-columns:repeat(2,minmax(0,1fr))}.child-world.large .picture-wall{grid-template-columns:1fr}.topic-strip{gap:.2em}.discovery-heading h1{font-size:2.3em}}
 @media(prefers-reduced-motion:no-preference){.child-world:not(.still):not(.contrast) [data-choice]:focus-visible{transform:translateY(-2px)}}
+.child-world .subject-row{margin:1.1rem 0 1.6rem;padding:0;border:0;box-shadow:none;background:transparent}
+.subject-row h2{display:flex;align-items:center;gap:.45em;font-size:clamp(1.45em,3vw,2em);margin:0 0 .45em}
+.subject-row h2 .topic-art{width:1.8em;height:1.8em;font-size:.85em}
+.subject-row .picture-wall{margin:0}

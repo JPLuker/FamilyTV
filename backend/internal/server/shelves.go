@@ -9,6 +9,7 @@ import (
 )
 
 type Bookmark struct {
+	SavedDuring string `json:"saved_during,omitempty"`
 	Favorite bool    `json:"favorite"`
 	Later    bool    `json:"later"`
 	Position float64 `json:"position"`
@@ -81,6 +82,10 @@ func (s *Server) bookmark(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			b.Later = input.Enabled
+			b.SavedDuring = ""
+			if input.Enabled {
+				b.SavedDuring = v.Rotation
+			}
 		}
 		before := s.data.Bookmarks
 		s.changeBookmark(p.ID, m.ID, b)

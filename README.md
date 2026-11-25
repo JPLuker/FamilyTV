@@ -44,7 +44,7 @@ Scan the read-only folder from the dashboard and select the files to import. Fam
 
 ### Child viewing and playback
 
-Open Options on a video to mark it as a favorite or save it for later. Back to choices keeps the current position. Finish video clears the position. In a one-video or finish-after-current session, leaving the video ends the session. Surprise me selects from the currently displayed choices. On-demand playback waits for Play.
+Each subject heads its own group of videos. Subject order is shuffled for each new session and stays stable while browsing. Open Options and choose Save for later to take a video out of today’s main choices. It gets priority the next session it fits and leaves the saved list when finished. Back to choices keeps the current position. Finish video clears the position. In a one-video or finish-after-current session, leaving the video ends the session. Surprise me selects from the currently displayed choices. On-demand playback waits for Play.
 
 The viewer tries the source file first. On decoder failure the server prepares a seekable MP4 with FFmpeg, copying supported H.264 video and AAC audio where possible. If the client still cannot decode it, it can retry with both tracks encoded. Compatibility playback uses the default audio track and the same WebVTT sidecar. Preparation runs one job at a time with a 15-minute limit and a 512 MiB output limit. A large source can take time to prepare or exceed these limits. One anonymous temporary copy is cached for repeat requests. Viewer access is checked during preparation and delivery.
 

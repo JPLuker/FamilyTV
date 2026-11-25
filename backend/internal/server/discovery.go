@@ -53,6 +53,8 @@ func (d Discovery) page(items []WatchItem, page int, lastCreator string) ([]Watc
 	if d.CreatorCooldown && lastCreator != "" {
 		sort.SliceStable(items, func(i, j int) bool { return items[i].creator != lastCreator && items[j].creator == lastCreator })
 	}
+	// Return deferred choices before filling the page, retaining creator grouping.
+	sort.SliceStable(items, func(i, j int) bool { return items[i].returning && !items[j].returning })
 	if d.UniqueCreators && len(items) > 0 {
 		groups := buckets(items, func(m WatchItem) string { return m.creator })
 		var pages [][]WatchItem
