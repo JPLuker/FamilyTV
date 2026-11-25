@@ -87,7 +87,6 @@ main.child-world.choosing{box-sizing:border-box;height:100vh;height:100dvh;min-h
 .choosing:not(.contrast) .choice-board li,
 .choosing:not(.contrast) .choice-board [data-choice],
 .choosing:not(.contrast) .choice-board .tile-foot{background:transparent;box-shadow:none}
-.choice-board .tile-foot details[open]{background:var(--card)}
 .choice-board [data-choice]{border-radius:clamp(.85rem,2vw,2rem) clamp(.85rem,2vw,2rem) .45rem .45rem}
 .choice-board .topic-portrait{flex-shrink:1}
 @media(orientation:portrait){.choice-board .topic-bookend{padding-inline:.1em;border-inline-start-width:.16em}}
@@ -103,3 +102,14 @@ main.child-world.choosing{box-sizing:border-box;height:100vh;height:100dvh;min-h
 .choosing .empty-shelf{order:0}.choice-board:empty{display:none}
 @media(orientation:portrait){.choice-board{grid-template-columns:repeat(8,minmax(0,1fr))}.choice-board li.starts-topic{grid-column:span 4;grid-template-columns:repeat(2,minmax(0,1fr))}.choice-board h2{font-size:.83em}.quick-bar button{padding:.35em .7em}.choice-board .tile-foot{font-size:.8em}}
 @media(orientation:landscape) and (max-height:500px){.choosing>header{display:none}.choice-board{grid-template-columns:repeat(14,minmax(0,1fr))}.choice-board strong,.choice-board h2{font-size:.85em}}
+
+@media (orientation:portrait) {
+  .choice-board .tile-foot{padding-inline:.1em;gap:0}
+  .choice-board .tile-foot summary{min-width:32px}
+}
+@media (orientation:portrait) and (min-height:650px) {
+  .choice-board strong{
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+    white-space:normal;line-height:1.1;min-height:2.2em;
+  }
+}
