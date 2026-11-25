@@ -102,6 +102,8 @@ Open your HTTPS address on your phone and sign in. Keep this development build o
 
 ## Test a session
 
+Videos appear under the subjects you entered in Review. On a video, open **•••** and choose **Save for later** to put it aside. FamilyTV brings it back in a future session when it fits. You can also find it under **Saved for later**. Finishing it clears the save.
+
 Use the remote to choose the approved episode and select **Play on TV**. Check the audio and captions. Use Back to return to the episode, then to the list. Start playback again and choose **End now** on your phone. The TV should return to the session ending.
 
 For the cutoff test, start a fresh session and choose **Finish by a clock time**. Leave enough time for the whole clip or it won't appear in the list. Start the clip and pause before the deadline. Check that the TV locks when time runs out.
