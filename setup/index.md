@@ -102,6 +102,8 @@ Open your HTTPS address on your phone and sign in. Keep this development build o
 
 ## Test a session
 
+The quick bar sits above the choices. Each page fits up to 12 eligible videos. Use **Saved for later** to open saved choices and **Back to choices** to return. If you want a child’s next play to start where they stopped, enable **Resume a video from its saved position** in the parent profile settings. It starts off.
+
 Videos appear under the subjects you entered in Review. On a video, open **•••** and choose **Save for later** to put it aside. FamilyTV brings it back in a future session when it fits. You can also find it under **Saved for later**. Finishing it clears the save.
 
 Use the remote to choose the approved episode and select **Play on TV**. Check the audio and captions. Use Back to return to the episode, then to the list. Start playback again and choose **End now** on your phone. The TV should return to the session ending.
@@ -122,11 +124,11 @@ PostgreSQL stores your child profiles, approvals and session settings. Keep a se
 
 ## Screenshots
 
-These screens show a test profile with four approved sample clips. Download an individual PNG or save all three together.
+These screens show a test profile with 12 approved sample clips. Download an individual PNG or save all three together.
 
 <div class="shots">
-<figure><img loading="lazy" src="../downloads/viewer-preview.png" alt="Four approved episodes in the child viewer"><figcaption><a href="../downloads/viewer-preview.png" download="familytv-viewer.png">Child viewer PNG</a></figcaption></figure>
-<figure><img loading="lazy" src="../downloads/phone-preview.png" alt="The same episodes in two columns on a phone"><figcaption><a href="../downloads/phone-preview.png" download="familytv-phone.png">Phone view PNG</a></figcaption></figure>
+<figure><img loading="lazy" src="../downloads/viewer-preview.png" alt="Twelve approved choices beneath the child quick bar"><figcaption><a href="../downloads/viewer-preview.png" download="familytv-viewer.png">Child viewer PNG</a></figcaption></figure>
+<figure><img loading="lazy" src="../downloads/phone-preview.png" alt="The same episodes in three columns on a phone"><figcaption><a href="../downloads/phone-preview.png" download="familytv-phone.png">Phone view PNG</a></figcaption></figure>
 <figure><img loading="lazy" src="../downloads/ending-preview.png" alt="The moon and a short fact after the session ends"><figcaption><a href="../downloads/ending-preview.png" download="familytv-ending.png">Ending screen PNG</a></figcaption></figure>
 </div>
 
