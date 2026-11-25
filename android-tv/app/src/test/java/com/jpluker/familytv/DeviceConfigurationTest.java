@@ -1,6 +1,10 @@
 package com.jpluker.familytv;
 
 import android.content.Intent;
+import android.content.res.Resources;
+import android.content.res.XmlResourceParser;
+import org.robolectric.RuntimeEnvironment;
+import org.xmlpull.v1.XmlPullParser;
 import android.content.pm.ActivityInfo;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,6 +50,35 @@ public class DeviceConfigurationTest {
                 if (hasButton(group.getChildAt(i), label)) return true;
         }
         return false;
+    }
+
+    @Test public void platformAndViewerAgreeOnTheLocalException() throws Exception {
+        Resources resources = RuntimeEnvironment.getApplication().getResources();
+        String local = resources.getString(R.string.local_test_origin);
+        assertEquals(BuildConfig.DEBUG ? "http://192.168.86.163:8095" : "", local);
+        int allowedHosts = 0;
+        boolean baseDenied = false;
+        try (XmlResourceParser policy = resources.getXml(R.xml.network_security_config)) {
+            while (policy.next() != XmlPullParser.END_DOCUMENT) {
+                if (policy.getEventType() != XmlPullParser.START_TAG) continue;
+                switch (policy.getName()) {
+                    case "base-config":
+                        baseDenied = !policy.getAttributeBooleanValue(null, "cleartextTrafficPermitted", true);
+                        break;
+                    case "domain-config":
+                        assertTrue(policy.getAttributeBooleanValue(null, "cleartextTrafficPermitted", false));
+                        break;
+                    case "domain":
+                        assertFalse(policy.getAttributeBooleanValue(null, "includeSubdomains", true));
+                        assertEquals(java.net.URI.create(local).getHost(), policy.nextText());
+                        allowedHosts++;
+                        break;
+                    default: break;
+                }
+            }
+        }
+        assertTrue(baseDenied);
+        assertEquals(BuildConfig.DEBUG ? 1 : 0, allowedHosts);
     }
 
     @Test public void localHttpRequiresExactConfiguredOrigin() {

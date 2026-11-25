@@ -5,7 +5,13 @@ plugins {
 android {
     namespace 'com.jpluker.familytv'
     compileSdk 35
-    testOptions.unitTests.includeAndroidResources = true
+    buildFeatures.buildConfig = true
+    testOptions.unitTests {
+        includeAndroidResources = true
+        all {
+            systemProperty 'robolectric.dependency.repo.url', 'https://maven-central.storage-download.googleapis.com/maven2'
+        }
+    }
     defaultConfig {
         applicationId 'com.jpluker.familytv'
         minSdk 26

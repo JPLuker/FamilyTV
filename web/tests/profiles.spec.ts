@@ -342,3 +342,21 @@ test('two horizontal rows let children reach every choice in the session',async(
     await expect(right).toHaveAttribute('aria-disabled','false')
   }
 })
+
+test.describe('Android handheld viewer', () => {
+  test.use({userAgent:'FamilyTV-AndroidTV FamilyTV-Handheld',hasTouch:true,viewport:{width:390,height:730}})
+  test('keeps native playback available to touch after rotation', async ({page}) => {
+    const clip={id:'clip',title:'Nature walk',subject:'Nature',duration_seconds:60,captions:true}
+    await page.route('**/api/watch', route=>route.fulfill({json:{
+      current:clip,items:[clip],shelf:[],discovery:{},server_time:Date.now(),deadline:0
+    }}))
+    await page.goto('/watch')
+    const play=page.getByRole('link',{name:'Play video'})
+    await expect(play).toHaveAttribute('href','/watch/native')
+    await expect(page.locator('[data-input=remote]')).toHaveCount(0)
+    await page.setViewportSize({width:730,height:390})
+    await page.route('**/watch/native', route=>route.fulfill({body:'Native player handoff'}))
+    await play.tap()
+    await expect(page).toHaveURL(/\/watch\/native$/)
+  })
+})
