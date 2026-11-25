@@ -127,7 +127,7 @@ main.child-world.choosing{box-sizing:border-box;height:100vh;height:100dvh;min-h
 .choice-lane{display:flex;gap:var(--lane-gap);width:max-content}
 .choice-lane:nth-child(2){padding-inline-start:calc(var(--tile-width)*.32)}
 .choice-board .choice-lane li{
-  width:var(--tile-width);height:clamp(7rem,24vh,15rem);box-sizing:border-box;
+  width:var(--tile-width);height:min(24vh,calc(var(--tile-width)*.5625 + 3.2rem));box-sizing:border-box;
 }
 .choice-board .choice-lane li.starts-topic{
   width:calc(var(--tile-width)*1.48 + var(--lane-gap));
