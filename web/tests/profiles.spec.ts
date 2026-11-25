@@ -332,7 +332,7 @@ test('two horizontal rows let children reach every choice in the session',async(
     await expect(page.locator('.choice-lane')).toHaveCount(2)
     const strip=page.locator('.choice-board')
     const right=page.getByRole('button',{name:'Move right'})
-    for(let step=0;step<12 && await right.getAttribute('aria-disabled')==='false';step++){
+    for(let step=0;step<12 && await strip.evaluate(el=>el.scrollLeft+el.clientWidth<el.scrollWidth-2);step++){
       const before=await strip.evaluate(el=>el.scrollLeft)
       await right.click()
       await expect.poll(()=>strip.evaluate(el=>el.scrollLeft)).toBeGreaterThan(before)

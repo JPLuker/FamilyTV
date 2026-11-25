@@ -153,7 +153,9 @@ export default function Viewer(){
   },[stripKey,current?.id,updateEdges])
   function turn(direction:number){
     const el=strip.current
-    if(el)el.scrollBy({left:direction*el.clientWidth*.85})
+    if(!el)return
+    el.scrollBy({left:direction*el.clientWidth*.85,behavior:'instant'})
+    updateEdges()
   }
   async function mark(m:Item){
     const control=document.activeElement as HTMLElement|null
