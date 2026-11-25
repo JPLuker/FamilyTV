@@ -102,7 +102,7 @@ Open your HTTPS address on your phone and sign in. Keep this development build o
 
 ## Test a session
 
-The quick bar sits above the choices. Each page fits up to 12 eligible videos. Use **Saved for later** to open saved choices and **Back to choices** to return. If you want a child’s next play to start where they stopped, enable **Resume a video from its saved position** in the parent profile settings. It starts off.
+The quick bar sits above the choices. Children get one board of up to 12 eligible videos. Find searches the choices on screen. A new session can bring different videos onto the board. Use **Saved for later** to open saved choices and **Back to choices** to return. If you want a child’s next play to start where they stopped, enable **Resume a video from its saved position** in the parent profile settings. It starts off.
 
 Videos appear under the subjects you entered in Review. On a video, open **•••** and choose **Save for later** to put it aside. FamilyTV brings it back in a future session when it fits. You can also find it under **Saved for later**. Finishing it clears the save.
 
