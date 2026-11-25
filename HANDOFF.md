@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Child viewer update, 0.29.0
+
+Two staggered rows move horizontally together. Swipe, arrow buttons and remote focus reveal the rest of the same session pool. Topic markers lead each group.
+
 ## Child viewer update, 0.28.0
 
 The choice board has wider gutters, floating rounded thumbnails and compact topic markers. Its single-screen choice limit and remote controls are unchanged.

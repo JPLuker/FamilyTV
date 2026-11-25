@@ -198,7 +198,7 @@ test('parent can edit, export and remove a returning child profile',async({page,
   await expect(child.locator('main')).toHaveClass(/contrast/)
   await expect(child.locator('main')).toHaveClass(/large/)
   await expect(child.getByLabel('Search videos')).toBeHidden()
-  await expect(child.locator('.picture-wall')).toBeVisible()
+  await expect(child.locator('.picture-wall').first()).toBeVisible()
   expect(await child.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
   const picture=child.getByRole('button',{name:'forest',exact:true}).locator('img')
   await expect.poll(()=>picture.evaluate(img=>img.naturalWidth)).toBeGreaterThan(0)
@@ -306,7 +306,7 @@ test('a parent can distinguish repeated wall times and cannot choose a missing m
   }finally{if(previous===undefined)delete process.env.TZ;else process.env.TZ=previous}
 })
 
-test('twelve subject choices and the quick bar fit the screen',async({page})=>{
+test('two horizontal rows let children reach every choice in the session',async({page})=>{
   const items=Array.from({length:12},(_,i)=>({id:String(i),title:'Episode '+i,subject:'Subject '+i,duration_seconds:60,captions:false}))
   await page.route('**/api/watch',route=>route.fulfill({json:{items,list:'',shelf:[],page:0,pages:2,discovery:{search:'on'},current:null,rotation:'sample',deadline:0,server_time:Date.now(),navigation:'visual-text'}}))
   await page.route('**/api/watch/media/*/picture',route=>route.fulfill({status:404}))
@@ -329,5 +329,16 @@ test('twelve subject choices and the quick bar fit the screen',async({page})=>{
         document.documentElement.scrollWidth<=innerWidth && tiles.every(r=>r.height>=24 && r.top>=0 && r.bottom<=innerHeight)
     })
     expect(fit,'layout '+width+'×'+height).toBe(true)
+    await expect(page.locator('.choice-lane')).toHaveCount(2)
+    const strip=page.locator('.choice-board')
+    const right=page.getByRole('button',{name:'Move right'})
+    for(let step=0;step<12 && await right.getAttribute('aria-disabled')==='false';step++){
+      const before=await strip.evaluate(el=>el.scrollLeft)
+      await right.click()
+      await expect.poll(()=>strip.evaluate(el=>el.scrollLeft)).toBeGreaterThan(before)
+    }
+    await expect(right).toHaveAttribute('aria-disabled','true')
+    await page.getByRole('button',{name:'Move left'}).click()
+    await expect(right).toHaveAttribute('aria-disabled','false')
   }
 })

@@ -23,6 +23,8 @@ export default function Viewer(){
   const [error,setError]=useState('')
   const [ended,setEnded]=useState(false)
   const preferences=useRef({ending_topic:"",quiet_ending:true,large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
+  const strip=useRef<HTMLDivElement>(null)
+  const [edges,setEdges]=useState({back:false,next:false})
   const root=useRef<HTMLElement>(null)
   const lastTile=useRef('')
   const position=useRef<number|undefined>(undefined)
@@ -126,6 +128,33 @@ export default function Viewer(){
     groups.get(key)!.items.push(item)
   }
   const rows=Array.from(groups.values()).sort((a,b)=>subjectOrder(catalog?.rotation||'',a.label)-subjectOrder(catalog?.rotation||'',b.label))
+  const ordered=rows.flatMap(group=>group.items.map(item=>({label:group.label,item})))
+  const split=Math.ceil(ordered.length/2)
+  const lanes=[ordered.slice(0,split),ordered.slice(split)].filter(lane=>lane.length).map(lane=>{
+    const groups:{label:string;items:Item[]}[]=[]
+    for(const {label,item} of lane){
+      if(groups[groups.length-1]?.label!==label)groups.push({label,items:[]})
+      groups[groups.length-1].items.push(item)
+    }
+    return groups
+  })
+  const updateEdges=useCallback(()=>{
+    const el=strip.current
+    if(el)setEdges({back:el.scrollLeft>2,next:el.scrollLeft+el.clientWidth<el.scrollWidth-2})
+  },[])
+  const stripKey=ordered.map(entry=>entry.item.id).join(',')
+  useEffect(()=>{
+    const el=strip.current
+    if(!el)return
+    updateEdges()
+    const observer=new ResizeObserver(updateEdges)
+    observer.observe(el)
+    return ()=>observer.disconnect()
+  },[stripKey,current?.id,updateEdges])
+  function turn(direction:number){
+    const el=strip.current
+    if(el)el.scrollBy({left:direction*el.clientWidth*.85})
+  }
   async function mark(m:Item){
     const control=document.activeElement as HTMLElement|null
     setBusy(true)
@@ -177,6 +206,7 @@ export default function Viewer(){
     const focus=(current?root.current?.querySelector<HTMLElement>('video,.play-native'):
       document.getElementById('choice-'+lastTile.current))||root.current?.querySelector<HTMLElement>('[data-choice]')||root.current?.querySelector<HTMLElement>('button:not(:disabled),input')
     focus?.focus({preventScroll:true})
+    if(!current && lastTile.current)focus?.scrollIntoView({inline:'nearest',block:'nearest'})
   },[current?.id,hasCatalog])
   return <main data-input={nativeTV?"remote":undefined} ref={root} onFocus={e=>{if(catalog?.discovery.spoken_labels&&'speechSynthesis' in window){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
@@ -198,7 +228,7 @@ export default function Viewer(){
             {visible.length>0&&<button className="surprise" disabled={busy} onClick={()=>action('play',visible[Math.floor(Math.random()*visible.length)].id)}>Surprise me</button>}
           </nav>
         </div>
-        <div className="choice-board">{rows.map(group=><section className="subject-row" key={group.items[0].subject.trim().toLowerCase()} aria-label={group.label}>
+        <div className="choice-board" ref={strip} onScroll={updateEdges}>{lanes.map((lane,laneIndex)=><div className="choice-lane" key={laneIndex}>{lane.map(group=><section className="subject-row" key={group.items[0].subject.trim().toLowerCase()} aria-label={group.label}>
 
           <ul className="picture-wall">{group.items.map((m,index)=><li key={m.id} className={index===0?'starts-topic':undefined}>
           {index===0&&<h2 className="topic-bookend" title={group.label}>
@@ -214,7 +244,11 @@ export default function Viewer(){
           </button><div className="tile-foot"><span>{catalog.discovery.reading==='detail'&&m.subject&&m.subject+' · '}{Math.ceil(m.duration_seconds/60)} min</span>
           <details><summary aria-label={'Options for '+m.title}>•••</summary>
             <button disabled={busy} onClick={()=>mark(m)}>Save for later</button>
-          </details></div></li>)}</ul></section>)}</div>
+          </details></div></li>)}</ul></section>)}</div>)}</div>
+        {(edges.back||edges.next)&&<nav className="strip-controls" aria-label="Move along the videos">
+          <button aria-label="Move left" aria-disabled={!edges.back} onClick={()=>turn(-1)}>←</button>
+          <button aria-label="Move right" aria-disabled={!edges.next} onClick={()=>turn(1)}>→</button>
+        </nav>}
         {!visible.length&&<p className="empty-shelf">No videos are available for this session.</p>}
 
       </section>)}

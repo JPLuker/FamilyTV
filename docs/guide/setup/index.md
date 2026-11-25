@@ -102,7 +102,7 @@ Open your HTTPS address on your phone and sign in. Keep this development build o
 
 ## Test a session
 
-The quick bar sits above the choices. Children get one board of up to 12 eligible videos. A new session can bring different videos onto the board. If you want a child’s next play to start where they stopped, enable **Resume a video from its saved position** in the parent profile settings. It starts off.
+The quick bar sits above the choices. Children get up to 12 eligible videos strung together in two rows. Swipe sideways or use the arrows to see the rest of the session’s choices. A new session can bring different videos onto the board. If you want a child’s next play to start where they stopped, enable **Resume a video from its saved position** in the parent profile settings. It starts off.
 
 Videos appear under the subjects you entered in Review. On a video, open **•••** and choose **Save for later** to put it aside. It leaves this board and gets priority in the next session it fits. Finishing it clears the save.
 
