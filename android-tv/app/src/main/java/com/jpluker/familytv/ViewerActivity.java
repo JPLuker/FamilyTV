@@ -36,7 +36,9 @@ public final class ViewerActivity extends Activity {
         super.onCreate(saved);
         ViewerWindow.configure(this);
         server = getPreferences(MODE_PRIVATE).getString("server", "");
-        if (origin(server, getString(R.string.local_test_origin)) == null) showPairing(); else openViewer("");
+        if (origin(server, getString(R.string.local_test_origin)) == null) showPairing();
+        else if (getPreferences(MODE_PRIVATE).getBoolean("parentMode",false)) showParentHome();
+        else openViewer("");
     }
 
     private void showPairing() {
@@ -88,8 +90,10 @@ public final class ViewerActivity extends Activity {
         parent.setOnClickListener(v->{
             String target=origin(address.getText().toString().trim(),getString(R.string.local_test_origin));
             if(target==null){manual.setVisibility(View.VISIBLE);address.setError("Choose or enter your FamilyTV server.");address.requestFocus();return;}
-            try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target+"/?parent-mode=1")));}
-            catch(android.content.ActivityNotFoundException e){found.setText("Open "+target+"/?parent-mode=1 in your parent browser.");}
+            server=target;
+            getPreferences(MODE_PRIVATE).edit().putString("server",server).putBoolean("parentMode",true).apply();
+            showParentHome();
+            launchParentDashboard();
         });
         EditText code = field(form, "Pairing code from the parent dashboard", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
         Button join = new Button(this);
@@ -101,12 +105,44 @@ public final class ViewerActivity extends Activity {
             String key = code.getText().toString().trim().replace("-", "").toUpperCase(Locale.ROOT);
             if (!key.matches("[A-Z2-7]{6}|[A-Z2-7]{13}")) { code.setError("Enter the six-character code shown on the parent dashboard."); code.requestFocus(); return; }
             server = origin;
-            getPreferences(MODE_PRIVATE).edit().putString("server", server).apply();
+            getPreferences(MODE_PRIVATE).edit().putString("server", server).putBoolean("parentMode",false).apply();
             openViewer(key);
         });
         if (tv) addPhonePairing(form, address, margin);
         setContentView(scroll);
         if (tv) code.requestFocus();
+    }
+
+    private void launchParentDashboard() {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(server+"/?parent-mode=1")));
+        } catch(android.content.ActivityNotFoundException e) {
+            new AlertDialog.Builder(this).setMessage("Open "+server+"/?parent-mode=1 in your parent browser.")
+                    .setPositiveButton("OK",null).show();
+        }
+    }
+    private void showParentHome() {
+        pairingGeneration++;
+        stopDiscovery();
+        LinearLayout form=new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        TextView title=new TextView(this);
+        title.setText("FamilyTV parent mode");
+        title.setTypeface(getResources().getFont(R.font.jua));
+        title.setTextSize(32);
+        int margin=(int)(24 * getResources().getDisplayMetrics().density);
+        form.setPadding(margin,margin,margin,margin);
+        form.addView(title);
+        Button manage=new Button(this);
+        manage.setText("Open parent dashboard");
+        form.addView(manage);
+        manage.setOnClickListener(v->launchParentDashboard());
+        Button setup=new Button(this);
+        setup.setText("Device setup");
+        form.addView(setup);
+        setup.setOnClickListener(v->showPairing());
+        setContentView(form);
+        manage.requestFocus();
     }
 
     private void addPhonePairing(LinearLayout form, EditText address, int margin) {
@@ -145,7 +181,7 @@ public final class ViewerActivity extends Activity {
                     .setView(image).setNegativeButton("Cancel", null)
                     .setPositiveButton("Open paired viewer", (dialog, which) -> {
                         server = origin;
-                        getPreferences(MODE_PRIVATE).edit().putString("server", server).apply();
+                        getPreferences(MODE_PRIVATE).edit().putString("server", server).putBoolean("parentMode",false).apply();
                         openViewer(pairing.secret);
                     }).show();
         } catch (NoSuchAlgorithmException | WriterException | IllegalArgumentException ex) {

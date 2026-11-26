@@ -89,6 +89,24 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 	call("GET", "/api/watch", "", child, 403)
 }
 
+func TestSessionPINAttemptLimit(t *testing.T) {
+	s, err := New(filepath.Join(t.TempDir(), "state.json"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.data.Account = &account{Salt: "household", PINHash: digest("258369", "pin:household")}
+	for range 5 {
+		w := httptest.NewRecorder()
+		if s.checkStartPIN(w, "000000") || w.Code != 403 {
+			t.Fatal("unexpected PIN response", w.Code)
+		}
+	}
+	w := httptest.NewRecorder()
+	if s.checkStartPIN(w, "258369") || w.Code != 429 {
+		t.Fatal("missing lockout", w.Code)
+	}
+}
+
 func TestLegacyDevicesMoveToHouseholdOnce(t *testing.T) {
 	var st state
 	err := json.Unmarshal([]byte(`{"devices":{"oldchild":{"screens":[{"hash":"legacy","until":2000000000}]},"":{"screens":[{"hash":"new","until":2000000000}]}}}`), &st)

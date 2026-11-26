@@ -207,7 +207,7 @@ export default function Viewer(){
   }
   useEffect(()=>{
     const back=(event:Event)=>{if(goBack())event.preventDefault()}
-    const leavePlayer=()=>{if(current)void action('leave',current.id);else void refresh()}
+    const leavePlayer=()=>{const id=current?.id||explicitPlay.current;if(id)void action('leave',id);else void refresh()}
     window.addEventListener('familytv-player-back',leavePlayer)
     window.addEventListener('familytv-back',back)
     return ()=>{window.removeEventListener('familytv-back',back);window.removeEventListener('familytv-player-back',leavePlayer)}
@@ -254,12 +254,11 @@ export default function Viewer(){
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog?.deadline&&Boolean(catalog.discovery.warn_minutes)&&catalog.deadline-catalog.server_time<=(catalog.discovery.warn_minutes||0)*60000?<p>Viewing time ends soon.</p>:null}
-      {catalog && (current?<section className="playback-stage"><h1>{current.title}</h1>
+      {catalog && (current?<section className="playback-stage"><div className="player-toolbar">
+        <button aria-label="Close player" disabled={busy} onClick={()=>action('leave',current.id)}>←</button><h1>{current.title}</h1></div>
         {nativePlayer?<a className="play-native" href="/watch/native">Resume playback</a>:<WatchPlayer key={current.id} id={current.id} duration={current.duration_seconds} captions={current.captions} enableCaptions={catalog.captions}
           resume={catalog.resume} startPlaying={explicitPlay.current===current.id}
           position={seconds=>{position.current=seconds}} finished={()=>void action('finish',current.id)}/>}
-        <button disabled={busy} onClick={()=>action('leave',current.id)}>Back to choices</button>
-        <button disabled={busy} onClick={()=>action('finish',current.id)}>Finish video</button>
       </section>:<section className="discovery">
         <div className="discovery-heading"><h1>Choose a video</h1>
           <nav className="quick-bar" aria-label="Viewing choices">

@@ -39,6 +39,8 @@ public class DeviceConfigurationTest {
                 activity.getRequestedOrientation());
         View root = activity.findViewById(android.R.id.content);
         assertTrue(hasButton(root, "Open viewer"));
+        assertTrue(hasButton(root, "Parent mode"));
+        assertTrue(hasButton(root, "Advanced server address"));
         assertEquals(tv, hasButton(root, "Pair using a phone"));
     }
 
