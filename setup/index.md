@@ -97,10 +97,10 @@ Open your HTTPS address on your phone and sign in. Keep this development build o
 
 For a LukerPlus debug test, connect to the same trusted Wi-Fi and enter `http://192.168.86.163:8095`. HTTP testing requires the server’s local HTTP cookie setting (Compose defaults to `FAMILYTV_SECURE_COOKIES=false`). Keep secure cookies enabled on production HTTPS deployments.
 
-1. Install the APK from the Android device test issue. Download the ZIP, extract it and sideload the APK onto your Android device. On phones and tablets open FamilyTV from the app drawer and enter the server address and the 13-character code from the parent dashboard. [APK and device checklist](https://github.com/JPLuker/FamilyTV/issues/1).
+1. Install the APK from the Android device test issue. Download the ZIP, extract it and sideload the APK onto your Android device. On phones and tablets open FamilyTV from the app drawer and enter the server address and the six-character code from the parent dashboard. [APK and device checklist](https://github.com/JPLuker/FamilyTV/issues/1).
 2. On the TV, enter your FamilyTV HTTPS address. Choose **Pair using a phone** and scan the QR code with your phone.
 3. On the phone, open **Household devices**. Match the eight characters shown on the TV, then confirm the screen. Choose **Open paired viewer** on the TV.
-4. To pair with the remote instead, choose **Household devices → Get pairing code** on your phone and enter the 13-character code on the TV. The code expires after ten minutes. Once paired, assign a child with the screen’s **Viewing profile** menu, then use **Session** to control viewing. The device stays linked across sessions. Choose **Disconnect all devices** to revoke the household’s device credentials.
+4. To pair with the remote instead, choose **Household devices → Get pairing code** on your phone and enter the six-character code on the TV. The code expires after ten minutes. Once paired, assign a child with the screen’s **Viewing profile** menu, then use **Session** to control viewing. The device stays linked across sessions. Choose **Disconnect all devices** to revoke the household’s device credentials.
 
 ## Test a session
 
@@ -108,7 +108,7 @@ The quick bar sits above the choices. Children get up to 12 eligible videos stru
 
 Videos appear under the subjects you entered in Review. On a video, open **•••** and choose **Save for later** to put it aside. It leaves this board and gets priority in the next session it fits. Finishing it clears the save.
 
-Use the remote to choose the approved episode and select **Play on TV**. Check the audio and captions. Use Back to return to the episode, then to the list. Start playback again and choose **End now** on your phone. The TV should return to the session ending.
+Use the remote to choose the approved episode and press **OK** to play. Check the audio and captions. Use Back to return to the episode, then to the list. Start playback again and choose **End now** on your phone. The TV should return to the session ending.
 
 For the cutoff test, start a fresh session and choose **Finish by a clock time**. Leave enough time for the whole clip or it won't appear in the list. Start the clip and pause before the deadline. Check that the TV locks when time runs out.
 
@@ -135,3 +135,11 @@ These screens show a test profile with 12 approved sample clips. Download an ind
 </div>
 
 <a class="download" href="../downloads/familytv-screenshots.zip" download>Download all screenshots (ZIP)</a>
+
+### Android setup and playback
+
+The app searches for FamilyTV at setup. The debug build checks the configured LukerPlus address automatically. Other installations can advertise their HTTPS origin using DNS-SD: on the LAN host with Avahi running, copy `deploy/familytv.service` to `/etc/avahi/services/` after editing the port and origin to match the address trusted by your devices. Manual entry is under **Advanced server address**.
+
+Choose **Parent mode** to open the authenticated dashboard in the device browser. Set the parent PIN under **Parent sign-in settings**. Before generating a device code or authorizing a TV, optionally allow that screen to start a one-video session. Assign a viewing profile after linking. Each viewer-initiated start requires the parent PIN and respects the assigned profile's viewing windows and allowances. In parent mode the dashboard can start sessions for other profiles and their assigned devices.
+
+Tap a tile or press OK to play. The tile’s menu holds Save for later. The player returns to choices when the video finishes. During import and scan, FamilyTV fills category and subject from available local sidecar categories, genres and recognized topic metadata. Review still controls approval.
