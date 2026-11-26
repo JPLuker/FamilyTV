@@ -21,20 +21,21 @@ type MediaStream struct {
 	Codec   string `json:"codec_name"`
 }
 type Media struct {
-	ReviewVersion uint64        `json:"review_version,omitempty"`
-	Reviewed      bool          `json:"reviewed,omitempty"`
-	Streams       []MediaStream `json:"streams,omitempty"`
-	Metadata      Metadata      `json:"metadata"`
-	Original      Metadata      `json:"original"`
-	Fingerprint   string        `json:"fingerprint,omitempty"`
-	Review        Review        `json:"review"`
-	ID            string        `json:"id"`
-	Title         string        `json:"title"`
-	Path          string        `json:"path"`
-	Duration      float64       `json:"duration_seconds"`
-	Size          int64         `json:"size"`
-	Modified      int64         `json:"modified_ns"`
-	Captions      bool          `json:"captions"`
+	CategoryChecked bool          `json:"category_checked,omitempty"`
+	ReviewVersion   uint64        `json:"review_version,omitempty"`
+	Reviewed        bool          `json:"reviewed,omitempty"`
+	Streams         []MediaStream `json:"streams,omitempty"`
+	Metadata        Metadata      `json:"metadata"`
+	Original        Metadata      `json:"original"`
+	Fingerprint     string        `json:"fingerprint,omitempty"`
+	Review          Review        `json:"review"`
+	ID              string        `json:"id"`
+	Title           string        `json:"title"`
+	Path            string        `json:"path"`
+	Duration        float64       `json:"duration_seconds"`
+	Size            int64         `json:"size"`
+	Modified        int64         `json:"modified_ns"`
+	Captions        bool          `json:"captions"`
 }
 
 func contentType(path string) string {
@@ -198,7 +199,8 @@ func prepareMedia(ctx context.Context, path, title string) (Media, int, error) {
 	if err != nil {
 		return Media{}, 422, errors.New("Could not read a video track and duration. Check the file and FFprobe installation.")
 	}
-	m := Media{Streams: streams, ID: token(), Title: metadata.Title, Metadata: metadata, Original: original, Fingerprint: fp, Path: path, Duration: duration, Size: info.Size(), Modified: info.ModTime().UnixNano()}
+	category := suggestCategory(original)
+	m := Media{CategoryChecked: true, Review: Review{Category: category, Subject: category}, Streams: streams, ID: token(), Title: metadata.Title, Metadata: metadata, Original: original, Fingerprint: fp, Path: path, Duration: duration, Size: info.Size(), Modified: info.ModTime().UnixNano()}
 	if f, _, err := openCaption(m.Path); err == nil {
 		f.Close()
 		m.Captions = true

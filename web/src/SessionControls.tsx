@@ -4,6 +4,8 @@ import {errorMessage,request} from './api'
 type Status={active:boolean;deadline:number;mode:string;playing:boolean;last:boolean}
 export default function SessionControls({profile,close}:{profile:{id:string;name:string};close:()=>void}){
   const [status,setStatus]=useState<Status>()
+  const parentMode=new URLSearchParams(location.search).has('parent-mode')
+  const [pin,setPin]=useState('')
   const [mode,setMode]=useState('manual')
   const [minutes,setMinutes]=useState(30)
   const [finish,setFinish]=useState('')
@@ -17,10 +19,10 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
   async function change(method:string){
     setBusy(true);setError('')
     try{
-      if(method==='POST')await request(path,method,{mode,minutes,finish_by:mode==='finish_by'?instants[occurrence].toISOString():''})
+      if(method==='POST')await request(path,method,{mode,minutes,...(parentMode?{pin}:{}),finish_by:mode==='finish_by'?instants[occurrence].toISOString():''})
       else await request(path,method)
       await refresh()
-    }catch(e){setError(errorMessage(e))}finally{setBusy(false)}
+    }catch(e){setError(errorMessage(e))}finally{setBusy(false);setPin('')}
   }
   return <section aria-label={'Viewing session for '+profile.name}><h3>Viewing session for {profile.name}</h3>
     {status?.active ? <>
@@ -28,6 +30,7 @@ export default function SessionControls({profile,close}:{profile:{id:string;name
       <div className="actions"><button disabled={busy} onClick={()=>change('DELETE')}>End now</button>
       {!status.last&&<button disabled={busy} onClick={()=>change('PATCH')}>End after current video</button>}</div>
     </> : status && <form onSubmit={e=>{e.preventDefault();void change('POST')}}>
+      {parentMode&&<label>Parent PIN<input type="password" inputMode="numeric" pattern="[0-9]{6,12}" required value={pin} onChange={e=>setPin(e.target.value)}/></label>}
       <label>Session ends<select value={mode} onChange={e=>setMode(e.target.value)}>
         <option value="manual">When I stop it</option><option value="one_video">After one video</option><option value="duration">After a duration</option><option value="finish_by">Finish by a clock time</option>
       </select></label>

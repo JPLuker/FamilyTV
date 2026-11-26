@@ -24,12 +24,15 @@ export default function Viewer(){
   const [error,setError]=useState('')
   const hasViewed=useRef(false)
   const [screen,setScreen]=useState('')
+  const [allowStart,setAllowStart]=useState(false)
+  const [pin,setPin]=useState('')
   const [waiting,setWaiting]=useState(false)
   const [ended,setEnded]=useState(false)
   const preferences=useRef({ending_topic:"",quiet_ending:true,large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
   const strip=useRef<HTMLDivElement>(null)
   const [edges,setEdges]=useState({back:false,next:false})
   const root=useRef<HTMLElement>(null)
+  const explicitPlay=useRef('')
   const lastTile=useRef('')
   const position=useRef<number|undefined>(undefined)
   const [busy,setBusy]=useState(false)
@@ -44,9 +47,9 @@ export default function Viewer(){
     let timer:ReturnType<typeof setTimeout>
     async function check(){
       try{
-        const state=await request<{paired:boolean;active:boolean;screen?:string}>('watch/device')
+        const state=await request<{paired:boolean;active:boolean;screen?:string;allow_start?:boolean}>('watch/device')
         if(cancelled)return
-        setScreen(state.screen||'')
+        setAllowStart(Boolean(state.allow_start));setScreen(state.screen||'')
         setWaiting(state.paired&&!hasViewed.current)
         if(state.active){setEnded(false);setWaiting(false);setShowSignOff(true);setHardStop(false);return}
         if(!state.paired)return
@@ -117,6 +120,10 @@ export default function Viewer(){
     try{
       if(action==='play')lastTile.current=id
       const result=await request<{ended?:boolean}>('watch/'+action,'POST',{id,position:action==='leave'?position.current:undefined})
+      if(action==='play'){
+        explicitPlay.current=id
+        if(nativePlayer){location.assign('/watch/native')}
+      }else{explicitPlay.current=''}
       if(result.ended)end();else await refresh()
     }catch(e){if(e instanceof ApiError&&e.status===403)end();else setError(errorMessage(e))}finally{setBusy(false)}
   }
@@ -200,8 +207,10 @@ export default function Viewer(){
   }
   useEffect(()=>{
     const back=(event:Event)=>{if(goBack())event.preventDefault()}
+    const leavePlayer=()=>{if(current)void action('leave',current.id);else void refresh()}
+    window.addEventListener('familytv-player-back',leavePlayer)
     window.addEventListener('familytv-back',back)
-    return ()=>window.removeEventListener('familytv-back',back)
+    return ()=>{window.removeEventListener('familytv-back',back);window.removeEventListener('familytv-player-back',leavePlayer)}
   })
   const nested=Boolean(current)
   useEffect(()=>{
@@ -235,14 +244,19 @@ export default function Viewer(){
   return <main data-input={nativeTV?"remote":undefined} ref={root} onFocus={e=>{if(catalog?.discovery.spoken_labels&&'speechSynthesis' in window){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
     if(text){const voice=speechSynthesis.getVoices().find(v=>v.localService);if(voice){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;speechSynthesis.speak(utterance)}}
-  }}} className={['viewer','child-world',catalog&&!current?'choosing':'',ended?'night':'',ended&&preferences.current.quiet_ending?'quiet':'',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}>{!ended&&<header><Brand/>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>}
-    {ended?<section className="night-ending"><span className="moon" aria-hidden="true"/><h1>{waiting?"Paired and waiting for a session":"Viewing time is over"}</h1>{screen&&<p>Household screen {screen}</p>}{!waiting&&showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
+  }}} className={['viewer','child-world',current?'playing':'',catalog&&!current?'choosing':'',ended?'night':'',ended&&preferences.current.quiet_ending?'quiet':'',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}>{!ended&&!current&&<header><Brand/>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>}
+    {ended?<section className="night-ending"><span className="moon" aria-hidden="true"/><h1>{waiting?"Paired and waiting for a session":"Viewing time is over"}</h1>{allowStart&&<form onSubmit={async e=>{
+      e.preventDefault();setBusy(true);setError('')
+      try{await request('watch/device/start','POST',{pin});setEnded(false);setWaiting(false);setHardStop(false);setShowSignOff(true)}
+      catch(err){setError(errorMessage(err))}finally{setPin('');setBusy(false)}
+    }}><label>Parent PIN<input type="password" inputMode="numeric" autoComplete="off" pattern="[0-9]{6,12}" required value={pin} onChange={e=>setPin(e.target.value)}/></label>
+    <button disabled={busy}>Start one-video session</button></form>}{error&&<p role="alert">{error}</p>}{screen&&<p>Household screen {screen}</p>}{!waiting&&showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog?.deadline&&Boolean(catalog.discovery.warn_minutes)&&catalog.deadline-catalog.server_time<=(catalog.discovery.warn_minutes||0)*60000?<p>Viewing time ends soon.</p>:null}
-      {catalog && (current?<section><h1>{current.title}</h1>
-        {nativePlayer?<a className="play-native" href="/watch/native">{nativeTV ? "Play on TV" : "Play video"}</a>:<WatchPlayer key={current.id} id={current.id} duration={current.duration_seconds} captions={current.captions} enableCaptions={catalog.captions}
-          resume={catalog.resume}
+      {catalog && (current?<section className="playback-stage"><h1>{current.title}</h1>
+        {nativePlayer?<a className="play-native" href="/watch/native">Resume playback</a>:<WatchPlayer key={current.id} id={current.id} duration={current.duration_seconds} captions={current.captions} enableCaptions={catalog.captions}
+          resume={catalog.resume} startPlaying={explicitPlay.current===current.id}
           position={seconds=>{position.current=seconds}} finished={()=>void action('finish',current.id)}/>}
         <button disabled={busy} onClick={()=>action('leave',current.id)}>Back to choices</button>
         <button disabled={busy} onClick={()=>action('finish',current.id)}>Finish video</button>
@@ -266,7 +280,7 @@ export default function Viewer(){
             {catalog.navigation!=='text'&&<span className="cover"><span className="cover-fallback">{m.title}</span><img loading="lazy" width="480" height="270" alt="" src={'/api/watch/media/'+m.id+'/picture'} onError={e=>{e.currentTarget.hidden=true}}/><span className="play-dot" aria-hidden="true">▶</span></span>}
             {catalog.navigation!=='visual'&&<strong>{m.title}</strong>}
           </button><div className="tile-foot"><span>{catalog.discovery.reading==='detail'&&m.subject&&m.subject+' · '}{Math.ceil(m.duration_seconds/60)} min</span>
-          <details><summary aria-label={'Options for '+m.title}>•••</summary>
+          <details><summary aria-label={'Options for '+m.title}>☰</summary>
             <button disabled={busy} onClick={()=>mark(m)}>Save for later</button>
           </details></div></li>)}</ul></section>)}</div>)}</div>
         {(edges.back||edges.next)&&<nav className="strip-controls" aria-label="Move along the videos">

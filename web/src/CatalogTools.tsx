@@ -33,6 +33,7 @@ export function Scanner({refresh}:{refresh:()=>void}){
     catch(e){setError(errorMessage(e))}finally{setSubmitting(false)}
   }
   return <section><h3>Library scan</h3>
+    <details><summary>Library folder settings</summary><p>On your Docker host, set FAMILYTV_MEDIA_ROOT in the .env file beside compose.yaml to the full folder path. Run <code>docker compose up -d api</code> to mount it at /media, then choose Scan now.</p></details>
     <p>At startup and every hour FamilyTV imports new videos from your media folder and its subfolders. Review them together in the approval queue.</p>
     <button id="scan-library" disabled={submitting||scan?.running} onClick={start}>Scan now</button>
     {scan&&(scan.running||scan.finished>0)&&<p role="status">{scan.running?'Scanning…':'Scan complete.'} Imported {scan.imported} · skipped {scan.skipped} · failed {scan.failed}. {scan.last_error} {!scan.running&&!scan.imported&&!scan.skipped&&!scan.failed&&'No supported videos found. Check the folder mounted at /media.'}</p>}

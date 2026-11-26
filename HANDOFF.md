@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Household setup and playback, 0.33.0
+
+New pairing codes are six characters. Android setup searches advertised servers and the debug LAN endpoint and offers parent management through the authenticated browser. Device session starts require parent authorization and PIN verification. Video tiles launch playback directly and have a separate options menu. The media catalog starts collapsed; scans fill missing topic metadata without approving videos. Physical LukerPlus discovery, remote focus, player appearance and parent PIN entry need household verification.
+
 ## Account-owned devices and startup import, 0.32.0
 
 Pair under Household devices before creating a child or starting a session. The parent assigns or switches a screen’s viewing profile. Removing a child clears the assignment while keeping the device linked to the household. Existing paired screens retain their assigned profile on upgrade. The scanner starts on server startup, then hourly; Scan now also imports recursively. Manual path entry is under a separate disclosure. Imported videos await parent review.

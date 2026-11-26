@@ -188,11 +188,15 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Mode     string `json:"mode"`
-		Minutes  int    `json:"minutes"`
-		FinishBy string `json:"finish_by"`
+		Mode     string  `json:"mode"`
+		PIN      *string `json:"pin,omitempty"`
+		Minutes  int     `json:"minutes"`
+		FinishBy string  `json:"finish_by"`
 	}
 	if !readInput(w, r, &input) {
+		return
+	}
+	if input.PIN != nil && !s.checkStartPIN(w, *input.PIN) {
 		return
 	}
 	if active(v, now) {

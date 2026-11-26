@@ -80,6 +80,7 @@ func (s *Server) reviewMedia(w http.ResponseWriter, r *http.Request) {
 		oldLog := s.data.ApprovalLog
 		s.logApproval("Review saved", "Approved for", []string{m.Title}, review.Profiles)
 		s.data.Media[i].ReviewVersion++
+		s.data.Media[i].CategoryChecked = true
 		s.data.Media[i].Reviewed = true
 		s.data.Media[i].Review = review
 		if err := s.persist(); err != nil {

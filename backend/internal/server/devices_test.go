@@ -39,6 +39,9 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 	if err = json.Unmarshal(w.Body.Bytes(), &issued); err != nil {
 		t.Fatal(err)
 	}
+	if len(issued.Code) != 6 {
+		t.Fatal("expected six character PIN")
+	}
 	body := `{"code":"` + issued.Code + `"}`
 	w = call("POST", "/api/watch/join", body, nil, 200)
 	child := w.Result().Cookies()[0]
@@ -49,17 +52,29 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 	call("POST", devices, "", child, 401)
 	call("GET", "/api/watch", "", child, 403)
 	call("GET", "/api/watch/media/clip/file", "", child, 404)
-	s.data.Profiles = []ChildProfile{{ID:"child"}}
+	s.data.Profiles = []ChildProfile{{ID: "child"}}
 	var list struct{ Devices []struct{ ID string } }
-	if err := json.Unmarshal(call("GET",devices,"",parent,200).Body.Bytes(), &list); err != nil || len(list.Devices)!=1 { t.Fatal("expected one account device",err) }
-	assign := `{"device":"`+list.Devices[0].ID+`","profile":"child"}`
+	if err := json.Unmarshal(call("GET", devices, "", parent, 200).Body.Bytes(), &list); err != nil || len(list.Devices) != 1 {
+		t.Fatal("expected one account device", err)
+	}
+	assign := `{"device":"` + list.Devices[0].ID + `","profile":"child"}`
 	call("PATCH", devices, assign, child, 401)
 	call("POST", session, `{"mode":"manual"}`, parent, 201)
-	call("GET","/api/watch","",child,403)
-	call("PATCH",devices,assign,parent,200)
+	call("GET", "/api/watch", "", child, 403)
+	call("PATCH", devices, assign, parent, 200)
 	call("GET", "/api/watch", "", child, 200)
 	call("DELETE", session, "", parent, 200)
 	call("GET", "/api/watch", "", child, 403)
+	const start = "/api/watch/device/start"
+	s.data.Account = &account{Salt: "test", PINHash: digest("654321", "pin:test")}
+	call("POST", start, `{"pin":"654321"}`, child, 403)
+	call("PATCH", devices, `{"device":"`+list.Devices[0].ID+`","profile":"child","allow_start":true}`, parent, 200)
+	call("POST", start, `{"pin":"123456"}`, child, 403)
+	call("POST", start, `{"pin":"654321"}`, child, 201)
+	if !s.data.Viewing["child"].Last {
+		t.Fatal("expected finite session")
+	}
+	call("DELETE", session, "", parent, 200)
 	s, err = New(s.path, false)
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +82,9 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 	call("POST", session, `{"mode":"manual"}`, parent, 201)
 	call("GET", "/api/watch", "", child, 200)
 	call("DELETE", "/api/profiles/child", "", parent, 200)
-	if got:=call("GET","/api/watch/device","",child,200).Body.String(); !strings.Contains(got,`"paired":true`) {t.Fatal(got)}
+	if got := call("GET", "/api/watch/device", "", child, 200).Body.String(); !strings.Contains(got, `"paired":true`) {
+		t.Fatal(got)
+	}
 	call("DELETE", devices, "", parent, 200)
 	call("GET", "/api/watch", "", child, 403)
 }
@@ -75,14 +92,20 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 func TestLegacyDevicesMoveToHouseholdOnce(t *testing.T) {
 	var st state
 	err := json.Unmarshal([]byte(`{"devices":{"oldchild":{"screens":[{"hash":"legacy","until":2000000000}]},"":{"screens":[{"hash":"new","until":2000000000}]}}}`), &st)
-	if err != nil { t.Fatal(err) }
-	for i:=0; i<2; i++ {
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
 		screens := st.Devices[householdDevices].Screens
-		if len(st.Devices)!=1 || len(screens)!=2 || screens[1].Hash!="legacy" || screens[1].Profile!="oldchild" || screens[0].Profile!="" {
-			t.Fatal("incorrect migration",st.Devices)
+		if len(st.Devices) != 1 || len(screens) != 2 || screens[1].Hash != "legacy" || screens[1].Profile != "oldchild" || screens[0].Profile != "" {
+			t.Fatal("incorrect migration", st.Devices)
 		}
-		data,err:=json.Marshal(st)
-		if err!=nil{t.Fatal(err)}
-		if err=json.Unmarshal(data,&st);err!=nil{t.Fatal(err)}
+		data, err := json.Marshal(st)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = json.Unmarshal(data, &st); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

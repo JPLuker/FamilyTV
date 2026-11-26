@@ -1,8 +1,8 @@
 import {useRef,useState} from 'react'
 import {request} from './api'
 
-type Props={id:string;duration:number;captions:boolean;enableCaptions:boolean;resume:number;finished:()=>void;position:(seconds:number)=>void}
-export function WatchPlayer({id,duration,captions,enableCaptions,resume,finished,position}:Props){
+type Props={startPlaying:boolean;id:string;duration:number;captions:boolean;enableCaptions:boolean;resume:number;finished:()=>void;position:(seconds:number)=>void}
+export function WatchPlayer({startPlaying,id,duration,captions,enableCaptions,resume,finished,position}:Props){
   const [attempt,setAttempt]=useState(0)
   const [failed,setFailed]=useState(false)
   const [ready,setReady]=useState(false)
@@ -26,7 +26,7 @@ export function WatchPlayer({id,duration,captions,enableCaptions,resume,finished
   return <>
     {attempt>0&&!ready&&!failed&&<p role="status">Preparing compatible playback…</p>}
     {failed?<p role="alert">This video could not be played. <button onClick={()=>{setFailed(false);setReady(false);setAttempt(0)}}>Try again</button></p>:
-      <video key={attempt} controls preload="metadata" autoPlay={false} src={base+(attempt===0?'/file':attempt===1?'/compatible':'/compatible?encode=1')}
+      <video key={attempt} controls playsInline preload="metadata" autoPlay={startPlaying} src={base+(attempt===0?'/file':attempt===1?'/compatible':'/compatible?encode=1')}
         onLoadedMetadata={e=>{const v=e.currentTarget;const start=initial.current;if(start>0&&start<v.duration)v.currentTime=start;setReady(true)}}
         onTimeUpdate={e=>progress(e.currentTarget,false)} onPause={e=>progress(e.currentTarget,true)}
         onEnded={finished} onError={fallback}>

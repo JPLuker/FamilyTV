@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base32"
 	"encoding/hex"
 	"encoding/json"
@@ -23,7 +24,9 @@ func (st *state) UnmarshalJSON(b []byte) error {
 	}
 	*st = state(next)
 	for id, old := range st.Devices {
-		if id == householdDevices { continue }
+		if id == householdDevices {
+			continue
+		}
 		account := st.Devices[householdDevices]
 		for _, screen := range old.Screens {
 			screen.Profile = id
@@ -31,20 +34,26 @@ func (st *state) UnmarshalJSON(b []byte) error {
 		}
 		st.Devices[householdDevices] = account
 		old.Screens = nil
-		if old.Challenge == "" { delete(st.Devices, id) } else { st.Devices[id] = old }
+		if old.Challenge == "" {
+			delete(st.Devices, id)
+		} else {
+			st.Devices[id] = old
+		}
 	}
 	return nil
 }
 
 type DevicePairing struct {
-	Challenge string         `json:"challenge,omitempty"`
-	Until     int64          `json:"until,omitempty"`
-	Screens   []pairedScreen `json:"screens,omitempty"`
+	AllowStart bool           `json:"allow_start,omitempty"`
+	Challenge  string         `json:"challenge,omitempty"`
+	Until      int64          `json:"until,omitempty"`
+	Screens    []pairedScreen `json:"screens,omitempty"`
 }
 type pairedScreen struct {
-	Profile string `json:"profile,omitempty"`
-	Hash  string `json:"hash"`
-	Until int64  `json:"until"`
+	AllowStart bool   `json:"allow_start,omitempty"`
+	Profile    string `json:"profile,omitempty"`
+	Hash       string `json:"hash"`
+	Until      int64  `json:"until"`
 }
 
 func newPairingCode(w http.ResponseWriter) (string, bool) {
@@ -53,7 +62,7 @@ func newPairingCode(w http.ResponseWriter) (string, bool) {
 		write(w, 500, map[string]string{"error": "Pairing unavailable."})
 		return "", false
 	}
-	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw[:]), true
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw[:])[:6], true
 }
 
 func (s *Server) saveDevices(w http.ResponseWriter, id string, next DevicePairing) bool {
@@ -94,44 +103,59 @@ func (s *Server) accountDevices(w http.ResponseWriter, r *http.Request) {
 	p.Screens = slices.DeleteFunc(slices.Clone(p.Screens), func(d pairedScreen) bool { return d.Until <= now.Unix() })
 	switch r.Method {
 	case "GET":
-		devices := make([]map[string]string, 0, len(p.Screens))
+		devices := make([]map[string]any, 0, len(p.Screens))
 		for _, screen := range p.Screens {
-			devices = append(devices, map[string]string{"id": secretHash(screen.Hash)[:16], "profile": screen.Profile})
+			devices = append(devices, map[string]any{"id": secretHash(screen.Hash)[:16], "profile": screen.Profile, "allow_start": screen.AllowStart})
 		}
 		write(w, 200, map[string]any{"devices": devices})
 		return
 	case "PATCH":
-		var assignment struct{ Device, Profile string }
-		if !readInput(w, r, &assignment) { return }
+		var assignment struct {
+			Device, Profile string
+			AllowStart      *bool `json:"allow_start"`
+		}
+		if !readInput(w, r, &assignment) {
+			return
+		}
 		if _, ok := s.profile(assignment.Profile); assignment.Profile != "" && !ok {
-			http.NotFound(w, r); return
+			http.NotFound(w, r)
+			return
 		}
 		for i, screen := range p.Screens {
 			if secretHash(screen.Hash)[:16] == assignment.Device {
 				p.Screens[i].Profile = assignment.Profile
-				if s.saveDevices(w,id,p) { write(w,200,map[string]bool{"assigned":true}) }
+				if assignment.AllowStart != nil {
+					p.Screens[i].AllowStart = *assignment.AllowStart
+				}
+				if s.saveDevices(w, id, p) {
+					write(w, 200, map[string]bool{"assigned": true})
+				}
 				return
 			}
 		}
-		http.NotFound(w,r)
+		http.NotFound(w, r)
 		return
 	case "DELETE":
 		old := s.data.Devices
 		s.data.Devices = nil
 		if err := s.persist(); err != nil {
 			s.data.Devices = old
-			write(w, 500, map[string]string{"error":"storage failure"})
+			write(w, 500, map[string]string{"error": "storage failure"})
 			return
 		}
 		write(w, 200, map[string]bool{"revoked": true})
 		return
 	}
 	var code string
+	var input struct {
+		Challenge  string
+		AllowStart bool `json:"allow_start"`
+	}
+	if (r.Method == "PUT" || r.ContentLength != 0) && !readInput(w, r, &input) {
+		return
+	}
+	p.AllowStart = input.AllowStart
 	if r.Method == "PUT" {
-		var input struct{ Challenge string }
-		if !readInput(w, r, &input) {
-			return
-		}
 		b, e := hex.DecodeString(input.Challenge)
 		if e != nil || len(b) != 32 {
 			write(w, 400, map[string]string{"error": "Invalid TV challenge."})
@@ -179,11 +203,11 @@ func (s *Server) joinDevice(w http.ResponseWriter, r *http.Request, hash, normal
 			s.data.Devices[id] = p
 			account := s.data.Devices[householdDevices]
 			account.Screens = slices.DeleteFunc(slices.Clone(account.Screens), func(d pairedScreen) bool { return d.Until <= now.Unix() })
-			account.Screens = append(account.Screens, pairedScreen{Profile: id, Hash: secretHash(cookie), Until: now.Unix() + lifetime})
+			account.Screens = append(account.Screens, pairedScreen{AllowStart: p.AllowStart, Profile: id, Hash: secretHash(cookie), Until: now.Unix() + lifetime})
 			s.data.Devices[householdDevices] = account
 			if err := s.persist(); err != nil {
 				s.data.Devices = old
-				write(w,500,map[string]string{"error":"storage failure"})
+				write(w, 500, map[string]string{"error": "storage failure"})
 				return false
 			}
 			return true
@@ -211,6 +235,76 @@ func (s *Server) deviceStatus(w http.ResponseWriter, r *http.Request) {
 		screen, paired = s.findScreen(secretHash(c.Value))
 	}
 	label := ""
-	if paired { label = secretHash(screen.Hash)[:6] }
-	write(w, 200, map[string]any{"screen": label, "paired": paired, "active": paired && active(s.data.Viewing[screen.Profile], time.Now())})
+	if paired {
+		label = secretHash(screen.Hash)[:6]
+	}
+	write(w, 200, map[string]any{"screen": label, "allow_start": paired && screen.AllowStart && screen.Profile != "" && s.data.Account != nil && s.data.Account.PINHash != "", "paired": paired, "active": paired && active(s.data.Viewing[screen.Profile], time.Now())})
+}
+
+func (s *Server) deviceStart(w http.ResponseWriter, r *http.Request) {
+	var input struct{ PIN string }
+	if !readInput(w, r, &input) {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cookie, err := r.Cookie("familytv_viewer")
+	if err != nil {
+		write(w, 403, map[string]string{"error": "Pair this screen first."})
+		return
+	}
+	screen, ok := s.findScreen(secretHash(cookie.Value))
+	profile, assigned := s.profile(screen.Profile)
+	if !ok || !assigned || !screen.AllowStart || s.data.Account == nil || s.data.Account.PINHash == "" {
+		write(w, 403, map[string]string{"error": "A parent must enable session starts and configure a parent PIN."})
+		return
+	}
+	if !s.checkStartPIN(w, input.PIN) {
+		return
+	}
+	now := time.Now()
+	if active(s.data.Viewing[profile.ID], now) {
+		write(w, 200, map[string]bool{"active": true})
+		return
+	}
+	v := Viewing{Profile: profile.ID, Mode: "one_video", Last: true, Rotation: token()[:12]}
+	if err := s.applyPolicy(&v, profile.Policy, now); err != nil {
+		write(w, 409, map[string]string{"error": err.Error()})
+		return
+	}
+	if s.setViewing(w, profile.ID, &v) {
+		write(w, 201, map[string]bool{"active": true})
+	}
+}
+
+// Called with the household lock held. Count attempts across paired screens.
+func (s *Server) checkStartPIN(w http.ResponseWriter, pin string) bool {
+	const key = "parent-start-pin"
+	now := time.Now()
+	attempt := s.data.Attempts[key]
+	if attempt.Until <= now.Unix() {
+		attempt = loginAttempts{}
+	}
+	if attempt.Count >= 5 {
+		write(w, 429, map[string]string{"error": "Try again in five minutes."})
+		return false
+	}
+	if s.data.Account != nil && s.data.Account.PINHash != "" && pin != "" && validPIN(pin) && subtle.ConstantTimeCompare([]byte(digest(pin, "pin:"+s.data.Account.Salt)), []byte(s.data.Account.PINHash)) == 1 {
+		return true
+	}
+	before := s.data.Attempts
+	s.data.Attempts = maps.Clone(before)
+	if s.data.Attempts == nil {
+		s.data.Attempts = map[string]loginAttempts{}
+	}
+	attempt.Count++
+	attempt.Until = now.Add(5 * time.Minute).Unix()
+	s.data.Attempts[key] = attempt
+	if err := s.persist(); err != nil {
+		s.data.Attempts = before
+		write(w, 500, map[string]string{"error": "Storage failure."})
+		return false
+	}
+	write(w, 403, map[string]string{"error": "Parent PIN required."})
+	return false
 }

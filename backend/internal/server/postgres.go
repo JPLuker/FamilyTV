@@ -137,7 +137,7 @@ func OpenPostgres(ctx context.Context, dsn, path string, secure bool) (http.Hand
 		}
 		return knownPaths(items), nil
 	}
-	scanner.insert = func(ctx context.Context, m Media) (int, error) {
+	scanner.insert = func(ctx context.Context, m Media, existing bool) (int, error) {
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return 500, err
@@ -161,7 +161,7 @@ func OpenPostgres(ctx context.Context, dsn, path string, secure bool) (http.Hand
 			}
 			return tx.Commit()
 		}
-		return s.insertMedia(m)
+		return s.storeScanItem(m, existing)
 	}
 	handler, err := postgresHandler(ctx, db, path, secure, scanner)
 	if err != nil {

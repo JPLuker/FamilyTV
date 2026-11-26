@@ -74,6 +74,7 @@ export default function MediaLibrary({onApproval,profileRevision}:{profileRevisi
     </form></details>
     {error&&<p role="alert">{error} <button onClick={()=>{setError('');setReload(n=>n+1)}}>Reload library</button></p>}
     {media.length>0 && <p aria-label="Library health">{media.filter(m=>!m.reviewed&&!m.review.profiles?.length).length} awaiting approval · {media.filter(m=>!m.review.subject).length} without a subject · {media.filter(m=>!m.review.audio_description||m.review.audio_description==='unknown').length} with unknown audio description</p>}
+    <details><summary>Browse imported videos ({media.length})</summary>
     {catalogGroups(media).map(([group,items])=><div key={group}><h3>{group}</h3><ul>{items.map(item=><li key={item.id}>
       <strong>{item.title}</strong> · {Math.ceil(item.duration_seconds/60)} min{item.captions?' · captions':''}
       <button aria-label={'Catalog details for '+item.title} onClick={()=>setEditing(item)}>Details</button>
@@ -81,6 +82,7 @@ export default function MediaLibrary({onApproval,profileRevision}:{profileRevisi
       <button aria-label={'Preview '+item.title} onClick={()=>setSelected(item)}>Preview</button>
       <button disabled={busy} aria-label={'Remove video '+item.title} onClick={()=>remove(item)}>Remove</button>
     </li>)}</ul></div>)}
+    </details>
     {editing&&<MetadataEditor key={editing.id} item={editing} close={()=>setEditing(undefined)} saved={item=>{setMedia(old=>old.map(m=>m.id===item.id?item:m));setEditing(undefined);setReload(n=>n+1)}}/>}
     {reviewing && <MediaReview key={reviewing.id} item={reviewing} close={()=>setReviewing(undefined)} saved={item=>{setMedia(old=>old.map(m=>m.id===item.id?item:m));setReviewing(undefined)}}/>}
     {selected && <div>

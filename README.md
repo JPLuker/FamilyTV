@@ -36,7 +36,7 @@ Finish by uses the time zone shown in the parent's browser. FamilyTV stores the 
 
 ## Android phones, tablets and TV
 
-The same APK opens from the Android app drawer or TV home screen. Phones and tablets support touch and rotation in pairing, browsing and Media3 playback. Enter the server address and a 13-character code from the parent dashboard. TV also supports remote navigation and phone-assisted pairing. For LukerPlus testing on trusted Wi-Fi, the debug APK accepts `http://192.168.86.163:8095` when entered explicitly. HTTP exposes viewer traffic to the network. The release configuration requires HTTPS.
+The same APK opens from the Android app drawer or TV home screen. Phones and tablets support touch and rotation in pairing, browsing and Media3 playback. Enter the server address and a six-character code from the parent dashboard. TV also supports remote navigation and phone-assisted pairing. For LukerPlus testing on trusted Wi-Fi, the debug APK accepts `http://192.168.86.163:8095` when entered explicitly. HTTP exposes viewer traffic to the network. The release configuration requires HTTPS.
 
 In **Household devices**, choose **Get pairing code**. You can link a device before creating a child profile. Enter the code on the device. For TV QR pairing, scan the TV’s QR code and use **Household devices** on the parent dashboard to confirm the TV identifier. A device can pair before the first session. Select the child in the screen’s **Viewing profile** menu, then start viewing with **Session**. Change or clear that assignment anytime. Ending a session locks paired screens, and the next session unlocks them. Each code lasts ten minutes. Device access lasts up to one year or until disconnected in the dashboard.
 
@@ -62,3 +62,11 @@ Choose an ending fact topic or enable Quiet ending for a message-only finish. Op
 ### Upgrading from a release with live channels
 
 Back up the household before updating. The server archives existing lineups in the household backup and ends tuned sessions. On-demand sessions and imported videos remain available. To roll back, restore the pre-upgrade backup with the corresponding server version.
+
+### Android setup and playback
+
+The app searches for FamilyTV at setup. The debug build checks the configured LukerPlus address automatically. Other installations can advertise their HTTPS origin using DNS-SD: on the LAN host with Avahi running, copy `deploy/familytv.service` to `/etc/avahi/services/` after editing the port and origin to match the address trusted by your devices. Manual entry is under **Advanced server address**.
+
+Choose **Parent mode** to open the authenticated dashboard in the device browser. Set the parent PIN under **Parent sign-in settings**. Before generating a device code or authorizing a TV, optionally allow that screen to start a one-video session. Assign a viewing profile after linking. Each viewer-initiated start requires the parent PIN and respects the assigned profile's viewing windows and allowances. In parent mode the dashboard can start sessions for other profiles and their assigned devices.
+
+Tap a tile or press OK to play. The tile’s menu holds Save for later. The player returns to choices when the video finishes. During import and scan, FamilyTV fills category and subject from available local sidecar categories, genres and recognized topic metadata. Review still controls approval.

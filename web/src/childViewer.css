@@ -144,3 +144,8 @@ main.child-world.choosing{box-sizing:border-box;height:100vh;height:100dvh;min-h
   .choice-board .choice-lane li{height:clamp(4.8rem,28vh,7rem)}
   .strip-controls{margin-top:0}
 }
+
+main.child-world.playing {min-height:100dvh;max-width:none;margin:0;background:#08090b;color:white;padding:0}
+.child-world .playback-stage {background:#08090b;color:white;border:0;box-shadow:none;margin:0;padding:.75rem;max-width:none}
+.playback-stage video {display:block;width:100%;height:calc(100dvh - 9rem);object-fit:contain;background:black;border:0;border-radius:0}
+.playback-stage h1 {font-size:1.15rem;margin:0 0 .5rem}

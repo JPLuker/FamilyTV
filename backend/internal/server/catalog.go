@@ -20,6 +20,7 @@ import (
 )
 
 type Metadata struct {
+	Category      string `json:"category,omitempty"`
 	PlaylistIndex int    `json:"playlist_index,omitempty"`
 	Attribution   string `json:"attribution,omitempty"`
 	Title         string `json:"title"`
@@ -66,6 +67,7 @@ func detectMetadata(path string) Metadata {
 	}
 	if b, e := sidecar(stem + ".nfo"); e == nil {
 		var n struct {
+			Genres  []string `xml:"genre"`
 			XMLName xml.Name
 			Title   string `xml:"title"`
 			Series  string `xml:"showtitle"`
@@ -76,6 +78,7 @@ func detectMetadata(path string) Metadata {
 		if xml.Unmarshal(b, &n) == nil && n.Title != "" && (n.XMLName.Local == "episodedetails" || n.XMLName.Local == "movie") {
 			m.Title = n.Title
 			m.Source = "local NFO"
+			m.Category = firstCategory(n.Genres)
 			m.ExternalID = n.ID
 			m.Series = n.Series
 			m.Season = n.Season
@@ -92,11 +95,13 @@ func detectMetadata(path string) Metadata {
 	}
 	if b, e := sidecar(stem + ".info.json"); e == nil {
 		var y struct {
-			PlaylistIndex                                             int `json:"playlist_index"`
+			Categories                                                []string `json:"categories"`
+			PlaylistIndex                                             int      `json:"playlist_index"`
 			Title, Channel, Uploader, ID, Playlist, Language, License string
 			PlaylistTitle                                             string `json:"playlist_title"`
 		}
 		if json.Unmarshal(b, &y) == nil && y.Title != "" {
+			m.Category = firstCategory(y.Categories)
 			m.Title = y.Title
 			m.Kind = "creator"
 			m.Creator = y.Channel

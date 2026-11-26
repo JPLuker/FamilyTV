@@ -156,7 +156,9 @@ func (s *Server) Routes() http.Handler {
 	for _, method := range []string{"GET", "POST", "PATCH", "PUT", "DELETE"} {
 		mux.HandleFunc(method+" /api/", http.NotFound)
 	}
-	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { write(w, 200, map[string]string{"status": "ok"}) })
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+		write(w, 200, map[string]string{"status": "ok", "service": "FamilyTV"})
+	})
 	mux.HandleFunc("GET /api/setup/status", func(w http.ResponseWriter, r *http.Request) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -316,6 +318,7 @@ func (s *Server) Routes() http.Handler {
 	for _, method := range []string{"GET", "POST", "PUT", "PATCH", "DELETE"} {
 		mux.HandleFunc(method+" /api/devices", s.accountDevices)
 	}
+	mux.HandleFunc("POST /api/watch/device/start", s.deviceStart)
 	mux.HandleFunc("GET /api/watch/device", s.deviceStatus)
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)
 	mux.HandleFunc("GET /api/watch", s.watchCatalog)

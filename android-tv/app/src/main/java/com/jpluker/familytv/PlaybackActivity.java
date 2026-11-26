@@ -65,6 +65,13 @@ public final class PlaybackActivity extends Activity {
         }
         if (cookie == null) { finish(); return; }
         controls = new PlayerView(this);
+        controls.setBackgroundColor(android.graphics.Color.BLACK);
+        controls.setShutterBackgroundColor(android.graphics.Color.BLACK);
+        controls.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
+        controls.setControllerShowTimeoutMs(3000);
+        controls.setShowSubtitleButton(true);
+        getWindow().setStatusBarColor(android.graphics.Color.BLACK);
+        getWindow().setNavigationBarColor(android.graphics.Color.BLACK);
         setContentView(controls);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
@@ -180,6 +187,10 @@ public final class PlaybackActivity extends Activity {
         });
     }
     private void fail(String message) {Toast.makeText(this,message,Toast.LENGTH_SHORT).show(); finish();}
+    @Override public void onBackPressed() {
+        setResult(RESULT_OK);
+        super.onBackPressed();
+    }
     @Override protected void onStop() {
         saveProgress();
         generation++;

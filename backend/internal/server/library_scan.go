@@ -22,7 +22,7 @@ type scanResult struct {
 type LibraryScanner struct {
 	ctx    context.Context
 	known  func(context.Context) (map[string]bool, error)
-	insert func(context.Context, Media) (int, error)
+	insert func(context.Context, Media, bool) (int, error)
 	mu     sync.Mutex
 	status scanResult
 }
@@ -30,7 +30,7 @@ type LibraryScanner struct {
 func knownPaths(items []Media) map[string]bool {
 	paths := make(map[string]bool, len(items))
 	for _, m := range items {
-		paths[m.Path] = true
+		paths[m.Path] = m.CategoryChecked
 	}
 	return paths
 }
@@ -41,10 +41,10 @@ func (s *Server) StartLibraryScanner(ctx context.Context) {
 		defer s.mu.Unlock()
 		return knownPaths(s.data.Media), nil
 	}
-	scanner.insert = func(_ context.Context, m Media) (int, error) {
+	scanner.insert = func(_ context.Context, m Media, existing bool) (int, error) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		return s.insertMedia(m)
+		return s.storeScanItem(m, existing)
 	}
 	s.scanner = scanner
 	go scanner.schedule()
@@ -110,11 +110,14 @@ func (s *LibraryScanner) run() {
 			return nil
 		}
 		status := 409
-		if !known[path] {
+		if checked, exists := known[path]; exists && !checked {
+			info := detectMetadata(path)
+			status, err = s.insert(s.ctx, Media{Path: path, Original: info}, true)
+		} else if !exists {
 			var m Media
 			m, status, err = prepareMedia(s.ctx, path, "")
 			if err == nil {
-				status, err = s.insert(s.ctx, m)
+				status, err = s.insert(s.ctx, m, false)
 			}
 		}
 		s.mu.Lock()
@@ -127,7 +130,9 @@ func (s *LibraryScanner) run() {
 		default:
 			s.status.Failed++
 			s.status.LastError = "Could not import " + path
-			if err != nil { s.status.LastError += ": " + err.Error() }
+			if err != nil {
+				s.status.LastError += ": " + err.Error()
+			}
 		}
 		return nil
 	})

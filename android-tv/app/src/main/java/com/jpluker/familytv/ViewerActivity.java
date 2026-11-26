@@ -29,6 +29,8 @@ import java.util.Locale;
 public final class ViewerActivity extends Activity {
     private WebView viewer;
     private String server;
+    private ServerDiscovery discovery;
+    private int pairingGeneration;
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -52,24 +54,59 @@ public final class ViewerActivity extends Activity {
         heading.setTypeface(getResources().getFont(R.font.jua));
         heading.setPadding(0, 0, 0, margin / 2);
         form.addView(heading);
-        EditText address = field(form, getString(R.string.local_test_origin).isEmpty() ? "FamilyTV HTTPS address" : "FamilyTV server address", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        int generation = ++pairingGeneration;
+        stopDiscovery();
+        TextView found = new TextView(this);
+        found.setText("Searching for FamilyTV servers…");
+        form.addView(found);
+        LinearLayout choices=new LinearLayout(this);
+        choices.setOrientation(LinearLayout.VERTICAL);
+        form.addView(choices);
+        Button advanced=new Button(this);
+        advanced.setText("Advanced server address");
+        form.addView(advanced);
+        LinearLayout manual=new LinearLayout(this);
+        manual.setOrientation(LinearLayout.VERTICAL);
+        manual.setVisibility(View.GONE);
+        form.addView(manual);
+        EditText address = field(manual, getString(R.string.local_test_origin).isEmpty() ? "FamilyTV HTTPS address" : "FamilyTV server address", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         address.setText(server);
+        advanced.setOnClickListener(v -> {manual.setVisibility(View.VISIBLE);address.requestFocus();});
+        discovery=new ServerDiscovery(this, candidate -> {
+            if(generation!=pairingGeneration || isDestroyed())return;
+            if(choices.getChildCount()==0 && address.getText().length()==0)address.setText(candidate);
+            found.setText("FamilyTV server: "+address.getText());
+            Button choice=new Button(this);
+            choice.setText(candidate);choices.addView(choice);
+            choice.setOnClickListener(v->{address.setText(candidate);found.setText("FamilyTV server: "+candidate);});
+        });
+        discovery.start(getString(R.string.local_test_origin));
+        found.postDelayed(()->{if(generation==pairingGeneration && choices.getChildCount()==0)found.setText("No server found. Use Advanced server address.");},4500);
+        Button parent=new Button(this);
+        parent.setText("Parent mode");
+        form.addView(parent);
+        parent.setOnClickListener(v->{
+            String target=origin(address.getText().toString().trim(),getString(R.string.local_test_origin));
+            if(target==null){manual.setVisibility(View.VISIBLE);address.setError("Choose or enter your FamilyTV server.");address.requestFocus();return;}
+            try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target+"/?parent-mode=1")));}
+            catch(android.content.ActivityNotFoundException e){found.setText("Open "+target+"/?parent-mode=1 in your parent browser.");}
+        });
         EditText code = field(form, "Pairing code from the parent dashboard", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
         Button join = new Button(this);
         join.setText("Open viewer");
         addPairingButton(form, join, margin / 3);
         join.setOnClickListener(v -> {
             String origin = origin(address.getText().toString().trim(), getString(R.string.local_test_origin));
-            if (origin == null) { address.setError("Enter an HTTPS address or the configured local test address."); address.requestFocus(); return; }
+            if (origin == null) { manual.setVisibility(View.VISIBLE); address.setError("Enter an HTTPS address or the configured local test address."); address.requestFocus(); return; }
             String key = code.getText().toString().trim().replace("-", "").toUpperCase(Locale.ROOT);
-            if (!key.matches("[A-Z2-7]{13}")) { code.setError("Enter the 13-character code shown on the parent dashboard."); code.requestFocus(); return; }
+            if (!key.matches("[A-Z2-7]{6}|[A-Z2-7]{13}")) { code.setError("Enter the six-character code shown on the parent dashboard."); code.requestFocus(); return; }
             server = origin;
             getPreferences(MODE_PRIVATE).edit().putString("server", server).apply();
             openViewer(key);
         });
         if (tv) addPhonePairing(form, address, margin);
         setContentView(scroll);
-        if (tv) (server.isEmpty() ? address : code).requestFocus();
+        if (tv) code.requestFocus();
     }
 
     private void addPhonePairing(LinearLayout form, EditText address, int margin) {
@@ -147,7 +184,11 @@ public final class ViewerActivity extends Activity {
         return !top && path != null && !path.contains("%") && !path.contains("..") &&
                 (path.startsWith("/assets/") || path.equals("/api/watch") || path.startsWith("/api/watch/"));
     }
+    private void stopDiscovery() {
+        if(discovery!=null){discovery.close();discovery=null;}
+    }
     private void openViewer(String key) {
+        pairingGeneration++;stopDiscovery();
         destroyViewer();
         viewer = new WebView(this);
         viewer.getSettings().setJavaScriptEnabled(true);
@@ -159,7 +200,7 @@ public final class ViewerActivity extends Activity {
         viewer.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 if (req.isForMainFrame() && req.getUrl().toString().equals(server + "/watch/native")) {
-                    startActivity(new Intent(ViewerActivity.this, PlaybackActivity.class).putExtra("server", server));
+                    startActivityForResult(new Intent(ViewerActivity.this, PlaybackActivity.class).putExtra("server", server), 1);
                     return true;
                 }
                 return !allowed(req.getUrl(), req.isForMainFrame());
@@ -180,6 +221,11 @@ public final class ViewerActivity extends Activity {
         viewer.destroy();
         viewer = null;
     }
+    @Override protected void onActivityResult(int request,int result,Intent data) {
+        super.onActivityResult(request,result,data);
+        if(request==1 && result==RESULT_OK && viewer!=null)
+            viewer.evaluateJavascript("window.dispatchEvent(new Event('familytv-player-back'))",null);
+    }
     @Override public void onBackPressed() {
         if (viewer == null) { super.onBackPressed(); return; }
         viewer.evaluateJavascript("window.dispatchEvent(new Event('familytv-back',{cancelable:true}))", result -> {
@@ -191,5 +237,5 @@ public final class ViewerActivity extends Activity {
         super.onPause();
     }
     @Override protected void onResume() {super.onResume(); if (viewer != null) viewer.onResume();}
-    @Override protected void onDestroy() {destroyViewer(); super.onDestroy();}
+    @Override protected void onDestroy() {pairingGeneration++;stopDiscovery();destroyViewer(); super.onDestroy();}
 }
