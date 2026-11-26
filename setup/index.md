@@ -76,10 +76,10 @@ ssh -L 18081:127.0.0.1:8080 user@server
 ```
 
 1. Create the parent account and sign in. Create a child profile.
-2. Open **Scan the media folder**, then **Scan files**. Check one episode and choose **Import selected files**.
-3. Choose **Preview** to check the file. Open **Review**, check the child under **Approved for**, then choose **Save review**. If the profile requires captions or described audio, verify those settings in the review too.
+2. Under **Media library**, choose **Scan now**. The server imports the whole mounted folder and its subfolders, skips duplicates and checks hourly for additions.
+3. For a reviewed batch, open **Approval queue and library coverage**, choose the child, select matching videos and choose **Approve selected**. For an individual file, choose **Preview** to check it. Open **Review**, check the child under **Approved for**, then choose **Save review**. If the profile requires captions or described audio, verify those settings in the review too.
 
-You can now test in a browser. Open **Session** beside the child's name, choose an ending rule and start it. Paste the one-time viewer link into a separate browser profile or private window on the same computer. Opening it in your parent browser signs that browser out.
+You can now test in a browser. Choose **Pair a device** beside the child, then **Get pairing code**. Paste the one-time viewer link into a separate browser profile or private window on the same computer. Opening it in your parent browser signs that browser out. The paired screen waits until you start a viewing session.
 
 ## Connect your phone and TV
 
@@ -99,8 +99,8 @@ For a LukerPlus debug test, connect to the same trusted Wi-Fi and enter `http://
 
 1. Install the APK from the Android device test issue. Download the ZIP, extract it and sideload the APK onto your Android device. On phones and tablets open FamilyTV from the app drawer and enter the server address and the 13-character code from the parent dashboard. [APK and device checklist](https://github.com/JPLuker/FamilyTV/issues/1).
 2. On the TV, enter your FamilyTV HTTPS address. Choose **Pair using a phone** and scan the QR code with your phone.
-3. On the phone, open **Session** for the child and start a session if needed. Match the eight characters shown on the TV, then confirm the profile. Choose **Open paired viewer** on the TV.
-4. To pair with the remote instead, open the child's session controls on your phone and enter the 13-character pairing code on the TV. A new code expires after ten minutes. Redeeming it moves that session to the new viewer.
+3. On the phone, choose **Pair a device** for the child. Match the eight characters shown on the TV, then confirm the profile. Choose **Open paired viewer** on the TV.
+4. To pair with the remote instead, choose **Pair a device → Get pairing code** on your phone and enter the 13-character code on the TV. The code expires after ten minutes. Once paired, use **Session** to control viewing. The device stays linked across sessions. Choose **Disconnect all devices** to revoke the profile’s device credentials.
 
 ## Test a session
 
@@ -120,7 +120,7 @@ For the cutoff test, start a fresh session and choose **Finish by a clock time**
 | The scan finds no files | Run `docker compose exec api ls -la /media`. Check the host path in `.env`, the container's read access and the file type. FamilyTV accepts MP4, MKV and WebM. Run `docker compose up -d api` after changing the path. |
 | You can preview an episode but the child can't see it | Check **Approved for**, the profile's accessibility requirements and how much session time is left. |
 | The dashboard works on the server but the TV can't connect | Open the same HTTPS address on your phone over Wi-Fi. Check household DNS, the certificate and the proxy's upstream port. |
-| The pairing code expired | Open the child's active session and choose **Get a new pairing code**. |
+| The pairing code expired | Choose **Pair a device** beside the child and get a fresh code. |
 
 PostgreSQL stores your child profiles, approvals and session settings. Keep a separate backup of the video files. [Back up or restore the household database](https://github.com/JPLuker/FamilyTV/blob/main/docs/BACKUPS.md).
 
