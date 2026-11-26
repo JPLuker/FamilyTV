@@ -114,8 +114,8 @@ export default function Profiles({onExpired,onProfiles,onChanged,incomingTV,onPa
         <button disabled={busy} onClick={() => remove(p)} aria-label={'Remove '+p.name}>Remove</button>
       </div>
     </li>)}</ul>
-    {deviceProfile&&<DevicePairing key={deviceProfile.id} profile={deviceProfile} challenge={incomingTV} onPaired={onPaired} close={()=>setDeviceProfile(undefined)}/>}
-    {sessionProfile&&<SessionControls key={sessionProfile.id} profile={sessionProfile} close={()=>setSessionProfile(undefined)}/>}
+    {deviceProfile&&<DevicePairing key={"device-"+deviceProfile.id} profile={deviceProfile} challenge={incomingTV} onPaired={onPaired} close={()=>setDeviceProfile(undefined)}/>}
+    {sessionProfile&&<SessionControls key={"session-"+sessionProfile.id} profile={sessionProfile} close={()=>setSessionProfile(undefined)}/>}
     <form onSubmit={save}>
       <h3>{editing ? 'Edit profile' : 'New profile'}</h3>
       <label htmlFor="child-name">Profile name</label>
