@@ -85,6 +85,13 @@ func (s *Server) deleteProfile(w http.ResponseWriter, r *http.Request) {
 			delete(s.data.Viewing, id)
 			s.data.Devices = maps.Clone(before.Devices)
 			delete(s.data.Devices, id)
+			if account, ok := s.data.Devices[householdDevices]; ok {
+				account.Screens = slices.Clone(account.Screens)
+				for i := range account.Screens {
+					if account.Screens[i].Profile == id { account.Screens[i].Profile = "" }
+				}
+				s.data.Devices[householdDevices] = account
+			}
 			s.data.Media = slices.Clone(before.Media)
 			for j, m := range s.data.Media {
 				if slices.Contains(m.Review.Profiles, id) {

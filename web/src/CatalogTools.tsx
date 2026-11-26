@@ -33,9 +33,9 @@ export function Scanner({refresh}:{refresh:()=>void}){
     catch(e){setError(errorMessage(e))}finally{setSubmitting(false)}
   }
   return <section><h3>Library scan</h3>
-    <p>Every hour FamilyTV imports new videos from your media folder and its subfolders. Review them together in the approval queue.</p>
+    <p>At startup and every hour FamilyTV imports new videos from your media folder and its subfolders. Review them together in the approval queue.</p>
     <button id="scan-library" disabled={submitting||scan?.running} onClick={start}>Scan now</button>
-    {scan&&(scan.running||scan.finished>0)&&<p role="status">{scan.running?'Scanning…':'Scan complete.'} Imported {scan.imported} · skipped {scan.skipped} · failed {scan.failed}. {scan.last_error}</p>}
+    {scan&&(scan.running||scan.finished>0)&&<p role="status">{scan.running?'Scanning…':'Scan complete.'} Imported {scan.imported} · skipped {scan.skipped} · failed {scan.failed}. {scan.last_error} {!scan.running&&!scan.imported&&!scan.skipped&&!scan.failed&&'No supported videos found. Check the folder mounted at /media.'}</p>}
     {error&&<p role="alert">{error}</p>}
   </section>
 }

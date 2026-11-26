@@ -50,6 +50,9 @@ func (s *Server) StartLibraryScanner(ctx context.Context) {
 	go scanner.schedule()
 }
 func (s *LibraryScanner) schedule() {
+	if os.Getenv("FAMILYTV_SCAN_ON_START") != "false" {
+		s.start()
+	}
 	t := time.NewTicker(time.Hour)
 	defer t.Stop()
 	for {
@@ -124,6 +127,7 @@ func (s *LibraryScanner) run() {
 		default:
 			s.status.Failed++
 			s.status.LastError = "Could not import " + path
+			if err != nil { s.status.LastError += ": " + err.Error() }
 		}
 		return nil
 	})

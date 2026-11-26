@@ -23,6 +23,7 @@ export default function Viewer(){
   const [catalog,setCatalog]=useState<Catalog>()
   const [error,setError]=useState('')
   const hasViewed=useRef(false)
+  const [screen,setScreen]=useState('')
   const [waiting,setWaiting]=useState(false)
   const [ended,setEnded]=useState(false)
   const preferences=useRef({ending_topic:"",quiet_ending:true,large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
@@ -43,8 +44,9 @@ export default function Viewer(){
     let timer:ReturnType<typeof setTimeout>
     async function check(){
       try{
-        const state=await request<{paired:boolean;active:boolean}>('watch/device')
+        const state=await request<{paired:boolean;active:boolean;screen?:string}>('watch/device')
         if(cancelled)return
+        setScreen(state.screen||'')
         setWaiting(state.paired&&!hasViewed.current)
         if(state.active){setEnded(false);setWaiting(false);setShowSignOff(true);setHardStop(false);return}
         if(!state.paired)return
@@ -234,7 +236,7 @@ export default function Viewer(){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
     if(text){const voice=speechSynthesis.getVoices().find(v=>v.localService);if(voice){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;speechSynthesis.speak(utterance)}}
   }}} className={['viewer','child-world',catalog&&!current?'choosing':'',ended?'night':'',ended&&preferences.current.quiet_ending?'quiet':'',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}>{!ended&&<header><Brand/>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>}
-    {ended?<section className="night-ending"><span className="moon" aria-hidden="true"/><h1>{waiting?"Paired and waiting for a session":"Viewing time is over"}</h1>{!waiting&&showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
+    {ended?<section className="night-ending"><span className="moon" aria-hidden="true"/><h1>{waiting?"Paired and waiting for a session":"Viewing time is over"}</h1>{screen&&<p>Household screen {screen}</p>}{!waiting&&showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog?.deadline&&Boolean(catalog.discovery.warn_minutes)&&catalog.deadline-catalog.server_time<=(catalog.discovery.warn_minutes||0)*60000?<p>Viewing time ends soon.</p>:null}

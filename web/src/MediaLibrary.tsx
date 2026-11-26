@@ -62,16 +62,16 @@ export default function MediaLibrary({onApproval,profileRevision}:{profileRevisi
   }
   return <div>
     <h2>Media library</h2>
-    <ApprovalDesk media={media} refresh={()=>setReload(n=>n+1)} review={m=>{setReviewing(m);requestAnimationFrame(()=>document.getElementById("media-review-heading")?.focus())}}/>
     <Scanner refresh={refresh}/>
+    <ApprovalDesk media={media} refresh={()=>setReload(n=>n+1)} review={m=>{setReviewing(m);requestAnimationFrame(()=>document.getElementById("media-review-heading")?.focus())}}/>
     {gaps.length>0&&<details><summary>Episode gaps</summary><ul>{gaps.map(g=><li key={g.series+g.season+'-'+g.from}>{g.series} · season {g.season} · missing {g.from}{g.to!==g.from?'–'+g.to:''}</li>)}</ul></details>}
-    <form onSubmit={add}>
+    <details><summary>Import a single file manually</summary><form onSubmit={add}>
       <label htmlFor="media-path">Video path in your media folder</label>
       <input id="media-path" placeholder="Nature/Forest.mp4" required value={path} onChange={e=>setPath(e.target.value)}/>
       <label htmlFor="media-title">Display title (optional)</label>
       <input id="media-title" maxLength={160} value={title} onChange={e=>setTitle(e.target.value)}/>
       <button disabled={busy}>{busy?'Reading video…':'Import video'}</button>
-    </form>
+    </form></details>
     {error&&<p role="alert">{error} <button onClick={()=>{setError('');setReload(n=>n+1)}}>Reload library</button></p>}
     {media.length>0 && <p aria-label="Library health">{media.filter(m=>!m.reviewed&&!m.review.profiles?.length).length} awaiting approval · {media.filter(m=>!m.review.subject).length} without a subject · {media.filter(m=>!m.review.audio_description||m.review.audio_description==='unknown').length} with unknown audio description</p>}
     {catalogGroups(media).map(([group,items])=><div key={group}><h3>{group}</h3><ul>{items.map(item=><li key={item.id}>

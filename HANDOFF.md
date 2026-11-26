@@ -1,5 +1,9 @@
 # FamilyTV handoff — 2026-11-23
 
+## Account-owned devices and startup import, 0.32.0
+
+Pair under Household devices before creating a child or starting a session. The parent assigns or switches a screen’s viewing profile. Removing a child clears the assignment while keeping the device linked to the household. Existing paired screens retain their assigned profile on upgrade. The scanner starts on server startup, then hourly; Scan now also imports recursively. Manual path entry is under a separate disclosure. Imported videos await parent review.
+
 ## Household device setup and recursive imports, 0.31.0
 
 The parent dashboard pairs phones, tablets, TVs and browser viewers under **Pair a device** for a child profile. Device credentials survive session endings and server restarts. Sessions continue to enforce approval, parent stop and deadlines. Older session-specific links retain their original scope. Existing installs can use the new device code after updating the server. Rebuild the server container to deliver the new parent and viewer interfaces.

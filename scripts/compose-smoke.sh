@@ -45,17 +45,27 @@ done
 jq -e '.running == false and .imported == 1 and .skipped == 1 and .failed == 0' <<<"$result"
 curl -fsS -b "$tmp/cookies" "$base/api/media" | jq -e '.media | length == 1 and (.[0].review.profiles | length == 0)'
 child=$(curl -fsS -b "$tmp/cookies" "$base/api/profiles" | jq -er '.profiles[0].id')
-curl -fsS -b "$tmp/cookies" -X POST "$base/api/profiles/$child/devices" |
+curl -fsS -b "$tmp/cookies" -X POST "$base/api/devices" |
   jq -ce '{code}' | curl -fsS -c "$tmp/device" -H 'Content-Type: application/json' --data-binary @- "$base/api/watch/join" | jq -e '.joined'
 curl -fsS -b "$tmp/device" "$base/api/watch/device" | jq -e '.paired and (.active == false)'
+device=$(curl -fsS -b "$tmp/cookies" "$base/api/devices" | jq -er '.devices[0].id')
+jq -nc --arg device "$device" --arg profile "$child" '{device:$device,profile:$profile}' |
+  curl -fsS -b "$tmp/cookies" -X PATCH -H 'Content-Type: application/json' --data-binary @- "$base/api/devices" | jq -e '.assigned'
 # Restore into a fresh database and compare the profile before touching the running stack.
 "${compose[@]}" exec -T -u postgres db pg_dump -Fc -d familytv > "$tmp/backup.dump"
 "${compose[@]}" exec -T -u postgres db createdb --owner=familytv recovery
 "${compose[@]}" exec -T -u postgres db pg_restore --exit-on-error --single-transaction -d recovery < "$tmp/backup.dump"
 profile=$("${compose[@]}" exec -T -u postgres db psql -At -d recovery -c "SELECT document->'profiles'->0->>'name' FROM familytv_household")
 test "$profile" = "Smoke test"
+"${compose[@]}" exec -T api ffmpeg -v error -f lavfi -i color=c=red:s=32x32:d=1 -c:v mpeg4 /tmp/another.mp4
+"${compose[@]}" exec -T api cat /tmp/another.mp4 > "$FAMILYTV_MEDIA_ROOT/shows/season/new.mp4"
 "${compose[@]}" up -d --force-recreate
 wait_ready
+for _ in {1..30}; do
+  if curl -fsS -b "$tmp/cookies" "$base/api/media" | jq -e '.media | length == 2' >/dev/null; then break; fi
+  sleep 1
+done
+curl -fsS -b "$tmp/cookies" "$base/api/media" | jq -e '.media | length == 2 and all(.[]; (.review.profiles | length) == 0)'
 curl -fsS -b "$tmp/cookies" "$base/api/profiles" | jq -e '.profiles | length == 1 and .[0].name == "Smoke test" and .[0].captions'
 curl -fsS -b "$tmp/cookies" -H 'Content-Type: application/json' -d '{"mode":"manual"}' "$base/api/profiles/$child/session" >/dev/null
 curl -fsS -b "$tmp/device" "$base/api/watch" | jq -e '.items | length == 0'

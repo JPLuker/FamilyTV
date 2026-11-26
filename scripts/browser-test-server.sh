@@ -24,11 +24,12 @@ printf '%s' '{"title":"Lesson Z","channel":"Crash Course","playlist_title":"Scie
 cp "$state/media/forest.vtt" "$state/media/Lesson Z.vtt"
 # Only the test server sees this unavailable upstream. Go build has already completed.
 export HTTPS_PROXY=http://127.0.0.1:1 NO_PROXY=127.0.0.1,localhost
+export FAMILYTV_SCAN_ON_START=false
 export FAMILYTV_MEDIA_DIR="$state/media"
 export FAMILYTV_STATE_PATH="$state/state.json" FAMILYTV_WEB_DIR="$PWD/web/dist" FAMILYTV_LISTEN=127.0.0.1:17881
 if [[ -n ${FAMILYTV_TEST_IMAGE:-} ]]; then
   container=$(docker run -d --rm --publish 127.0.0.1:17881:8080 \
-    --volume "$state/media:/media:ro" --env FAMILYTV_MEDIA_DIR=/media \
+    --volume "$state/media:/media:ro" --env FAMILYTV_MEDIA_DIR=/media --env FAMILYTV_SCAN_ON_START \
     --env HTTPS_PROXY --env NO_PROXY "$FAMILYTV_TEST_IMAGE")
   trap 'docker stop "$container" >/dev/null 2>&1 || true; rm -rf "$state"' EXIT
   trap 'exit 0' TERM INT

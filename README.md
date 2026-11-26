@@ -38,9 +38,9 @@ Finish by uses the time zone shown in the parent's browser. FamilyTV stores the 
 
 The same APK opens from the Android app drawer or TV home screen. Phones and tablets support touch and rotation in pairing, browsing and Media3 playback. Enter the server address and a 13-character code from the parent dashboard. TV also supports remote navigation and phone-assisted pairing. For LukerPlus testing on trusted Wi-Fi, the debug APK accepts `http://192.168.86.163:8095` when entered explicitly. HTTP exposes viewer traffic to the network. The release configuration requires HTTPS.
 
-Choose **Pair a device** beside the child profile, then **Get pairing code**. Enter the code on the device. For TV QR pairing, scan the TV’s QR code and choose **Pair a device** on the parent dashboard to confirm the TV identifier. A device can pair before the first session. Start viewing later with **Session**. Ending a session locks paired screens, and the next session unlocks them. Each code lasts ten minutes. Device access lasts up to one year or until disconnected in the dashboard.
+In **Household devices**, choose **Get pairing code**. You can link a device before creating a child profile. Enter the code on the device. For TV QR pairing, scan the TV’s QR code and use **Household devices** on the parent dashboard to confirm the TV identifier. A device can pair before the first session. Select the child in the screen’s **Viewing profile** menu, then start viewing with **Session**. Change or clear that assignment anytime. Ending a session locks paired screens, and the next session unlocks them. Each code lasts ten minutes. Device access lasts up to one year or until disconnected in the dashboard.
 
-Under **Media library**, use **Scan now** to recursively import the mounted folder. The server also scans hourly, skips previously imported paths and duplicate files, and leaves new videos awaiting parent review. Use the approval queue to select and approve a reviewed batch for one child.
+Under **Media library**, use **Scan now** to recursively import the mounted folder. The server also scans at startup and hourly, skips previously imported paths and duplicate files, and leaves new videos awaiting parent review. Use the approval queue to select and approve a reviewed batch for one child.
 
 
 ### Scanning and matching

@@ -296,7 +296,8 @@ func (s *Server) viewer(r *http.Request) (Viewing, ChildProfile, bool) {
 		return Viewing{}, ChildProfile{}, false
 	}
 	hash := secretHash(c.Value)
-	if id := s.deviceProfile(hash); id != "" {
+	if screen, paired := s.findScreen(hash); paired {
+		id := screen.Profile
 		v := s.data.Viewing[id]
 		p, ok := s.profile(id)
 		return v, p, ok && active(v, time.Now())

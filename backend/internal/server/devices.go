@@ -4,10 +4,36 @@ import (
 	"crypto/rand"
 	"encoding/base32"
 	"encoding/hex"
+	"encoding/json"
 	"net/http"
 	"slices"
 	"time"
 )
+
+// The empty key identifies the single household. Old profile keys may still
+// contain a pending one-time code from before account-level pairing.
+const householdDevices = ""
+
+func (st *state) UnmarshalJSON(b []byte) error {
+	type stored state
+	var next stored
+	if err := json.Unmarshal(b, &next); err != nil {
+		return err
+	}
+	*st = state(next)
+	for id, old := range st.Devices {
+		if id == householdDevices { continue }
+		account := st.Devices[householdDevices]
+		for _, screen := range old.Screens {
+			screen.Profile = id
+			account.Screens = append(account.Screens, screen)
+		}
+		st.Devices[householdDevices] = account
+		old.Screens = nil
+		if old.Challenge == "" { delete(st.Devices, id) } else { st.Devices[id] = old }
+	}
+	return nil
+}
 
 type DevicePairing struct {
 	Challenge string         `json:"challenge,omitempty"`
@@ -15,6 +41,7 @@ type DevicePairing struct {
 	Screens   []pairedScreen `json:"screens,omitempty"`
 }
 type pairedScreen struct {
+	Profile string `json:"profile,omitempty"`
 	Hash  string `json:"hash"`
 	Until int64  `json:"until"`
 }
@@ -53,24 +80,39 @@ func (s *Server) pendingDeviceChallenge(hash string, now time.Time) bool {
 	}
 	return false
 }
-func (s *Server) profileDevices(w http.ResponseWriter, r *http.Request) {
+func (s *Server) accountDevices(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.authorized(r) {
 		write(w, 401, map[string]string{"error": "authentication required"})
 		return
 	}
-	id := r.PathValue("id")
-	if _, ok := s.profile(id); !ok {
-		http.NotFound(w, r)
-		return
-	}
+	id := householdDevices
 	p := s.data.Devices[id]
 	now := time.Now()
 	p.Screens = slices.DeleteFunc(slices.Clone(p.Screens), func(d pairedScreen) bool { return d.Until <= now.Unix() })
 	switch r.Method {
 	case "GET":
-		write(w, 200, map[string]int{"count": len(p.Screens)})
+		devices := make([]map[string]string, 0, len(p.Screens))
+		for _, screen := range p.Screens {
+			devices = append(devices, map[string]string{"id": secretHash(screen.Hash)[:16], "profile": screen.Profile})
+		}
+		write(w, 200, map[string]any{"devices": devices})
+		return
+	case "PATCH":
+		var assignment struct{ Device, Profile string }
+		if !readInput(w, r, &assignment) { return }
+		if _, ok := s.profile(assignment.Profile); assignment.Profile != "" && !ok {
+			http.NotFound(w, r); return
+		}
+		for i, screen := range p.Screens {
+			if secretHash(screen.Hash)[:16] == assignment.Device {
+				p.Screens[i].Profile = assignment.Profile
+				if s.saveDevices(w,id,p) { write(w,200,map[string]bool{"assigned":true}) }
+				return
+			}
+		}
+		http.NotFound(w,r)
 		return
 	case "DELETE":
 		if s.saveDevices(w, id, DevicePairing{}) {
@@ -119,13 +161,13 @@ func (s *Server) joinDevice(w http.ResponseWriter, r *http.Request, hash, normal
 		if (p.Challenge != hash && p.Challenge != normalized) || p.Until <= now.Unix() {
 			continue
 		}
-		if _, ok := s.profile(id); !ok {
+		if _, ok := s.profile(id); id != householdDevices && !ok {
 			continue
 		}
 		cookie := token()
 		const lifetime = 365 * 24 * 60 * 60
 		p.Screens = slices.DeleteFunc(slices.Clone(p.Screens), func(d pairedScreen) bool { return d.Until <= now.Unix() })
-		p.Screens = append(p.Screens, pairedScreen{Hash: secretHash(cookie), Until: now.Unix() + lifetime})
+		p.Screens = append(p.Screens, pairedScreen{Profile: id, Hash: secretHash(cookie), Until: now.Unix() + lifetime})
 		p.Challenge = ""
 		p.Until = 0
 		s.finishExchange(w, r, cookie, lifetime, func() bool { return s.saveDevices(w, id, p) })
@@ -133,22 +175,25 @@ func (s *Server) joinDevice(w http.ResponseWriter, r *http.Request, hash, normal
 	}
 	return false
 }
-func (s *Server) deviceProfile(hash string) string {
-	for id, p := range s.data.Devices {
+func (s *Server) findScreen(hash string) (pairedScreen, bool) {
+	for _, p := range s.data.Devices {
 		for _, d := range p.Screens {
 			if d.Hash == hash && d.Until > time.Now().Unix() {
-				return id
+				return d, true
 			}
 		}
 	}
-	return ""
+	return pairedScreen{}, false
 }
 func (s *Server) deviceStatus(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	id := ""
-	if c, e := r.Cookie("familytv_viewer"); e == nil {
-		id = s.deviceProfile(secretHash(c.Value))
+	var screen pairedScreen
+	var paired bool
+	if c, err := r.Cookie("familytv_viewer"); err == nil {
+		screen, paired = s.findScreen(secretHash(c.Value))
 	}
-	write(w, 200, map[string]bool{"paired": id != "", "active": id != "" && active(s.data.Viewing[id], time.Now())})
+	label := ""
+	if paired { label = secretHash(screen.Hash)[:6] }
+	write(w, 200, map[string]any{"screen": label, "paired": paired, "active": paired && active(s.data.Viewing[screen.Profile], time.Now())})
 }

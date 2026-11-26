@@ -15,7 +15,7 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.data.Profiles = []ChildProfile{{ID: "child"}}
+	// Household setup can precede creation of the first child.
 	s.data.Sessions["parent"] = time.Now().Add(time.Hour).Unix()
 	parent := &http.Cookie{Name: "familytv_admin", Value: "parent"}
 	call := func(method, path, body string, c *http.Cookie, want int) *httptest.ResponseRecorder {
@@ -31,7 +31,7 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 		}
 		return w
 	}
-	const devices = "/api/profiles/child/devices"
+	const devices = "/api/devices"
 	const session = "/api/profiles/child/session"
 	call("POST", devices, "", nil, 401)
 	w := call("POST", devices, "", parent, 201)
@@ -49,7 +49,14 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 	call("POST", devices, "", child, 401)
 	call("GET", "/api/watch", "", child, 403)
 	call("GET", "/api/watch/media/clip/file", "", child, 404)
+	s.data.Profiles = []ChildProfile{{ID:"child"}}
+	var list struct{ Devices []struct{ ID string } }
+	if err := json.Unmarshal(call("GET",devices,"",parent,200).Body.Bytes(), &list); err != nil || len(list.Devices)!=1 { t.Fatal("expected one account device",err) }
+	assign := `{"device":"`+list.Devices[0].ID+`","profile":"child"}`
+	call("PATCH", devices, assign, child, 401)
 	call("POST", session, `{"mode":"manual"}`, parent, 201)
+	call("GET","/api/watch","",child,403)
+	call("PATCH",devices,assign,parent,200)
 	call("GET", "/api/watch", "", child, 200)
 	call("DELETE", session, "", parent, 200)
 	call("GET", "/api/watch", "", child, 403)
@@ -59,6 +66,8 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 	}
 	call("POST", session, `{"mode":"manual"}`, parent, 201)
 	call("GET", "/api/watch", "", child, 200)
+	call("DELETE", "/api/profiles/child", "", parent, 200)
+	if got:=call("GET","/api/watch/device","",child,200).Body.String(); !strings.Contains(got,`"paired":true`) {t.Fatal(got)}
 	call("DELETE", devices, "", parent, 200)
 	call("GET", "/api/watch", "", child, 403)
 }

@@ -14,6 +14,7 @@ func TestRecursiveScanImportsOnceAndRequiresReview(t *testing.T) {
 	}
 	root := t.TempDir()
 	t.Setenv("FAMILYTV_MEDIA_DIR", root)
+	t.Setenv("FAMILYTV_SCAN_ON_START", "false")
 	sub := filepath.Join(root, "shows", "season")
 	if err := os.MkdirAll(sub, 0700); err != nil {
 		t.Fatal(err)

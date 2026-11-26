@@ -313,8 +313,8 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("PUT /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("DELETE /api/profiles/{id}/session/pair", s.parentViewing)
-	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
-		mux.HandleFunc(method+" /api/profiles/{id}/devices", s.profileDevices)
+	for _, method := range []string{"GET", "POST", "PUT", "PATCH", "DELETE"} {
+		mux.HandleFunc(method+" /api/devices", s.accountDevices)
 	}
 	mux.HandleFunc("GET /api/watch/device", s.deviceStatus)
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)
