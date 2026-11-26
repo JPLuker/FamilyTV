@@ -71,3 +71,18 @@ func TestDeviceSurvivesSessionAndServerRestart(t *testing.T) {
 	call("DELETE", devices, "", parent, 200)
 	call("GET", "/api/watch", "", child, 403)
 }
+
+func TestLegacyDevicesMoveToHouseholdOnce(t *testing.T) {
+	var st state
+	err := json.Unmarshal([]byte(`{"devices":{"oldchild":{"screens":[{"hash":"legacy","until":2000000000}]},"":{"screens":[{"hash":"new","until":2000000000}]}}}`), &st)
+	if err != nil { t.Fatal(err) }
+	for i:=0; i<2; i++ {
+		screens := st.Devices[householdDevices].Screens
+		if len(st.Devices)!=1 || len(screens)!=2 || screens[1].Hash!="legacy" || screens[1].Profile!="oldchild" || screens[0].Profile!="" {
+			t.Fatal("incorrect migration",st.Devices)
+		}
+		data,err:=json.Marshal(st)
+		if err!=nil{t.Fatal(err)}
+		if err=json.Unmarshal(data,&st);err!=nil{t.Fatal(err)}
+	}
+}

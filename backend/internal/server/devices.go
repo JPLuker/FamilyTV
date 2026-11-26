@@ -5,6 +5,7 @@ import (
 	"encoding/base32"
 	"encoding/hex"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"slices"
 	"time"
@@ -115,9 +116,14 @@ func (s *Server) accountDevices(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w,r)
 		return
 	case "DELETE":
-		if s.saveDevices(w, id, DevicePairing{}) {
-			write(w, 200, map[string]bool{"revoked": true})
+		old := s.data.Devices
+		s.data.Devices = nil
+		if err := s.persist(); err != nil {
+			s.data.Devices = old
+			write(w, 500, map[string]string{"error":"storage failure"})
+			return
 		}
+		write(w, 200, map[string]bool{"revoked": true})
 		return
 	}
 	var code string
@@ -166,11 +172,22 @@ func (s *Server) joinDevice(w http.ResponseWriter, r *http.Request, hash, normal
 		}
 		cookie := token()
 		const lifetime = 365 * 24 * 60 * 60
-		p.Screens = slices.DeleteFunc(slices.Clone(p.Screens), func(d pairedScreen) bool { return d.Until <= now.Unix() })
-		p.Screens = append(p.Screens, pairedScreen{Profile: id, Hash: secretHash(cookie), Until: now.Unix() + lifetime})
-		p.Challenge = ""
-		p.Until = 0
-		s.finishExchange(w, r, cookie, lifetime, func() bool { return s.saveDevices(w, id, p) })
+		s.finishExchange(w, r, cookie, lifetime, func() bool {
+			old := s.data.Devices
+			s.data.Devices = maps.Clone(old)
+			p.Challenge, p.Until = "", 0
+			s.data.Devices[id] = p
+			account := s.data.Devices[householdDevices]
+			account.Screens = slices.DeleteFunc(slices.Clone(account.Screens), func(d pairedScreen) bool { return d.Until <= now.Unix() })
+			account.Screens = append(account.Screens, pairedScreen{Profile: id, Hash: secretHash(cookie), Until: now.Unix() + lifetime})
+			s.data.Devices[householdDevices] = account
+			if err := s.persist(); err != nil {
+				s.data.Devices = old
+				write(w,500,map[string]string{"error":"storage failure"})
+				return false
+			}
+			return true
+		})
 		return true
 	}
 	return false
