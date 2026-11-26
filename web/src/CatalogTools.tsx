@@ -1,32 +1,43 @@
-import {useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {errorMessage,request} from './api'
 import type {ReviewedMedia} from './MediaReview'
 import Lookup from './Lookup'
 export type Metadata={playlist_index?:number;attribution?:string;title:string;kind:string;series:string;season:number;episode:number;creator:string;playlist:string;external_id:string;language:string;license:string;source:string;collection:string}
-export function Scanner({media,added}:{media:ReviewedMedia[];added:(m:ReviewedMedia)=>void}){
-  const [paths,setPaths]=useState<string[]>([])
-  const [selected,setSelected]=useState<string[]>([])
-  const [more,setMore]=useState(false)
-  const [busy,setBusy]=useState(false)
-  const [status,setStatus]=useState('')
-  async function scan(append:boolean){
-    setBusy(true)
-    try{const result=await request<{paths:string[];more:boolean;skipped:number}>('media/scan'+(append?'?after='+encodeURIComponent(paths.at(-1)||''):''))
-      setPaths(append?[...paths,...result.paths]:result.paths);setMore(result.more);setSelected([]);setStatus(result.paths.length+' files on this page. '+result.skipped+' unreadable paths.')
-    }catch(e){setStatus(errorMessage(e))}finally{setBusy(false)}
+type ScanStatus={running:boolean;finished:number;imported:number;skipped:number;failed:number;last_error?:string}
+export function Scanner({refresh}:{refresh:()=>void}){
+  const [scan,setScan]=useState<ScanStatus>()
+  const [submitting,setSubmitting]=useState(false)
+  const [error,setError]=useState('')
+  const [revision,setRevision]=useState(0)
+  const lastFinish=useRef(0)
+  useEffect(()=>{
+    let live=true
+    let timer:ReturnType<typeof setTimeout>
+    async function poll(){
+      let delay=10000
+      try{
+        const state=await request<ScanStatus>('media/library-scan')
+        if(!live)return
+        setError('');setScan(state)
+        if(state.finished>lastFinish.current){lastFinish.current=state.finished;refresh()}
+        if(state.running)delay=800
+      }catch(e){if(live)setError(errorMessage(e))}
+      if(live)timer=setTimeout(poll,delay)
+    }
+    void poll()
+    return()=>{live=false;clearTimeout(timer)}
+  },[refresh,revision])
+  async function start(){
+    setSubmitting(true)
+    try{setScan(await request<ScanStatus>('media/library-scan','POST'));setRevision(n=>n+1)}
+    catch(e){setError(errorMessage(e))}finally{setSubmitting(false)}
   }
-  async function importSelected(){
-    setBusy(true);let count=0;const failed:string[]=[]
-    for(const path of selected){try{added(await request<ReviewedMedia>('media','POST',{path}));count++}catch(e){failed.push(path+' — '+errorMessage(e))}}
-    setStatus('Imported '+count+'. '+failed.join(' · '));setSelected([]);setBusy(false)
-  }
-  return <details><summary>Scan the media folder</summary>
-    <button disabled={busy} onClick={()=>scan(false)}>Scan files</button>
-    {paths.map(path=><label key={path} className="toggle"><input type="checkbox" disabled={busy||media.some(m=>m.path===path)} checked={selected.includes(path)} onChange={e=>setSelected(old=>e.target.checked?[...old,path]:old.filter(p=>p!==path))}/>{path}{media.some(m=>m.path===path)?' · imported':''}</label>)}
-    {more&&<button disabled={busy} onClick={()=>scan(true)}>Load more files</button>}
-    {paths.length>0&&<button disabled={busy||!selected.length} onClick={importSelected}>Import selected files</button>}
-    {status&&<p role="status">{status}</p>}
-  </details>
+  return <section><h3>Library scan</h3>
+    <p>Every hour FamilyTV imports new videos from your media folder and its subfolders. Review them together in the approval queue.</p>
+    <button id="scan-library" disabled={submitting||scan?.running} onClick={start}>Scan now</button>
+    {scan&&(scan.running||scan.finished>0)&&<p role="status">{scan.running?'Scanning…':'Scan complete.'} Imported {scan.imported} · skipped {scan.skipped} · failed {scan.failed}. {scan.last_error}</p>}
+    {error&&<p role="alert">{error}</p>}
+  </section>
 }
 export function MetadataEditor({item,saved,close}:{item:ReviewedMedia;saved:(m:ReviewedMedia)=>void;close:()=>void}){
   const [value,setValue]=useState<Metadata>({...item.metadata,title:item.title,kind:item.metadata.kind||'video'})

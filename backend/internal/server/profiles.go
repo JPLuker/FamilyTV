@@ -83,6 +83,8 @@ func (s *Server) deleteProfile(w http.ResponseWriter, r *http.Request) {
 			delete(s.data.Usage, id)
 			s.data.Viewing = maps.Clone(before.Viewing)
 			delete(s.data.Viewing, id)
+			s.data.Devices = maps.Clone(before.Devices)
+			delete(s.data.Devices, id)
 			s.data.Media = slices.Clone(before.Media)
 			for j, m := range s.data.Media {
 				if slices.Contains(m.Review.Profiles, id) {

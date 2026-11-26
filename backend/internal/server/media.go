@@ -167,22 +167,64 @@ func (s *Server) importMedia(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	f, info, err := openMedia(input.Path)
+	m, status, err := prepareMedia(r.Context(), input.Path, input.Title)
+	if err == nil {
+		status, err = s.insertMedia(m)
+	}
 	if err != nil {
-		write(w, 400, map[string]string{"error": "File unavailable in the configured media folder."})
+		write(w, status, map[string]string{"error": err.Error()})
 		return
+	}
+	write(w, 201, m)
+}
+
+func prepareMedia(ctx context.Context, path, title string) (Media, int, error) {
+	f, info, err := openMedia(path)
+	if err != nil {
+		return Media{}, 400, errors.New("File unavailable in the configured media folder.")
 	}
 	defer f.Close()
 	fp, err := fingerprint(f, info.Size())
 	if err != nil {
-		write(w, 422, map[string]string{"error": "Cannot fingerprint video."})
-		return
+		return Media{}, 422, errors.New("Cannot fingerprint video.")
+	}
+	original := detectMetadata(path)
+	metadata := original
+	if title != "" {
+		metadata.Title = title
+		metadata.Source = "parent override"
+	}
+	duration, streams, err := probeMedia(ctx, f)
+	if err != nil {
+		return Media{}, 422, errors.New("Could not read a video track and duration. Check the file and FFprobe installation.")
+	}
+	m := Media{Streams: streams, ID: token(), Title: metadata.Title, Metadata: metadata, Original: original, Fingerprint: fp, Path: path, Duration: duration, Size: info.Size(), Modified: info.ModTime().UnixNano()}
+	if f, _, err := openCaption(m.Path); err == nil {
+		f.Close()
+		m.Captions = true
+	}
+	return m, 201, nil
+}
+
+func (s *Server) insertMedia(m Media) (int, error) {
+	for _, existing := range s.data.Media {
+		if existing.Path == m.Path {
+			return 409, errors.New("Already imported.")
+		}
+	}
+	f, info, err := openMedia(m.Path)
+	if err != nil {
+		return 422, errors.New("File unavailable.")
+	}
+	defer f.Close()
+	if info.Size() != m.Size || info.ModTime().UnixNano() != m.Modified {
+		return 422, errors.New("File changed during import.")
 	}
 	for _, existing := range s.data.Media {
 		if existing.Size != info.Size() {
 			continue
 		}
-		if existing.Fingerprint != "" && existing.Fingerprint != fp {
+		if existing.Fingerprint != "" && existing.Fingerprint != m.Fingerprint {
 			continue
 		}
 		other, oldInfo, e := openMedia(existing.Path)
@@ -196,37 +238,18 @@ func (s *Server) importMedia(w http.ResponseWriter, r *http.Request) {
 		same, e := sameBytes(f, other, info.Size())
 		other.Close()
 		if e != nil {
-			write(w, 422, map[string]string{"error": "Cannot compare source files."})
-			return
+			return 422, errors.New("Cannot compare source files.")
 		}
 		if same {
-			write(w, 409, map[string]string{"error": "This video is already imported as " + existing.Title})
-			return
+			return 409, errors.New("This video is already imported as " + existing.Title)
 		}
-	}
-	original := detectMetadata(input.Path)
-	metadata := original
-	if input.Title != "" {
-		metadata.Title = input.Title
-		metadata.Source = "parent override"
-	}
-	duration, streams, err := probeMedia(r.Context(), f)
-	if err != nil {
-		write(w, 422, map[string]string{"error": "Could not read a video track and duration. Check the file and FFprobe installation."})
-		return
-	}
-	m := Media{Streams: streams, ID: token(), Title: metadata.Title, Metadata: metadata, Original: original, Fingerprint: fp, Path: input.Path, Duration: duration, Size: info.Size(), Modified: info.ModTime().UnixNano()}
-	if f, _, err := openCaption(m.Path); err == nil {
-		f.Close()
-		m.Captions = true
 	}
 	s.data.Media = append(s.data.Media, m)
 	if err = s.persist(); err != nil {
 		s.data.Media = s.data.Media[:len(s.data.Media)-1]
-		write(w, 500, map[string]string{"error": "storage failure"})
-		return
+		return 500, errors.New("storage failure")
 	}
-	write(w, 201, m)
+	return 201, nil
 }
 func (s *Server) parentMediaFile(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()

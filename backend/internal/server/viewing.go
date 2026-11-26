@@ -1,9 +1,8 @@
 package server
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base32"
+
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -16,7 +15,7 @@ import (
 )
 
 type Viewing struct {
-	Rotation string `json:"rotation,omitempty"`
+	Rotation    string        `json:"rotation,omitempty"`
 	Budget      SessionBudget `json:"budget,omitempty"`
 	LastCreator string        `json:"last_creator,omitempty"`
 	Profile     string        `json:"profile"`
@@ -30,13 +29,13 @@ type Viewing struct {
 }
 type WatchItem struct {
 	returning bool
-	creator  string
-	series   string
-	ID       string  `json:"id"`
-	Title    string  `json:"title"`
-	Subject  string  `json:"subject"`
-	Duration float64 `json:"duration_seconds"`
-	Captions bool    `json:"captions"`
+	creator   string
+	series    string
+	ID        string  `json:"id"`
+	Title     string  `json:"title"`
+	Subject   string  `json:"subject"`
+	Duration  float64 `json:"duration_seconds"`
+	Captions  bool    `json:"captions"`
 }
 
 func watchItem(m Media) WatchItem {
@@ -144,6 +143,10 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			}
+			if s.pendingDeviceChallenge(hash, now) {
+				write(w, 409, map[string]string{"error": "This screen already has a pending request."})
+				return
+			}
 			v.JoinHash = hash
 			v.JoinUntil = now.Add(10 * time.Minute).UnixMilli()
 			if s.setViewing(w, id, &v) {
@@ -225,12 +228,10 @@ func (s *Server) parentViewing(w http.ResponseWriter, r *http.Request) {
 	s.issueCode(w, id, v, now)
 }
 func (s *Server) issueCode(w http.ResponseWriter, id string, v Viewing, now time.Time) {
-	var raw [8]byte
-	if _, err := rand.Read(raw[:]); err != nil {
-		write(w, 500, map[string]string{"error": "Pairing unavailable."})
+	code, ok := newPairingCode(w)
+	if !ok {
 		return
 	}
-	code := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw[:])
 	v.JoinHash = secretHash(code)
 	v.JoinUntil = now.Add(10 * time.Minute).UnixMilli()
 	if s.setViewing(w, id, &v) {
@@ -249,6 +250,9 @@ func (s *Server) joinViewing(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	hash := secretHash(input.Code)
 	normalized := secretHash(strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(input.Code), "-", "")))
+	if s.joinDevice(w, r, hash, normalized, now) {
+		return
+	}
 	for id, v := range s.data.Viewing {
 		if (v.JoinHash != hash && v.JoinHash != normalized) || !active(v, now) || v.JoinUntil <= now.UnixMilli() {
 			continue
@@ -261,26 +265,30 @@ func (s *Server) joinViewing(w http.ResponseWriter, r *http.Request) {
 		v.CookieHash = secretHash(cookie)
 		v.JoinHash = ""
 		v.JoinUntil = 0
-		// A parent may open the viewer link on the same browser and hand it to a child.
-		// Drop that browser's parent session in the same write as the code exchange.
-		parent, _ := r.Cookie("familytv_admin")
-		var parentExpiry int64
-		if parent != nil {
-			parentExpiry = s.data.Sessions[parent.Value]
-			delete(s.data.Sessions, parent.Value)
-		}
-		if s.setViewing(w, id, &v) {
-			if parent != nil {
-				http.SetCookie(w, &http.Cookie{Name: "familytv_admin", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteStrictMode})
-			}
-			http.SetCookie(w, &http.Cookie{Name: "familytv_viewer", Value: cookie, Path: "/api/watch", HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteStrictMode})
-			write(w, 200, map[string]bool{"joined": true})
-		} else if parentExpiry != 0 {
-			s.data.Sessions[parent.Value] = parentExpiry
-		}
+		s.finishExchange(w, r, cookie, 0, func() bool { return s.setViewing(w, id, &v) })
+
 		return
 	}
 	write(w, 403, map[string]string{"error": "This viewing link has expired or has already been used."})
+}
+func (s *Server) finishExchange(w http.ResponseWriter, r *http.Request, cookie string, maxAge int, save func() bool) {
+	// A parent may open the viewer link on the same browser and hand it to a child.
+	// Drop that browser's parent session in the same write as the code exchange.
+	parent, _ := r.Cookie("familytv_admin")
+	var parentExpiry int64
+	if parent != nil {
+		parentExpiry = s.data.Sessions[parent.Value]
+		delete(s.data.Sessions, parent.Value)
+	}
+	if save() {
+		if parent != nil {
+			http.SetCookie(w, &http.Cookie{Name: "familytv_admin", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteStrictMode})
+		}
+		http.SetCookie(w, &http.Cookie{Name: "familytv_viewer", Value: cookie, MaxAge: maxAge, Path: "/api/watch", HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteStrictMode})
+		write(w, 200, map[string]bool{"joined": true})
+	} else if parentExpiry != 0 {
+		s.data.Sessions[parent.Value] = parentExpiry
+	}
 }
 func (s *Server) viewer(r *http.Request) (Viewing, ChildProfile, bool) {
 	c, e := r.Cookie("familytv_viewer")
@@ -288,6 +296,11 @@ func (s *Server) viewer(r *http.Request) (Viewing, ChildProfile, bool) {
 		return Viewing{}, ChildProfile{}, false
 	}
 	hash := secretHash(c.Value)
+	if id := s.deviceProfile(hash); id != "" {
+		v := s.data.Viewing[id]
+		p, ok := s.profile(id)
+		return v, p, ok && active(v, time.Now())
+	}
 	for _, v := range s.data.Viewing {
 		if v.CookieHash == hash && active(v, time.Now()) {
 			p, ok := s.profile(v.Profile)

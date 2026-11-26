@@ -30,6 +30,7 @@ type loginAttempts struct {
 	Until int64 `json:"until"`
 }
 type state struct {
+	Devices          map[string]DevicePairing       `json:"devices,omitempty"`
 	Usage            map[string]DailyUsage          `json:"usage,omitempty"`
 	Bookmarks        map[string]map[string]Bookmark `json:"bookmarks,omitempty"`
 	ApprovalLog      []ApprovalEvent                `json:"approval_log,omitempty"`
@@ -42,6 +43,7 @@ type state struct {
 	Profiles         []ChildProfile                 `json:"profiles,omitempty"`
 }
 type Server struct {
+	scanner       *LibraryScanner
 	currentState  func(context.Context) (state, error)
 	mu            sync.Mutex
 	path          string
@@ -311,6 +313,10 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("PUT /api/profiles/{id}/session/pair", s.parentViewing)
 	mux.HandleFunc("DELETE /api/profiles/{id}/session/pair", s.parentViewing)
+	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
+		mux.HandleFunc(method+" /api/profiles/{id}/devices", s.profileDevices)
+	}
+	mux.HandleFunc("GET /api/watch/device", s.deviceStatus)
 	mux.HandleFunc("POST /api/watch/join", s.joinViewing)
 	mux.HandleFunc("GET /api/watch", s.watchCatalog)
 	mux.HandleFunc("GET /api/watch/ending-music", s.endingMusic)
@@ -324,6 +330,8 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/watch/media/{id}/captions", s.viewerMediaFile)
 	mux.HandleFunc("GET /api/metadata/lookup", s.metadataLookup)
 	mux.HandleFunc("POST /api/media/{id}/probe", s.refreshProbe)
+	mux.HandleFunc("POST /api/media/library-scan", s.libraryScan)
+	mux.HandleFunc("GET /api/media/library-scan", s.libraryScan)
 	mux.HandleFunc("GET /api/media/scan", s.scanMedia)
 	mux.HandleFunc("PUT /api/media/{id}/metadata", s.editMetadata)
 	mux.HandleFunc("DELETE /api/media/{id}/metadata", s.editMetadata)

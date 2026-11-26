@@ -104,7 +104,7 @@ public final class ViewerActivity extends Activity {
             image.setImageBitmap(bitmap);
             image.setContentDescription("Scan with the parent's phone to choose a profile");
             new AlertDialog.Builder(this).setTitle("Pair TV " + pairing.identifier)
-                    .setMessage("Scan with your phone. Confirm this TV code in the child's session controls, then open the viewer.")
+                    .setMessage("Scan with your phone. Confirm this TV code under Pair a device for your child, then open the viewer.")
                     .setView(image).setNegativeButton("Cancel", null)
                     .setPositiveButton("Open paired viewer", (dialog, which) -> {
                         server = origin;

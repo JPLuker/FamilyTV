@@ -1,5 +1,11 @@
 # FamilyTV handoff — 2026-11-23
 
+## Household device setup and recursive imports, 0.31.0
+
+The parent dashboard pairs phones, tablets, TVs and browser viewers under **Pair a device** for a child profile. Device credentials survive session endings and server restarts. Sessions continue to enforce approval, parent stop and deadlines. Older session-specific links retain their original scope. Existing installs can use the new device code after updating the server. Rebuild the server container to deliver the new parent and viewer interfaces.
+
+**Scan now** and hourly server-side scans import nested videos into the review queue, skipping duplicate paths and content. Use the existing profile-specific batch approval controls. Physical acceptance on LukerPlus remains open in #1. Issue #2 tracks the scanner.
+
 ## Unified Android viewer, 0.30.0
 
 Phone, tablet and TV share the existing package, pairing exchange, WebView and native player. TV mode retains the phone-assisted QR workflow and landscape remote UI. Handhelds use touch and follow device rotation. The debug build allows the explicitly entered LukerPlus HTTP origin. Release builds require HTTPS. Robolectric regression cases exercise the launcher and pairing surface in phone, tablet and TV configurations. CI builds the APK and runs Android tests and lint. Check the workflow for the result for each commit.

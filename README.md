@@ -38,7 +38,10 @@ Finish by uses the time zone shown in the parent's browser. FamilyTV stores the 
 
 The same APK opens from the Android app drawer or TV home screen. Phones and tablets support touch and rotation in pairing, browsing and Media3 playback. Enter the server address and a 13-character code from the parent dashboard. TV also supports remote navigation and phone-assisted pairing. For LukerPlus testing on trusted Wi-Fi, the debug APK accepts `http://192.168.86.163:8095` when entered explicitly. HTTP exposes viewer traffic to the network. The release configuration requires HTTPS.
 
-The FamilyTV-Android-debug APK archive is attached to the android-tv CI job. Install it on a TV for testing, enter the HTTPS origin of your FamilyTV server, then the pairing code shown in the parent's session controls. For phone pairing, enter the server address on the TV and choose **Pair using a phone**. Scan the QR code, sign in to the parent dashboard, choose the child's Session and start it if needed. Match the eight characters on the TV before confirming the profile on the phone. Then choose **Open paired viewer** on the TV. Back returns to choices during browsing and opens pairing from the viewer home. A new code replaces an unused one. Redeeming it moves the session to the new viewer. The TV stores the server address and uses the viewer cookie for the session.
+Choose **Pair a device** beside the child profile, then **Get pairing code**. Enter the code on the device. For TV QR pairing, scan the TV’s QR code and choose **Pair a device** on the parent dashboard to confirm the TV identifier. A device can pair before the first session. Start viewing later with **Session**. Ending a session locks paired screens, and the next session unlocks them. Each code lasts ten minutes. Device access lasts up to one year or until disconnected in the dashboard.
+
+Under **Media library**, use **Scan now** to recursively import the mounted folder. The server also scans hourly, skips previously imported paths and duplicate files, and leaves new videos awaiting parent review. Use the approval queue to select and approve a reviewed batch for one child.
+
 
 ### Scanning and matching
 

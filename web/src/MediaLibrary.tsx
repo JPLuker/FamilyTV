@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useCallback,useEffect,useState} from 'react'
 import {errorMessage,request} from './api'
 
 import {Scanner,MetadataEditor} from './CatalogTools'
@@ -34,6 +34,7 @@ export default function MediaLibrary({onApproval,profileRevision}:{profileRevisi
   const [error,setError]=useState('')
   const [busy,setBusy]=useState(false)
   const [reload,setReload]=useState(0)
+  const refresh=useCallback(()=>setReload(n=>n+1),[])
   useEffect(()=>{
     let active=true
     request<{media:Media[];gaps:typeof gaps}>('media').then(result=>{if(active){setMedia(result.media);setGaps(result.gaps);setLoaded(true)}})
@@ -62,7 +63,7 @@ export default function MediaLibrary({onApproval,profileRevision}:{profileRevisi
   return <div>
     <h2>Media library</h2>
     <ApprovalDesk media={media} refresh={()=>setReload(n=>n+1)} review={m=>{setReviewing(m);requestAnimationFrame(()=>document.getElementById("media-review-heading")?.focus())}}/>
-    <Scanner media={media} added={item=>{setMedia(old=>[...old.filter(m=>m.id!==item.id),item]);setReload(n=>n+1)}}/>
+    <Scanner refresh={refresh}/>
     {gaps.length>0&&<details><summary>Episode gaps</summary><ul>{gaps.map(g=><li key={g.series+g.season+'-'+g.from}>{g.series} · season {g.season} · missing {g.from}{g.to!==g.from?'–'+g.to:''}</li>)}</ul></details>}
     <form onSubmit={add}>
       <label htmlFor="media-path">Video path in your media folder</label>

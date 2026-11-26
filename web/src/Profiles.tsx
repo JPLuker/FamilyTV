@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
 import DiscoverySettings,{discoveryDefaults,type Discovery} from './DiscoverySettings'
+import DevicePairing from './DevicePairing'
 import SessionControls from './SessionControls'
 import {ApiError, errorMessage, request} from './api'
 
@@ -38,6 +39,7 @@ export default function Profiles({onExpired,onProfiles,onChanged,incomingTV,onPa
   const [busy,setBusy] = useState(false)
   const [reload,setReload] = useState(0)
   const [sessionProfile,setSessionProfile]=useState<Profile>()
+  const [deviceProfile,setDeviceProfile]=useState<Profile>()
   const [editing,setEditing] = useState<string>()
   const [settings,setSettings] = useState<Settings>(defaults)
   const nameInput = useRef<HTMLInputElement>(null)
@@ -93,6 +95,7 @@ export default function Profiles({onExpired,onProfiles,onChanged,incomingTV,onPa
       await request('profiles/'+encodeURIComponent(p.id),'DELETE')
       setProfiles(previous => previous.filter(old => old.id!==p.id))
       if (editing===p.id) reset()
+      if(deviceProfile?.id===p.id)setDeviceProfile(undefined)
       if(sessionProfile?.id===p.id)setSessionProfile(undefined)
       onChanged();setNotice('Removed '+p.name+'.')
     })
@@ -105,12 +108,14 @@ export default function Profiles({onExpired,onProfiles,onChanged,incomingTV,onPa
     <ul>{profiles.map(p => <li key={p.id}>
       <strong><span aria-hidden="true">{avatars[p.avatar||'']}</span> {p.name}</strong> · {[navigationModes[p.navigation],...toggles.filter(([key])=>p[key]).map(([,label])=>label)].filter(Boolean).join(' · ')}
       <div className="actions">
+        <button disabled={busy} aria-label={'Pair a device for '+p.name} onClick={()=>setDeviceProfile(p)}>Pair a device</button>
         <button disabled={busy} aria-label={'Viewing session for '+p.name} onClick={()=>setSessionProfile(p)}>Session</button>
         <button disabled={busy} onClick={() => edit(p)} aria-label={'Edit '+p.name}>Edit</button>
         <button disabled={busy} onClick={() => remove(p)} aria-label={'Remove '+p.name}>Remove</button>
       </div>
     </li>)}</ul>
-    {sessionProfile&&<SessionControls incomingTV={incomingTV} onPaired={onPaired} key={sessionProfile.id} profile={sessionProfile} close={()=>setSessionProfile(undefined)}/>}
+    {deviceProfile&&<DevicePairing key={deviceProfile.id} profile={deviceProfile} challenge={incomingTV} onPaired={onPaired} close={()=>setDeviceProfile(undefined)}/>}
+    {sessionProfile&&<SessionControls key={sessionProfile.id} profile={sessionProfile} close={()=>setSessionProfile(undefined)}/>}
     <form onSubmit={save}>
       <h3>{editing ? 'Edit profile' : 'New profile'}</h3>
       <label htmlFor="child-name">Profile name</label>

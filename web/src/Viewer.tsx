@@ -22,6 +22,8 @@ function subjectOrder(seed:string, name:string){
 export default function Viewer(){
   const [catalog,setCatalog]=useState<Catalog>()
   const [error,setError]=useState('')
+  const hasViewed=useRef(false)
+  const [waiting,setWaiting]=useState(false)
   const [ended,setEnded]=useState(false)
   const preferences=useRef({ending_topic:"",quiet_ending:true,large_text:false,high_contrast:false,reduced_motion:false,ending_music:false})
   const strip=useRef<HTMLDivElement>(null)
@@ -35,6 +37,23 @@ export default function Viewer(){
   const [hardStop,setHardStop]=useState(false)
   const [showSignOff,setShowSignOff]=useState(true)
   const [music,setMusic]=useState('')
+  useEffect(()=>{
+    if(!ended)return
+    let cancelled=false
+    let timer:ReturnType<typeof setTimeout>
+    async function check(){
+      try{
+        const state=await request<{paired:boolean;active:boolean}>('watch/device')
+        if(cancelled)return
+        setWaiting(state.paired&&!hasViewed.current)
+        if(state.active){setEnded(false);setWaiting(false);setShowSignOff(true);setHardStop(false);return}
+        if(!state.paired)return
+      }catch{ /* Retry when the household server is reachable again. */ }
+      if(!cancelled)timer=setTimeout(check,2000)
+    }
+    void check()
+    return()=>{cancelled=true;clearTimeout(timer)}
+  },[ended])
   const musicEnabled=Boolean((catalog||preferences.current).ending_music)
   useEffect(()=>{
     if(!musicEnabled){setMusic('');return}
@@ -55,7 +74,7 @@ export default function Viewer(){
     const sent=performance.now()
     try{
       const next=await request<Catalog>('watch')
-      if(mounted.current&&n===revision.current){next.server_time+=Math.ceil(performance.now()-sent);localDeadline.current=next.deadline?performance.now()+next.deadline-next.server_time:0;preferences.current=next;setCatalog(next);setError('')}
+      if(mounted.current&&n===revision.current){next.server_time+=Math.ceil(performance.now()-sent);localDeadline.current=next.deadline?performance.now()+next.deadline-next.server_time:0;preferences.current=next;hasViewed.current=true;setCatalog(next);setError('')}
     }catch(e){
       if(mounted.current&&n===revision.current){
         if(e instanceof ApiError && e.status===403)end()
@@ -215,7 +234,7 @@ export default function Viewer(){
     const text=(e.target as HTMLElement).getAttribute('aria-label')
     if(text){const voice=speechSynthesis.getVoices().find(v=>v.localService);if(voice){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;speechSynthesis.speak(utterance)}}
   }}} className={['viewer','child-world',catalog&&!current?'choosing':'',ended?'night':'',ended&&preferences.current.quiet_ending?'quiet':'',preferences.current.large_text?'large':'',preferences.current.high_contrast?'contrast':'',preferences.current.reduced_motion?'still':''].join(' ')} onKeyDown={move}>{!ended&&<header><Brand/>{catalog?.avatar&&<span role="img" aria-label={catalog.avatar+' profile avatar'}>{avatars[catalog.avatar]}</span>}</header>}
-    {ended?<section className="night-ending"><span className="moon" aria-hidden="true"/><h1>Viewing time is over</h1>{showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
+    {ended?<section className="night-ending"><span className="moon" aria-hidden="true"/><h1>{waiting?"Paired and waiting for a session":"Viewing time is over"}</h1>{!waiting&&showSignOff&&!hardStop&&!preferences.current.quiet_ending&&<><h2>Did you know?</h2><p>{fact?.text}</p>{fact&&<small>{fact.source}</small>}{music&&<audio controls autoPlay src={music} aria-label="Session-ending music"/>}</>}</section>:<>
       {error&&<p role="alert">{error}</p>}
       {!catalog&&!error&&<p role="status">Connecting…</p>}
       {catalog?.deadline&&Boolean(catalog.discovery.warn_minutes)&&catalog.deadline-catalog.server_time<=(catalog.discovery.warn_minutes||0)*60000?<p>Viewing time ends soon.</p>:null}

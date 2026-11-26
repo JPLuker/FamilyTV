@@ -94,14 +94,14 @@ function App() {
       <div className="welcome-card"><h1 id="welcome">Dashboard</h1><ToyTV/></div>
       {hasProfiles!==undefined && hasApproval!==undefined && (!hasProfiles || !hasApproval) && <nav aria-label="Household setup">
         <h2>Set up family viewing</h2>
-        {hasProfiles ? <p><a href="#media-path">Add a video</a>, then choose Review to approve it for a child.</p> : <p><a href="#child-name">Create your first child profile</a> and choose how they browse.</p>}
-        <p>Once a video is approved, open Session beside the child’s name to pair their screen.</p>
+        {hasProfiles ? <p><a href="#scan-library">Scan your media folder</a>, then use the approval queue to approve videos together.</p> : <p><a href="#child-name">Create your first child profile</a> and choose how they browse.</p>}
+        <p>Choose Pair a device beside the child’s name. Use Session when you’re ready to start viewing.</p>
         <details><summary>Choosing what works for your family</summary>
           <p>Think about what your child enjoys, what they watch, and what helps them settle afterward. Decide what you want to leave time for and talk together about what you watched.</p>
           <a href="https://www.aap.org/en/patient-care/media-and-children/center-of-excellence-on-social-media-and-youth-mental-health/5-cs-quick-guide/">American Academy of Pediatrics guide to the 5 Cs</a>
         </details>
       </nav>}
-      {incomingTV&&<p>Choose Session beside the child who will watch. Start a session if needed, then confirm the code displayed on your TV.</p>}
+      {incomingTV&&<p>Choose Pair a device beside the child who will watch, then confirm the code displayed on your TV.</p>}
       <Profiles incomingTV={incomingTV} onPaired={()=>setIncomingTV(undefined)} onExpired={onExpired} onProfiles={setHasProfiles} onChanged={()=>setProfileRevision(n=>n+1)}/>
       <MediaLibrary profileRevision={profileRevision} onApproval={setHasApproval}/>
       <ParentPin onExpired={onExpired}/>

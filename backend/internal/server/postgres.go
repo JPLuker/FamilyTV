@@ -14,7 +14,7 @@ import (
 
 // Initialize the single household row once. A previous JSON installation is read
 // only during creation. Restarting after an import never overwrites database state.
-func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) (http.Handler, error) {
+func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool, scanner *LibraryScanner) (http.Handler, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func postgresHandler(ctx context.Context, db *sql.DB, path string, secure bool) 
 			query += " FOR UPDATE"
 		}
 		var b []byte
-		s := &Server{secureCookies: secure}
+		s := &Server{secureCookies: secure, scanner: scanner}
 		s.currentState = func(ctx context.Context) (state, error) {
 			var current state
 			var snapshot []byte
@@ -123,10 +123,52 @@ func OpenPostgres(ctx context.Context, dsn, path string, secure bool) (http.Hand
 		return nil, nil, err
 	}
 	db.SetMaxOpenConns(12)
-	handler, err := postgresHandler(ctx, db, path, secure)
+	scanCtx, cancel := context.WithCancel(context.Background())
+	scanner := &LibraryScanner{ctx: scanCtx}
+	scanner.known = func(ctx context.Context) (map[string]bool, error) {
+		var raw []byte
+		err := db.QueryRowContext(ctx, "SELECT COALESCE(document->'media','[]'::jsonb) FROM familytv_household WHERE singleton AND version=2").Scan(&raw)
+		if err != nil {
+			return nil, err
+		}
+		var items []Media
+		if err = json.Unmarshal(raw, &items); err != nil {
+			return nil, err
+		}
+		return knownPaths(items), nil
+	}
+	scanner.insert = func(ctx context.Context, m Media) (int, error) {
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			return 500, err
+		}
+		defer tx.Rollback()
+		var raw []byte
+		if err = tx.QueryRowContext(ctx, "SELECT document FROM familytv_household WHERE singleton AND version=2 FOR UPDATE").Scan(&raw); err != nil {
+			return 500, err
+		}
+		s := &Server{}
+		if err = json.Unmarshal(raw, &s.data); err != nil {
+			return 500, err
+		}
+		s.save = func(st state) error {
+			b, e := json.Marshal(st)
+			if e != nil {
+				return e
+			}
+			if _, e = tx.ExecContext(ctx, "UPDATE familytv_household SET document=$1 WHERE singleton AND version=2", string(b)); e != nil {
+				return e
+			}
+			return tx.Commit()
+		}
+		return s.insertMedia(m)
+	}
+	handler, err := postgresHandler(ctx, db, path, secure, scanner)
 	if err != nil {
+		cancel()
 		db.Close()
 		return nil, nil, err
 	}
-	return handler, db.Close, nil
+	go scanner.schedule()
+	return handler, func() error { cancel(); return db.Close() }, nil
 }

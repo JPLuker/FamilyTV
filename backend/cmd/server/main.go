@@ -30,6 +30,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		s.StartLibraryScanner(context.Background())
 		handler = s.Routes()
 	}
 	addr := os.Getenv("FAMILYTV_LISTEN")
