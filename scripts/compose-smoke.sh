@@ -57,6 +57,10 @@ jq -nc --arg device "$device" --arg profile "$child" '{device:$device,profile:$p
 "${compose[@]}" exec -T -u postgres db pg_restore --exit-on-error --single-transaction -d recovery < "$tmp/backup.dump"
 profile=$("${compose[@]}" exec -T -u postgres db psql -At -d recovery -c "SELECT document->'profiles'->0->>'name' FROM familytv_household")
 test "$profile" = "Smoke test"
+curl -fsS -b "$tmp/cookies" -X PUT -H 'Content-Type: application/json' -d '{"path":"shows"}' "$base/api/media/library-folder" | jq -e '.selected == "shows"'
+# A new unique file outside the chosen folder must stay out after container recreation.
+"${compose[@]}" exec -T api ffmpeg -v error -f lavfi -i color=c=green:s=32x32:d=1 -c:v mpeg4 /tmp/outside.mp4
+"${compose[@]}" exec -T api cat /tmp/outside.mp4 > "$FAMILYTV_MEDIA_ROOT/outside.mp4"
 "${compose[@]}" exec -T api ffmpeg -v error -f lavfi -i color=c=red:s=32x32:d=1 -c:v mpeg4 /tmp/another.mp4
 "${compose[@]}" exec -T api cat /tmp/another.mp4 > "$FAMILYTV_MEDIA_ROOT/shows/season/new.mp4"
 "${compose[@]}" up -d --force-recreate
@@ -65,7 +69,8 @@ for _ in {1..30}; do
   if curl -fsS -b "$tmp/cookies" "$base/api/media" | jq -e '.media | length == 2' >/dev/null; then break; fi
   sleep 1
 done
-curl -fsS -b "$tmp/cookies" "$base/api/media" | jq -e '.media | length == 2 and all(.[]; (.review.profiles | length) == 0)'
+curl -fsS -b "$tmp/cookies" "$base/api/media/library-folder" | jq -e '.selected == "shows"'
+curl -fsS -b "$tmp/cookies" "$base/api/media" | jq -e '.media | any(.[]; .path == "shows/season/new.mp4") and length == 2 and all(.[]; (.review.profiles | length) == 0)'
 curl -fsS -b "$tmp/cookies" "$base/api/profiles" | jq -e '.profiles | length == 1 and .[0].name == "Smoke test" and .[0].captions'
 curl -fsS -b "$tmp/cookies" -H 'Content-Type: application/json' -d '{"mode":"manual"}' "$base/api/profiles/$child/session" >/dev/null
 curl -fsS -b "$tmp/device" "$base/api/watch" | jq -e '.items | length == 0'
