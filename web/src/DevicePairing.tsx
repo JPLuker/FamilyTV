@@ -5,13 +5,16 @@ export default function DevicePairing({challenge,onPaired,profileRevision}:{
   challenge?:string;onPaired:()=>void;profileRevision:number
 }){
   const path='devices'
-  const [screens,setScreens]=useState<{id:string;profile:string;allow_start:boolean}[]>([])
+  const [screens,setScreens]=useState<{id:string;name?:string;profile:string;allow_start:boolean}[]>([])
   const [profiles,setProfiles]=useState<{id:string;name:string}[]>([])
   useEffect(()=>{
     let live=true
     request<{profiles:{id:string;name:string}[]}>('profiles').then(r=>{if(live)setProfiles(r.profiles||[])}).catch(e=>{if(live)setNotice(errorMessage(e))})
     return ()=>{live=false}
   },[profileRevision])
+  const [name,setName]=useState('')
+  const [editing,setEditing]=useState('')
+  const [draft,setDraft]=useState('')
   const [allowStart,setAllowStart]=useState(false)
   const [code,setCode]=useState('')
   const [notice,setNotice]=useState('')
@@ -30,14 +33,15 @@ export default function DevicePairing({challenge,onPaired,profileRevision}:{
     if(method==='DELETE'&&!window.confirm('Disconnect every device from this household?'))return
     setBusy(true);setNotice('')
     try{
-      const result=await request<{code?:string}>(path,method,method==='DELETE'?undefined:{challenge:method==='PUT'?challenge:undefined,allow_start:allowStart})
-      setCode(result.code||'')
+      const result=await request<{code?:string}>(path,method,method==='DELETE'?undefined:{name,challenge:method==='PUT'?challenge:undefined,allow_start:allowStart})
+      setCode(result.code||'');setName('')
       if(method==='DELETE'){setScreens([]);setNotice('Devices disconnected.')}
       if(method==='PUT'){onPaired();setNotice('TV authorized. Choose Open paired viewer on the TV.')}
     }catch(e){setNotice(errorMessage(e))}finally{setBusy(false)}
   }
   return <section aria-label="Household devices"><h2>Household devices</h2>
     <p>Link phones, tablets and TVs to your account. Assign a viewing profile when the screen is ready to use.</p>
+    <label>New screen name (optional)<input value={name} maxLength={60} placeholder="Living room TV" onChange={e=>setName(e.target.value)}/></label>
     <label className="toggle"><input type="checkbox" checked={allowStart} onChange={e=>setAllowStart(e.target.checked)}/> Allow the new device to start a one-video session with the parent PIN</label>
     <p>Set your PIN under Parent sign-in settings.</p>
     {challenge&&<button disabled={busy} onClick={()=>change('PUT')}>Pair TV {challenge.slice(0,8)}</button>}
@@ -45,7 +49,17 @@ export default function DevicePairing({challenge,onPaired,profileRevision}:{
     {code&&<><p>Device pairing code <strong>{code}</strong> · valid for 10 minutes</p>
       <label>One-time viewer link<input readOnly value={location.origin+'/watch#'+code} onFocus={e=>e.target.select()}/></label>
       <p>Use this link in the child’s browser. Opening it in the parent browser signs you out.</p></>}
-    {screens.map(screen=><div key={screen.id}><label>Viewing profile for screen {screen.id.slice(0,6)}
+    {screens.map((screen,index)=>{
+      const title=screen.name||'Screen '+(index+1)
+      return <div key={screen.id}><h3>{title}</h3>
+      {editing===screen.id?<form onSubmit={async e=>{
+        e.preventDefault();setBusy(true);setNotice('')
+        try{await request(path,'PATCH',{device:screen.id,name:draft.trim()});setScreens(old=>old.map(d=>d.id===screen.id?{...d,name:draft.trim()}:d));setEditing('')}
+        catch(err){setNotice(errorMessage(err))}finally{setBusy(false)}
+      }}><label>Screen name<input autoFocus required maxLength={60} value={draft} onChange={e=>setDraft(e.target.value)}/></label>
+        <button disabled={busy||!draft.trim()}>Save name</button><button type="button" disabled={busy} onClick={()=>setEditing('')}>Cancel</button></form>:
+        <button onClick={()=>{setDraft(screen.name||'');setEditing(screen.id)}}>Rename {title}</button>}
+      <label>Viewing profile for {title}
       <select disabled={busy} value={screen.profile} onChange={async e=>{
         const profile=e.target.value
         setBusy(true);setNotice('')
@@ -55,9 +69,9 @@ export default function DevicePairing({challenge,onPaired,profileRevision}:{
     </label><label className="toggle"><input type="checkbox" disabled={busy} checked={screen.allow_start} onChange={async e=>{
       const allow_start=e.target.checked
       setBusy(true)
-      try{await request(path,'PATCH',{device:screen.id,profile:screen.profile,allow_start});setScreens(old=>old.map(d=>d.id===screen.id?{...d,allow_start}:d))}
+      try{await request(path,'PATCH',{device:screen.id,allow_start});setScreens(old=>old.map(d=>d.id===screen.id?{...d,allow_start}:d))}
       catch(err){setNotice(errorMessage(err))}finally{setBusy(false)}
-    }}/> Allow PIN-protected starts on screen {screen.id.slice(0,6)}</label></div>)}
+    }}/> Allow PIN-protected starts on {title}</label><details><summary>Screen identifier</summary>{screen.id.slice(0,6)}</details></div>})}
     {(screens.length>0||code)&&<button disabled={busy} onClick={()=>change('DELETE')}>Disconnect all devices</button>}
     {notice&&<p role="status">{notice}</p>}
 

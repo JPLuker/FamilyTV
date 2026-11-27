@@ -12,7 +12,7 @@ if [[ -n ${FAMILYTV_TEST_IMAGE:-} ]]; then
 else
   (cd backend && go build -o "$state/server" ./cmd/server)
 fi
-mkdir "$state/media"
+mkdir -p "$state/media/Lessons/Season one"
 ffmpeg -v error -f lavfi -i color=c=blue:s=64x64:d=4 -c:v libvpx -threads 1 "$state/media/forest.webm"
 printf "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nForest\n" > "$state/media/forest.vtt"
 # Small original fixtures exercise season and playlist ordering through the real scanner.

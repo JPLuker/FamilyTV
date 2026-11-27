@@ -1,5 +1,11 @@
 # FamilyTV handoff — 2026-11-23
 
+## Parent dashboard, web 0.34.0
+
+Review from the approval queue or imported library opens a keyboard-accessible modal. Parents choose a scan folder within shared media, start the scan, and name or rename household screens in the dashboard. Existing installations default to scanning the entire shared folder. Docker sets the read-only storage boundary at installation. All subsequent folder changes within it take effect without a restart.
+
+LukerPlus acceptance remains open in #2 and #9. Verify review on a phone, select a nested media folder, then rename an already paired screen. Combined-profile sessions and the native onboarding items in #9 remain open.
+
 ## Household setup and playback, 0.33.0
 
 New pairing codes are six characters. Android setup searches advertised servers and the debug LAN endpoint and offers parent management through the authenticated browser. Device session starts require parent authorization and PIN verification. Video tiles launch playback directly and have a separate options menu. The media catalog starts collapsed; scans fill missing topic metadata without approving videos. Physical LukerPlus discovery, remote focus, player appearance and parent PIN entry need household verification.

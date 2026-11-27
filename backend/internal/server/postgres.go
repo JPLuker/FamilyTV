@@ -125,17 +125,18 @@ func OpenPostgres(ctx context.Context, dsn, path string, secure bool) (http.Hand
 	db.SetMaxOpenConns(12)
 	scanCtx, cancel := context.WithCancel(context.Background())
 	scanner := &LibraryScanner{ctx: scanCtx}
-	scanner.known = func(ctx context.Context) (map[string]bool, error) {
+	scanner.known = func(ctx context.Context) (map[string]bool, string, error) {
 		var raw []byte
-		err := db.QueryRowContext(ctx, "SELECT COALESCE(document->'media','[]'::jsonb) FROM familytv_household WHERE singleton AND version=2").Scan(&raw)
+		var folder string
+		err := db.QueryRowContext(ctx, "SELECT COALESCE(document->'media','[]'::jsonb), COALESCE(document->>'library_folder','') FROM familytv_household WHERE singleton AND version=2").Scan(&raw, &folder)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		var items []Media
 		if err = json.Unmarshal(raw, &items); err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		return knownPaths(items), nil
+		return knownPaths(items), folder, nil
 	}
 	scanner.insert = func(ctx context.Context, m Media, existing bool) (int, error) {
 		tx, err := db.BeginTx(ctx, nil)

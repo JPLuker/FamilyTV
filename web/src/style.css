@@ -62,3 +62,9 @@ li{overflow-wrap:anywhere}video{width:100%;height:auto}
   main:not(.still):not(.contrast) .toy-tv{animation:settle .52s ease-out 1}
   main:not(.still):not(.contrast) button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px var(--ink)}
 }
+
+.review-dialog{width:min(36rem,calc(100% - 2rem));max-height:88dvh;overflow:auto;overscroll-behavior:contain;color:var(--ink);background:var(--surface);border:var(--edge);border-radius:1.25rem;padding:clamp(1rem,3vw,2rem)}
+.review-dialog::backdrop{background:rgba(32,22,47,.6)}
+.review-dialog h3{margin-top:0}
+body:has(.review-dialog[open]){overflow:hidden}
+.review-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.review-heading h3{margin:.4rem 0}

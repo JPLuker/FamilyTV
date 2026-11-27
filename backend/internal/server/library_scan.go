@@ -21,7 +21,7 @@ type scanResult struct {
 }
 type LibraryScanner struct {
 	ctx    context.Context
-	known  func(context.Context) (map[string]bool, error)
+	known  func(context.Context) (map[string]bool, string, error)
 	insert func(context.Context, Media, bool) (int, error)
 	mu     sync.Mutex
 	status scanResult
@@ -36,10 +36,10 @@ func knownPaths(items []Media) map[string]bool {
 }
 func (s *Server) StartLibraryScanner(ctx context.Context) {
 	scanner := &LibraryScanner{ctx: ctx}
-	scanner.known = func(context.Context) (map[string]bool, error) {
+	scanner.known = func(context.Context) (map[string]bool, string, error) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		return knownPaths(s.data.Media), nil
+		return knownPaths(s.data.Media), s.data.LibraryFolder, nil
 	}
 	scanner.insert = func(_ context.Context, m Media, existing bool) (int, error) {
 		s.mu.Lock()
@@ -67,6 +67,9 @@ func (s *LibraryScanner) schedule() {
 func (s *LibraryScanner) start() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.startLocked()
+}
+func (s *LibraryScanner) startLocked() {
 	if s.status.Running {
 		return
 	}
@@ -81,7 +84,7 @@ func (s *LibraryScanner) run() {
 		s.mu.Unlock()
 	}()
 	failed := func(message string) { s.mu.Lock(); s.status.Failed++; s.status.LastError = message; s.mu.Unlock() }
-	known, err := s.known(s.ctx)
+	known, folder, err := s.known(s.ctx)
 	if err != nil {
 		failed("Library unavailable.")
 		return
@@ -92,7 +95,12 @@ func (s *LibraryScanner) run() {
 		return
 	}
 	defer root.Close()
-	err = fs.WalkDir(root.FS(), ".", func(path string, d fs.DirEntry, err error) error {
+	folder = defaultFolder(folder)
+	if !libraryDirectory(root, folder) {
+		failed("Selected folder unavailable.")
+		return
+	}
+	err = fs.WalkDir(root.FS(), folder, func(path string, d fs.DirEntry, err error) error {
 		if s.ctx.Err() != nil {
 			return s.ctx.Err()
 		}

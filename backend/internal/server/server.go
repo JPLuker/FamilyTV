@@ -30,6 +30,7 @@ type loginAttempts struct {
 	Until int64 `json:"until"`
 }
 type state struct {
+	LibraryFolder    string                         `json:"library_folder,omitempty"`
 	Devices          map[string]DevicePairing       `json:"devices,omitempty"`
 	Usage            map[string]DailyUsage          `json:"usage,omitempty"`
 	Bookmarks        map[string]map[string]Bookmark `json:"bookmarks,omitempty"`
@@ -335,6 +336,8 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/media/{id}/probe", s.refreshProbe)
 	mux.HandleFunc("POST /api/media/library-scan", s.libraryScan)
 	mux.HandleFunc("GET /api/media/library-scan", s.libraryScan)
+	mux.HandleFunc("GET /api/media/library-folder", s.libraryFolder)
+	mux.HandleFunc("PUT /api/media/library-folder", s.libraryFolder)
 	mux.HandleFunc("GET /api/media/scan", s.scanMedia)
 	mux.HandleFunc("PUT /api/media/{id}/metadata", s.editMetadata)
 	mux.HandleFunc("DELETE /api/media/{id}/metadata", s.editMetadata)

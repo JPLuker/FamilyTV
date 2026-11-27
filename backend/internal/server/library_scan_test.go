@@ -48,3 +48,28 @@ func TestRecursiveScanImportsOnceAndRequiresReview(t *testing.T) {
 		t.Fatal("scan granted approval")
 	}
 }
+
+func TestFolderSelectionStaysInsideSharedMedia(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "Shows", "Season 1"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(dir, "Shows"), filepath.Join(dir, "linked")); err != nil {
+		t.Fatal(err)
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	for _, path := range []string{".", "Shows", "Shows/Season 1"} {
+		if !libraryDirectory(root, path) {
+			t.Errorf("rejected %q", path)
+		}
+	}
+	for _, path := range []string{"", "..", "/", "Shows/../Shows", "linked", "linked/Season 1", ".hidden", "missing"} {
+		if libraryDirectory(root, path) {
+			t.Errorf("accepted %q", path)
+		}
+	}
+}

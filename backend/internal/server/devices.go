@@ -9,7 +9,9 @@ import (
 	"maps"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // The empty key identifies the single household. Old profile keys may still
@@ -44,12 +46,14 @@ func (st *state) UnmarshalJSON(b []byte) error {
 }
 
 type DevicePairing struct {
-	AllowStart bool           `json:"allow_start,omitempty"`
-	Challenge  string         `json:"challenge,omitempty"`
-	Until      int64          `json:"until,omitempty"`
-	Screens    []pairedScreen `json:"screens,omitempty"`
+	PendingName string         `json:"pending_name,omitempty"`
+	AllowStart  bool           `json:"allow_start,omitempty"`
+	Challenge   string         `json:"challenge,omitempty"`
+	Until       int64          `json:"until,omitempty"`
+	Screens     []pairedScreen `json:"screens,omitempty"`
 }
 type pairedScreen struct {
+	Name       string `json:"name,omitempty"`
 	AllowStart bool   `json:"allow_start,omitempty"`
 	Profile    string `json:"profile,omitempty"`
 	Hash       string `json:"hash"`
@@ -105,25 +109,37 @@ func (s *Server) accountDevices(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		devices := make([]map[string]any, 0, len(p.Screens))
 		for _, screen := range p.Screens {
-			devices = append(devices, map[string]any{"id": secretHash(screen.Hash)[:16], "profile": screen.Profile, "allow_start": screen.AllowStart})
+			devices = append(devices, map[string]any{"id": secretHash(screen.Hash)[:16], "name": screen.Name, "profile": screen.Profile, "allow_start": screen.AllowStart})
 		}
 		write(w, 200, map[string]any{"devices": devices})
 		return
 	case "PATCH":
 		var assignment struct {
-			Device, Profile string
-			AllowStart      *bool `json:"allow_start"`
+			Device        string
+			Profile, Name *string
+			AllowStart    *bool `json:"allow_start"`
 		}
 		if !readInput(w, r, &assignment) {
 			return
 		}
-		if _, ok := s.profile(assignment.Profile); assignment.Profile != "" && !ok {
-			http.NotFound(w, r)
+		if assignment.Name != nil && utf8.RuneCountInString(*assignment.Name) > 60 {
+			write(w, 400, map[string]string{"error": "Use up to 60 characters for the screen name."})
 			return
+		}
+		if assignment.Profile != nil && *assignment.Profile != "" {
+			if _, ok := s.profile(*assignment.Profile); !ok {
+				http.NotFound(w, r)
+				return
+			}
 		}
 		for i, screen := range p.Screens {
 			if secretHash(screen.Hash)[:16] == assignment.Device {
-				p.Screens[i].Profile = assignment.Profile
+				if assignment.Name != nil {
+					p.Screens[i].Name = strings.TrimSpace(*assignment.Name)
+				}
+				if assignment.Profile != nil {
+					p.Screens[i].Profile = *assignment.Profile
+				}
 				if assignment.AllowStart != nil {
 					p.Screens[i].AllowStart = *assignment.AllowStart
 				}
@@ -148,12 +164,18 @@ func (s *Server) accountDevices(w http.ResponseWriter, r *http.Request) {
 	}
 	var code string
 	var input struct {
+		Name       string
 		Challenge  string
 		AllowStart bool `json:"allow_start"`
 	}
 	if (r.Method == "PUT" || r.ContentLength != 0) && !readInput(w, r, &input) {
 		return
 	}
+	if utf8.RuneCountInString(input.Name) > 60 {
+		write(w, 400, map[string]string{"error": "Use up to 60 characters for the screen name."})
+		return
+	}
+	p.PendingName = strings.TrimSpace(input.Name)
 	p.AllowStart = input.AllowStart
 	if r.Method == "PUT" {
 		b, e := hex.DecodeString(input.Challenge)
@@ -199,11 +221,13 @@ func (s *Server) joinDevice(w http.ResponseWriter, r *http.Request, hash, normal
 		s.finishExchange(w, r, cookie, lifetime, func() bool {
 			old := s.data.Devices
 			s.data.Devices = maps.Clone(old)
+			name := p.PendingName
+			p.PendingName = ""
 			p.Challenge, p.Until = "", 0
 			s.data.Devices[id] = p
 			account := s.data.Devices[householdDevices]
 			account.Screens = slices.DeleteFunc(slices.Clone(account.Screens), func(d pairedScreen) bool { return d.Until <= now.Unix() })
-			account.Screens = append(account.Screens, pairedScreen{AllowStart: p.AllowStart, Profile: id, Hash: secretHash(cookie), Until: now.Unix() + lifetime})
+			account.Screens = append(account.Screens, pairedScreen{Name: name, AllowStart: p.AllowStart, Profile: id, Hash: secretHash(cookie), Until: now.Unix() + lifetime})
 			s.data.Devices[householdDevices] = account
 			if err := s.persist(); err != nil {
 				s.data.Devices = old
