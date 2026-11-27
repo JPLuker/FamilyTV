@@ -42,7 +42,7 @@ Open or create `.env` beside `compose.yaml`. Add this line, replacing the exampl
 FAMILYTV_MEDIA_ROOT="/mnt/media/TV"
 ```
 
-FamilyTV reads this folder through a read-only mount. Importing creates a catalog entry. Plex keeps using the same file. If you'd rather try a single episode first, point FamilyTV at a smaller folder containing the video and its captions. For example, put `Forest.vtt` beside `Forest.mp4`.
+FamilyTV reads this folder through a read-only mount. Importing creates a catalog entry. Plex keeps using the same file. After installation, open **Media library → Choose folder** in the parent dashboard. Browse to a folder and choose **Use this folder and scan**. FamilyTV remembers the selection for future scans and keeps existing imports and approvals. For example, put `Forest.vtt` beside `Forest.mp4`.
 
 ### If another app uses port 8080
 
